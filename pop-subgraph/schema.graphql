@@ -1,0 +1,7 @@
+type BeaconUpgraded @entity(immutable: true) {
+  id: Bytes!
+  beacon: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
