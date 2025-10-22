@@ -4,23 +4,23 @@ indexerHints:
 schema:
   file: ./schema.graphql
 # Contract Addresses:
-# PoaManager: 0xF4d36f199D77B5030F137C1DFf63C930772328EB
-# ImplementationRegistry: 0x3e625de090C398D033EE12A50a85e37be1dB9351
-# OrgRegistry: 0x61863caC092cB918d507DB6916a005cb14aC0E93
-# GovernanceFactory: 0x1b72b6caE29147189a112e3037c5193534B71aa8
-# AccessFactory: 0x50f28a7dDB37c13261A9cD1f51f4c2656b1739CF
-# ModulesFactory: 0xc0338FC4C4e4e32E4b99B968Cbd44A357328Ba01
-# HatsTreeSetup: 0x09Eb1E0c4CA13EBD46D6bB57FB3Dd3e2a15F23ac
-# PaymasterHub: 0xDBdf5B0532827917eFFd55439c05B4dB0e471205
-# OrgDeployer: 0xDced4506526Dc929590E5841FA2EE56Abf05fC32
+# PoaManager: 0x680F36c3a403f094430393c71b8E5D9dC91136b7
+# ImplementationRegistry: 0x1b88d71FED58cBEe9B6559F0a79D4Dd19837a8CB
+# OrgRegistry: 0x0b9e213DB7B2712Dad512919c6148003B28c2278
+# GovernanceFactory: 0x7138B8f5C02E75ebA4C557410dd84d5da2DcF643
+# AccessFactory: 0x3e43B9D4d254a18780Fd36515CFFfBe9100e8810
+# ModulesFactory: 0x55E95d5A579fFfAF30Bfd507E4419f7acd3FA6aF
+# HatsTreeSetup: 0x4B7998E30A5e425B8342FC7026F723986DD56A88
+# PaymasterHub: 0x434416F85f6eAb0E9B87F71fe5c31469CdAA208C
+# OrgDeployer: 0x49F91059F4A5Bd08B548DD74b4FA3BbC9BB3Fc18
 dataSources:
   - kind: ethereum
     name: OrgDeployer
     network: hoodi
     source:
-      address: "0xDced4506526Dc929590E5841FA2EE56Abf05fC32"
+      address: "0x49F91059F4A5Bd08B548DD74b4FA3BbC9BB3Fc18"
       abi: OrgDeployer
-      startBlock: 1429671
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -58,9 +58,9 @@ dataSources:
     name: GovernanceFactory
     network: hoodi
     source:
-      address: "0x1b72b6caE29147189a112e3037c5193534B71aa8"
+      address: "0x7138B8f5C02E75ebA4C557410dd84d5da2DcF643"
       abi: GovernanceFactory
-      startBlock: 1429671
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
