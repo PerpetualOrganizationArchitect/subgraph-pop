@@ -3,12 +3,22 @@ indexerHints:
   prune: auto
 schema:
   file: ./schema.graphql
+# Contract Addresses:
+# PoaManager: 0xF4d36f199D77B5030F137C1DFf63C930772328EB
+# ImplementationRegistry: 0x3e625de090C398D033EE12A50a85e37be1dB9351
+# OrgRegistry: 0x61863caC092cB918d507DB6916a005cb14aC0E93
+# GovernanceFactory: 0x1b72b6caE29147189a112e3037c5193534B71aa8
+# AccessFactory: 0x50f28a7dDB37c13261A9cD1f51f4c2656b1739CF
+# ModulesFactory: 0xc0338FC4C4e4e32E4b99B968Cbd44A357328Ba01
+# HatsTreeSetup: 0x09Eb1E0c4CA13EBD46D6bB57FB3Dd3e2a15F23ac
+# PaymasterHub: 0xDBdf5B0532827917eFFd55439c05B4dB0e471205
+# OrgDeployer: 0xDced4506526Dc929590E5841FA2EE56Abf05fC32
 dataSources:
   - kind: ethereum
     name: OrgDeployer
     network: hoodi
     source:
-      address: "0x0e8Cf79B322a7932e4cF4aeF517355E0CaD331FD"
+      address: "0xDced4506526Dc929590E5841FA2EE56Abf05fC32"
       abi: OrgDeployer
       startBlock: 1429671
     mapping:
@@ -16,11 +26,136 @@ dataSources:
       apiVersion: 0.0.9
       language: wasm/assemblyscript
       entities:
-        - BeaconUpgraded
+        - Organization
       abis:
         - name: OrgDeployer
           file: ./abis/OrgDeployer.json
       eventHandlers:
-        - event: BeaconUpgraded(indexed address)
-          handler: handleBeaconUpgraded
+        - event: OrgDeployed(indexed bytes32,indexed address,address,address,address,address,address,address,address)
+          handler: handleOrgDeployed
       file: ./src/org-deployer.ts
+  # - kind: ethereum
+  #   name: Beacon
+  #   network: hoodi
+  #   source:
+  #     address: "0x0000000000000000000000000000000000000000" # TODO: Add Beacon contract address
+  #     abi: Beacon
+  #     startBlock: 1429671
+  #   mapping:
+  #     kind: ethereum/events
+  #     apiVersion: 0.0.9
+  #     language: wasm/assemblyscript
+  #     entities:
+  #       - BeaconUpgrade
+  #     abis:
+  #       - name: Beacon
+  #         file: ./abis/Beacon.json
+  #     eventHandlers:
+  #       - event: Upgraded(indexed address)
+  #         handler: handleUpgraded
+  #     file: ./src/beacon.ts
+  - kind: ethereum
+    name: GovernanceFactory
+    network: hoodi
+    source:
+      address: "0x1b72b6caE29147189a112e3037c5193534B71aa8"
+      abi: GovernanceFactory
+      startBlock: 1429671
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - GovernanceModule
+      abis:
+        - name: GovernanceFactory
+          file: ./abis/GovernanceFactory.json
+      eventHandlers:
+        - event: ModuleDeployed(indexed bytes32,indexed bytes32,address,address,bool,address)
+          handler: handleModuleDeployed
+      file: ./src/governance-factory.ts
+templates:
+  - kind: ethereum
+    name: TaskManager
+    network: hoodi
+    source:
+      abi: TaskManager
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Project
+        - Task
+        - TaskApplication
+      abis:
+        - name: TaskManager
+          file: ./abis/TaskManager.json
+      eventHandlers:
+        - event: ProjectCreated(indexed bytes32,bytes,uint256)
+          handler: handleProjectCreated
+        - event: ProjectDeleted(indexed bytes32,bytes)
+          handler: handleProjectDeleted
+        - event: TaskCreated(indexed uint256,indexed bytes32,uint256,address,uint256,bool,bytes)
+          handler: handleTaskCreated
+        - event: TaskAssigned(indexed uint256,indexed address,indexed address)
+          handler: handleTaskAssigned
+        - event: TaskClaimed(indexed uint256,indexed address)
+          handler: handleTaskClaimed
+        - event: TaskSubmitted(indexed uint256,bytes)
+          handler: handleTaskSubmitted
+        - event: TaskCompleted(indexed uint256,indexed address)
+          handler: handleTaskCompleted
+        - event: TaskCancelled(indexed uint256,indexed address)
+          handler: handleTaskCancelled
+        - event: TaskUpdated(indexed uint256,uint256,address,uint256,bytes)
+          handler: handleTaskUpdated
+        - event: TaskApplicationSubmitted(indexed uint256,indexed address,bytes32)
+          handler: handleTaskApplicationSubmitted
+        - event: TaskApplicationApproved(indexed uint256,indexed address,indexed address)
+          handler: handleTaskApplicationApproved
+      file: ./src/task-manager.ts
+  - kind: ethereum
+    name: HybridVoting
+    network: hoodi
+    source:
+      abi: HybridVoting
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - HybridVotingContract
+        - HybridVotingHatPermission
+        - HybridVotingTargetPermission
+        - HybridVotingQuorumChange
+        - HybridVotingExecutorChange
+        - Proposal
+        - Vote
+      abis:
+        - name: HybridVoting
+          file: ./abis/HybridVoting.json
+      eventHandlers:
+        - event: Initialized(uint64)
+          handler: handleInitialized
+        - event: ExecutorUpdated(address)
+          handler: handleExecutorUpdated
+        - event: QuorumSet(uint8)
+          handler: handleQuorumSet
+        - event: HatSet(uint8,uint256,bool)
+          handler: handleHatSet
+        - event: HatToggled(indexed uint256,bool)
+          handler: handleHatToggled
+        - event: TargetAllowed(address,bool)
+          handler: handleTargetAllowed
+        - event: NewProposal(indexed uint256,indexed address,bytes,uint8,uint64,uint64,bool)
+          handler: handleNewProposal
+        - event: NewHatProposal(indexed uint256,indexed address,bytes,uint8,uint64,uint64,uint256[],bool)
+          handler: handleNewHatProposal
+        - event: VoteCast(indexed uint256,indexed address,uint8[],uint8[],uint256[],uint64)
+          handler: handleVoteCast
+        - event: Winner(indexed uint256,indexed uint256,bool,bool,uint64)
+          handler: handleWinner
+        - event: ProposalExecuted(indexed uint256,indexed uint256,uint256)
+          handler: handleProposalExecuted
+      file: ./src/hybrid-voting.ts

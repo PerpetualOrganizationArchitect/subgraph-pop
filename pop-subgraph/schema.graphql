@@ -1,7 +1,199 @@
-type BeaconUpgraded @entity(immutable: true) {
+type Organization @entity(immutable: false) {
+  id: Bytes! # orgId
+  orgId: Bytes!
+  executor: Bytes!
+  hybridVoting: HybridVotingContract! # Relationship to HybridVotingContract entity
+  directDemocracyVoting: Bytes!
+  quickJoin: Bytes!
+  participationToken: Bytes!
+  taskManager: TaskManager! # Relationship to TaskManager entity
+  educationHub: Bytes!
+  paymentManager: Bytes!
+  deployedAt: BigInt!
+  deployedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type TaskManager @entity(immutable: false) {
+  id: Bytes! # taskManager contract address
+  organization: Organization! # Organization this TaskManager belongs to
+  projects: [Project!]! @derivedFrom(field: "taskManager")
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type BeaconUpgrade @entity(immutable: true) {
   id: Bytes!
-  beacon: Bytes! # address
+  implementation: Bytes!
   blockNumber: BigInt!
   blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type GovernanceModule @entity(immutable: true) {
+  id: Bytes! # proxy address
+  orgId: Bytes!
+  typeId: Bytes!
+  proxy: Bytes!
+  beacon: Bytes!
+  autoUpgrade: Boolean!
+  owner: Bytes!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type Project @entity(immutable: false) {
+  id: Bytes! # projectId
+  taskManager: TaskManager! # Relationship to TaskManager entity
+  metadata: Bytes!
+  cap: BigInt!
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  deleted: Boolean!
+  deletedAt: BigInt
+  deletedMetadata: Bytes
+  tasks: [Task!]! @derivedFrom(field: "project")
+}
+
+enum TaskStatus {
+  Open
+  Assigned
+  Submitted
+  Completed
+  Cancelled
+}
+
+type Task @entity(immutable: false) {
+  id: String! # taskManager-taskId
+  taskId: BigInt!
+  taskManager: Bytes!
+  project: Project!
+  payout: BigInt!
+  bountyToken: Bytes!
+  bountyPayout: BigInt!
+  requiresApplication: Boolean!
+  metadata: Bytes!
+  assignee: Bytes
+  status: TaskStatus!
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  assignedAt: BigInt
+  submittedAt: BigInt
+  completedAt: BigInt
+  cancelledAt: BigInt
+  updatedAt: BigInt
+  applications: [TaskApplication!]! @derivedFrom(field: "task")
+}
+
+type TaskApplication @entity(immutable: false) {
+  id: String! # taskManager-taskId-applicant
+  task: Task!
+  applicant: Bytes!
+  applicationHash: Bytes!
+  approved: Boolean!
+  approver: Bytes
+  appliedAt: BigInt!
+  appliedAtBlock: BigInt!
+  approvedAt: BigInt
+}
+
+# HybridVoting Entities
+
+type HybridVotingContract @entity(immutable: false) {
+  id: Bytes! # contract address
+  organization: Organization! # Organization this HybridVotingContract belongs to
+  executor: Bytes!
+  quorum: Int!
+  hats: Bytes!
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  hatPermissions: [HybridVotingHatPermission!]! @derivedFrom(field: "hybridVoting")
+  targetPermissions: [HybridVotingTargetPermission!]! @derivedFrom(field: "hybridVoting")
+  quorumChanges: [HybridVotingQuorumChange!]! @derivedFrom(field: "hybridVoting")
+  executorChanges: [HybridVotingExecutorChange!]! @derivedFrom(field: "hybridVoting")
+  proposals: [Proposal!]! @derivedFrom(field: "hybridVoting")
+}
+
+type HybridVotingHatPermission @entity(immutable: false) {
+  id: String! # contractAddress-hatId
+  hybridVoting: HybridVotingContract!
+  hatId: BigInt!
+  allowed: Boolean!
+  hatType: Int # 0 = creator, stored as int8 from contract
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type HybridVotingTargetPermission @entity(immutable: false) {
+  id: String! # contractAddress-targetAddress
+  hybridVoting: HybridVotingContract!
+  target: Bytes!
+  allowed: Boolean!
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type HybridVotingQuorumChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  hybridVoting: HybridVotingContract!
+  newQuorum: Int!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type HybridVotingExecutorChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  hybridVoting: HybridVotingContract!
+  newExecutor: Bytes!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# Proposal status enum
+enum ProposalStatus {
+  Active
+  Ended
+  Executed
+}
+
+type Proposal @entity(immutable: false) {
+  id: String! # hybridVoting-proposalId
+  proposalId: BigInt!
+  hybridVoting: HybridVotingContract!
+  creator: Bytes!
+  metadata: Bytes!
+  numOptions: Int!
+  endTimestamp: BigInt!
+  createdTimestamp: BigInt!
+  hasExecutionBatches: Boolean!
+  isHatRestricted: Boolean! # true for NewHatProposal, false for NewProposal
+  restrictedHatIds: [BigInt!] # only for hat-restricted proposals
+  status: ProposalStatus!
+  votes: [Vote!]! @derivedFrom(field: "proposal")
+  winningOption: BigInt
+  isValid: Boolean
+  wasExecuted: Boolean!
+  winnerAnnouncedAt: BigInt
+  executedAt: BigInt
+  executedCallsCount: BigInt
+  createdAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type Vote @entity(immutable: true) {
+  id: String! # hybridVoting-proposalId-voter
+  proposal: Proposal!
+  voter: Bytes!
+  optionIndexes: [Int!]! # Vote distribution across options
+  optionWeights: [Int!]! # Weight for each option (percentages)
+  classRawPowers: [BigInt!]! # Raw voting power per class
+  votedAt: BigInt!
+  votedAtBlock: BigInt!
   transactionHash: Bytes!
 }
