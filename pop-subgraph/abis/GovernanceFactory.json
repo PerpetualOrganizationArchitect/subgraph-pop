@@ -1,0 +1,413 @@
+[
+  {
+    "type": "function",
+    "name": "deployInfrastructure",
+    "inputs": [
+      {
+        "name": "params",
+        "type": "tuple",
+        "internalType": "struct GovernanceFactory.GovernanceParams",
+        "components": [
+          {
+            "name": "orgId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "orgName",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "poaManager",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "orgRegistry",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "hats",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "hatsTreeSetup",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "deployer",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "participationToken",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "autoUpgrade",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "hybridQuorumPct",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "ddQuorumPct",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "hybridClasses",
+            "type": "tuple[]",
+            "internalType": "struct IHybridVotingInit.ClassConfig[]",
+            "components": [
+              {
+                "name": "strategy",
+                "type": "uint8",
+                "internalType": "enum IHybridVotingInit.ClassStrategy"
+              },
+              {
+                "name": "slicePct",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "quadratic",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "minBalance",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "asset",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "hatIds",
+                "type": "uint256[]",
+                "internalType": "uint256[]"
+              }
+            ]
+          },
+          {
+            "name": "hybridProposalCreatorRolesBitmap",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "ddVotingRolesBitmap",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "ddCreatorRolesBitmap",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "ddInitialTargets",
+            "type": "address[]",
+            "internalType": "address[]"
+          },
+          {
+            "name": "roleNames",
+            "type": "string[]",
+            "internalType": "string[]"
+          },
+          {
+            "name": "roleImages",
+            "type": "string[]",
+            "internalType": "string[]"
+          },
+          {
+            "name": "roleCanVote",
+            "type": "bool[]",
+            "internalType": "bool[]"
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "result",
+        "type": "tuple",
+        "internalType": "struct GovernanceFactory.GovernanceResult",
+        "components": [
+          {
+            "name": "executor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "eligibilityModule",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "toggleModule",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "hybridVoting",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "directDemocracyVoting",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "topHatId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "roleHatIds",
+            "type": "uint256[]",
+            "internalType": "uint256[]"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "deployVoting",
+    "inputs": [
+      {
+        "name": "params",
+        "type": "tuple",
+        "internalType": "struct GovernanceFactory.GovernanceParams",
+        "components": [
+          {
+            "name": "orgId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "orgName",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "poaManager",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "orgRegistry",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "hats",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "hatsTreeSetup",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "deployer",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "participationToken",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "autoUpgrade",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "hybridQuorumPct",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "ddQuorumPct",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "hybridClasses",
+            "type": "tuple[]",
+            "internalType": "struct IHybridVotingInit.ClassConfig[]",
+            "components": [
+              {
+                "name": "strategy",
+                "type": "uint8",
+                "internalType": "enum IHybridVotingInit.ClassStrategy"
+              },
+              {
+                "name": "slicePct",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "quadratic",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "minBalance",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "asset",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "hatIds",
+                "type": "uint256[]",
+                "internalType": "uint256[]"
+              }
+            ]
+          },
+          {
+            "name": "hybridProposalCreatorRolesBitmap",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "ddVotingRolesBitmap",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "ddCreatorRolesBitmap",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "ddInitialTargets",
+            "type": "address[]",
+            "internalType": "address[]"
+          },
+          {
+            "name": "roleNames",
+            "type": "string[]",
+            "internalType": "string[]"
+          },
+          {
+            "name": "roleImages",
+            "type": "string[]",
+            "internalType": "string[]"
+          },
+          {
+            "name": "roleCanVote",
+            "type": "bool[]",
+            "internalType": "bool[]"
+          }
+        ]
+      },
+      {
+        "name": "executor",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "roleHatIds",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "hybridVoting",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "directDemocracyVoting",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "ModuleDeployed",
+    "inputs": [
+      {
+        "name": "orgId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "typeId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "proxy",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "beacon",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "autoUpgrade",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "EmptyInit",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InitFailed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidAddress",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "UnsupportedType",
+    "inputs": []
+  }
+]

@@ -3,46 +3,132 @@ import {
   describe,
   test,
   clearStore,
-  beforeAll,
-  afterAll
-} from "matchstick-as/assembly/index"
-import { Address } from "@graphprotocol/graph-ts"
-import { BeaconUpgraded } from "../generated/schema"
-import { BeaconUpgraded as BeaconUpgradedEvent } from "../generated/OrgDeployer/OrgDeployer"
-import { handleBeaconUpgraded } from "../src/org-deployer"
-import { createBeaconUpgradedEvent } from "./org-deployer-utils"
+  beforeEach,
+  afterEach
+} from "matchstick-as/assembly/index";
+import { Address, Bytes } from "@graphprotocol/graph-ts";
+import { handleOrgDeployed } from "../src/org-deployer";
+import { createOrgDeployedEvent } from "./org-deployer-utils";
 
-// Tests structure (matchstick-as >=0.5.0)
-// https://thegraph.com/docs/en/subgraphs/developing/creating/unit-testing-framework/#tests-structure
+describe("OrgDeployer", () => {
+  afterEach(() => {
+    clearStore();
+  });
 
-describe("Describe entity assertions", () => {
-  beforeAll(() => {
-    let beacon = Address.fromString(
+  test("Organization created and stored with all component addresses", () => {
+    let orgId = Bytes.fromHexString(
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    );
+    let executor = Address.fromString(
       "0x0000000000000000000000000000000000000001"
-    )
-    let newBeaconUpgradedEvent = createBeaconUpgradedEvent(beacon)
-    handleBeaconUpgraded(newBeaconUpgradedEvent)
-  })
+    );
+    let hybridVoting = Address.fromString(
+      "0x0000000000000000000000000000000000000002"
+    );
+    let directDemocracyVoting = Address.fromString(
+      "0x0000000000000000000000000000000000000003"
+    );
+    let quickJoin = Address.fromString(
+      "0x0000000000000000000000000000000000000004"
+    );
+    let participationToken = Address.fromString(
+      "0x0000000000000000000000000000000000000005"
+    );
+    let taskManager = Address.fromString(
+      "0x0000000000000000000000000000000000000006"
+    );
+    let educationHub = Address.fromString(
+      "0x0000000000000000000000000000000000000007"
+    );
+    let paymentManager = Address.fromString(
+      "0x0000000000000000000000000000000000000008"
+    );
 
-  afterAll(() => {
-    clearStore()
-  })
+    let orgDeployedEvent = createOrgDeployedEvent(
+      orgId,
+      executor,
+      hybridVoting,
+      directDemocracyVoting,
+      quickJoin,
+      participationToken,
+      taskManager,
+      educationHub,
+      paymentManager
+    );
 
-  // For more test scenarios, see:
-  // https://thegraph.com/docs/en/subgraphs/developing/creating/unit-testing-framework/#write-a-unit-test
+    handleOrgDeployed(orgDeployedEvent);
 
-  test("BeaconUpgraded created and stored", () => {
-    assert.entityCount("BeaconUpgraded", 1)
+    // Verify Organization, TaskManager, and HybridVotingContract entities are created
+    assert.entityCount("Organization", 1);
+    assert.entityCount("TaskManager", 1);
+    assert.entityCount("HybridVotingContract", 1);
 
-    // 0xa16081f360e3847006db660bae1c6d1b2e17ec2a is the default address used in newMockEvent() function
+    // Verify Organization fields
     assert.fieldEquals(
-      "BeaconUpgraded",
-      "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1",
-      "beacon",
+      "Organization",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      "executor",
       "0x0000000000000000000000000000000000000001"
-    )
+    );
+    assert.fieldEquals(
+      "Organization",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      "hybridVoting",
+      "0x0000000000000000000000000000000000000002"
+    );
+    assert.fieldEquals(
+      "Organization",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      "directDemocracyVoting",
+      "0x0000000000000000000000000000000000000003"
+    );
+    assert.fieldEquals(
+      "Organization",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      "quickJoin",
+      "0x0000000000000000000000000000000000000004"
+    );
+    assert.fieldEquals(
+      "Organization",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      "participationToken",
+      "0x0000000000000000000000000000000000000005"
+    );
+    assert.fieldEquals(
+      "Organization",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      "educationHub",
+      "0x0000000000000000000000000000000000000007"
+    );
+    assert.fieldEquals(
+      "Organization",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      "paymentManager",
+      "0x0000000000000000000000000000000000000008"
+    );
 
-    // More assert options:
-    // https://thegraph.com/docs/en/subgraphs/developing/creating/unit-testing-framework/#asserts
-  })
-})
+    // Verify Organization.taskManager links to TaskManager entity
+    assert.fieldEquals(
+      "Organization",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      "taskManager",
+      "0x0000000000000000000000000000000000000006"
+    );
+
+    // Verify TaskManager entity and its relationship back to Organization
+    assert.fieldEquals(
+      "TaskManager",
+      "0x0000000000000000000000000000000000000006",
+      "organization",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    );
+
+    // Verify HybridVotingContract entity and its relationship back to Organization
+    assert.fieldEquals(
+      "HybridVotingContract",
+      "0x0000000000000000000000000000000000000002",
+      "organization",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    );
+  });
+});
