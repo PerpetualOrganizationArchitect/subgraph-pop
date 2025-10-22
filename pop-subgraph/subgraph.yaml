@@ -159,3 +159,50 @@ templates:
         - event: ProposalExecuted(indexed uint256,indexed uint256,uint256)
           handler: handleProposalExecuted
       file: ./src/hybrid-voting.ts
+  - kind: ethereum
+    name: DirectDemocracyVoting
+    network: hoodi
+    source:
+      abi: DirectDemocracyVoting
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - DirectDemocracyVotingContract
+        - DirectDemocracyVotingHatPermission
+        - DirectDemocracyVotingCreatorHatPermission
+        - DirectDemocracyVotingTargetPermission
+        - DirectDemocracyVotingQuorumChange
+        - DirectDemocracyVotingExecutorChange
+        - DDVProposal
+        - DDVVote
+      abis:
+        - name: DirectDemocracyVoting
+          file: ./abis/DirectDemocracyVoting.json
+      eventHandlers:
+        - event: Initialized(uint64)
+          handler: handleInitialized
+        - event: ExecutorUpdated(address)
+          handler: handleExecutorUpdated
+        - event: QuorumPercentageSet(uint8)
+          handler: handleQuorumPercentageSet
+        - event: HatSet(uint8,uint256,bool)
+          handler: handleHatSet
+        - event: HatToggled(indexed uint256,bool)
+          handler: handleHatToggled
+        - event: CreatorHatSet(uint256,bool)
+          handler: handleCreatorHatSet
+        - event: TargetAllowed(address,bool)
+          handler: handleTargetAllowed
+        - event: NewProposal(uint256,bytes,uint8,uint64,uint64)
+          handler: handleNewProposal
+        - event: NewHatProposal(uint256,bytes,uint8,uint64,uint64,uint256[])
+          handler: handleNewHatProposal
+        - event: VoteCast(uint256,address,uint8[],uint8[])
+          handler: handleVoteCast
+        - event: Winner(uint256,uint256,bool)
+          handler: handleWinner
+        - event: ProposalCleaned(uint256,uint256)
+          handler: handleProposalCleaned
+      file: ./src/direct-democracy-voting.ts

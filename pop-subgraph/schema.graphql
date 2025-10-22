@@ -3,7 +3,7 @@ type Organization @entity(immutable: false) {
   orgId: Bytes!
   executor: Bytes!
   hybridVoting: HybridVotingContract! # Relationship to HybridVotingContract entity
-  directDemocracyVoting: Bytes!
+  directDemocracyVoting: DirectDemocracyVotingContract! # Relationship to DirectDemocracyVotingContract entity
   quickJoin: Bytes!
   participationToken: Bytes!
   taskManager: TaskManager! # Relationship to TaskManager entity
@@ -195,6 +195,111 @@ type Vote @entity(immutable: true) {
   optionIndexes: [Int!]! # Vote distribution across options
   optionWeights: [Int!]! # Weight for each option (percentages)
   classRawPowers: [BigInt!]! # Raw voting power per class
+  votedAt: BigInt!
+  votedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# DirectDemocracyVoting Entities
+
+type DirectDemocracyVotingContract @entity(immutable: false) {
+  id: Bytes! # contract address
+  organization: Organization! # Organization this DirectDemocracyVotingContract belongs to
+  executor: Bytes!
+  quorumPercentage: Int!
+  hats: Bytes!
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  votingHatPermissions: [DirectDemocracyVotingHatPermission!]! @derivedFrom(field: "directDemocracyVoting")
+  creatorHatPermissions: [DirectDemocracyVotingCreatorHatPermission!]! @derivedFrom(field: "directDemocracyVoting")
+  targetPermissions: [DirectDemocracyVotingTargetPermission!]! @derivedFrom(field: "directDemocracyVoting")
+  quorumChanges: [DirectDemocracyVotingQuorumChange!]! @derivedFrom(field: "directDemocracyVoting")
+  executorChanges: [DirectDemocracyVotingExecutorChange!]! @derivedFrom(field: "directDemocracyVoting")
+  ddvProposals: [DDVProposal!]! @derivedFrom(field: "directDemocracyVoting")
+}
+
+type DirectDemocracyVotingHatPermission @entity(immutable: false) {
+  id: String! # contractAddress-hatId-votingHat
+  directDemocracyVoting: DirectDemocracyVotingContract!
+  hatId: BigInt!
+  allowed: Boolean!
+  hatType: Int # 1 = voting hat (VOTER), stored as int8 from contract
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type DirectDemocracyVotingCreatorHatPermission @entity(immutable: false) {
+  id: String! # contractAddress-hatId-creatorHat
+  directDemocracyVoting: DirectDemocracyVotingContract!
+  hatId: BigInt!
+  allowed: Boolean!
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type DirectDemocracyVotingTargetPermission @entity(immutable: false) {
+  id: String! # contractAddress-targetAddress
+  directDemocracyVoting: DirectDemocracyVotingContract!
+  target: Bytes!
+  allowed: Boolean!
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type DirectDemocracyVotingQuorumChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  directDemocracyVoting: DirectDemocracyVotingContract!
+  newQuorumPercentage: Int!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type DirectDemocracyVotingExecutorChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  directDemocracyVoting: DirectDemocracyVotingContract!
+  newExecutor: Bytes!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# DDV Proposal status enum
+enum DDVProposalStatus {
+  Active
+  Ended
+  Cleaned
+}
+
+type DDVProposal @entity(immutable: false) {
+  id: String! # directDemocracyVoting-proposalId
+  proposalId: BigInt!
+  directDemocracyVoting: DirectDemocracyVotingContract!
+  metadata: Bytes!
+  numOptions: Int!
+  endTimestamp: BigInt!
+  createdTimestamp: BigInt!
+  isHatRestricted: Boolean! # true for NewHatProposal, false for NewProposal
+  restrictedHatIds: [BigInt!] # only for hat-restricted proposals
+  status: DDVProposalStatus!
+  votes: [DDVVote!]! @derivedFrom(field: "proposal")
+  winningOption: BigInt
+  isValid: Boolean
+  winnerAnnouncedAt: BigInt
+  cleanedAt: BigInt
+  createdAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type DDVVote @entity(immutable: true) {
+  id: String! # directDemocracyVoting-proposalId-voter
+  proposal: DDVProposal!
+  voter: Bytes!
+  optionIndexes: [Int!]! # Vote distribution across options
+  optionWeights: [Int!]! # Weight for each option (percentages)
   votedAt: BigInt!
   votedAtBlock: BigInt!
   transactionHash: Bytes!
