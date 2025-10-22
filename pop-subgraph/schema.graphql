@@ -76,6 +76,8 @@ type Task @entity(immutable: false) {
   requiresApplication: Boolean!
   metadata: Bytes!
   assignee: Bytes
+  completer: Bytes
+  canceller: Bytes
   status: TaskStatus!
   createdAt: BigInt!
   createdAtBlock: BigInt!

@@ -113,6 +113,12 @@ export function handleTaskCompleted(event: TaskCompleted): void {
 
   let task = Task.load(id);
   if (task) {
+    // Set assignee to completer if not already set
+    // This handles cases where task is completed without explicit assignment
+    if (!task.assignee) {
+      task.assignee = event.params.completer;
+    }
+    task.completer = event.params.completer;
     task.status = "Completed";
     task.completedAt = event.block.timestamp;
     task.save();
@@ -126,6 +132,7 @@ export function handleTaskCancelled(event: TaskCancelled): void {
 
   let task = Task.load(id);
   if (task) {
+    task.canceller = event.params.canceller;
     task.status = "Cancelled";
     task.cancelledAt = event.block.timestamp;
     task.save();
