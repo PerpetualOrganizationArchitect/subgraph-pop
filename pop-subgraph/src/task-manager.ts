@@ -12,7 +12,8 @@ import {
   TaskApplicationSubmitted,
   TaskApplicationApproved
 } from "../generated/templates/TaskManager/TaskManager";
-import { Project, Task, TaskApplication } from "../generated/schema";
+import { Project, Task, TaskApplication, TaskManager } from "../generated/schema";
+import { getUsernameForAddress, getOrCreateUser } from "./utils";
 
 /**
  * Handles the ProjectCreated event from a TaskManager contract.
@@ -71,7 +72,20 @@ export function handleTaskAssigned(event: TaskAssigned): void {
 
   let task = Task.load(id);
   if (task) {
+    // Get organization from TaskManager
+    let taskManager = TaskManager.load(event.address);
+    if (taskManager) {
+      let user = getOrCreateUser(
+        taskManager.organization,
+        event.params.assignee,
+        event.block.timestamp,
+        event.block.number
+      );
+      task.assigneeUser = user.id;
+    }
+
     task.assignee = event.params.assignee;
+    task.assigneeUsername = getUsernameForAddress(event.params.assignee);
     task.status = "Assigned";
     task.assignedAt = event.block.timestamp;
     task.save();
@@ -86,6 +100,7 @@ export function handleTaskClaimed(event: TaskClaimed): void {
   let task = Task.load(id);
   if (task) {
     task.assignee = event.params.claimer;
+    task.assigneeUsername = getUsernameForAddress(event.params.claimer);
     task.status = "Assigned";
     task.assignedAt = event.block.timestamp;
     task.save();
@@ -113,12 +128,30 @@ export function handleTaskCompleted(event: TaskCompleted): void {
 
   let task = Task.load(id);
   if (task) {
+    // Get organization from TaskManager
+    let taskManager = TaskManager.load(event.address);
+    if (taskManager) {
+      let user = getOrCreateUser(
+        taskManager.organization,
+        event.params.completer,
+        event.block.timestamp,
+        event.block.number
+      );
+      task.completerUser = user.id;
+
+      // Increment totalTasksCompleted
+      user.totalTasksCompleted = user.totalTasksCompleted.plus(BigInt.fromI32(1));
+      user.save();
+    }
+
     // Set assignee to completer if not already set
     // This handles cases where task is completed without explicit assignment
     if (!task.assignee) {
       task.assignee = event.params.completer;
+      task.assigneeUsername = getUsernameForAddress(event.params.completer);
     }
     task.completer = event.params.completer;
+    task.completerUsername = getUsernameForAddress(event.params.completer);
     task.status = "Completed";
     task.completedAt = event.block.timestamp;
     task.save();
@@ -132,7 +165,24 @@ export function handleTaskCancelled(event: TaskCancelled): void {
 
   let task = Task.load(id);
   if (task) {
+    // Get organization from TaskManager
+    let taskManager = TaskManager.load(event.address);
+    if (taskManager) {
+      let user = getOrCreateUser(
+        taskManager.organization,
+        event.params.canceller,
+        event.block.timestamp,
+        event.block.number
+      );
+      task.cancellerUser = user.id;
+
+      // Increment totalTasksCancelled
+      user.totalTasksCancelled = user.totalTasksCancelled.plus(BigInt.fromI32(1));
+      user.save();
+    }
+
     task.canceller = event.params.canceller;
+    task.cancellerUsername = getUsernameForAddress(event.params.canceller);
     task.status = "Cancelled";
     task.cancelledAt = event.block.timestamp;
     task.save();
@@ -166,6 +216,20 @@ export function handleTaskApplicationSubmitted(event: TaskApplicationSubmitted):
 
   application.task = taskEntityId;
   application.applicant = event.params.applicant;
+  application.applicantUsername = getUsernameForAddress(event.params.applicant);
+
+  // Link to User entity
+  let taskManager = TaskManager.load(event.address);
+  if (taskManager) {
+    let user = getOrCreateUser(
+      taskManager.organization,
+      event.params.applicant,
+      event.block.timestamp,
+      event.block.number
+    );
+    application.applicantUser = user.id;
+  }
+
   application.applicationHash = event.params.applicationHash;
   application.approved = false;
   application.appliedAt = event.block.timestamp;
@@ -182,8 +246,21 @@ export function handleTaskApplicationApproved(event: TaskApplicationApproved): v
 
   let application = TaskApplication.load(id);
   if (application) {
+    // Link to User entity for approver
+    let taskManager = TaskManager.load(event.address);
+    if (taskManager) {
+      let user = getOrCreateUser(
+        taskManager.organization,
+        event.params.approver,
+        event.block.timestamp,
+        event.block.number
+      );
+      application.approverUser = user.id;
+    }
+
     application.approved = true;
     application.approver = event.params.approver;
+    application.approverUsername = getUsernameForAddress(event.params.approver);
     application.approvedAt = event.block.timestamp;
     application.save();
   }

@@ -1,5 +1,5 @@
 import { newMockEvent } from "matchstick-as";
-import { ethereum, Address, Bytes } from "@graphprotocol/graph-ts";
+import { ethereum, Address, Bytes, BigInt } from "@graphprotocol/graph-ts";
 import { OrgDeployed } from "../generated/OrgDeployer/OrgDeployer";
 
 export function createOrgDeployedEvent(
@@ -11,7 +11,11 @@ export function createOrgDeployedEvent(
   participationToken: Address,
   taskManager: Address,
   educationHub: Address,
-  paymentManager: Address
+  paymentManager: Address,
+  eligibilityModule: Address,
+  toggleModule: Address,
+  topHatId: BigInt,
+  roleHatIds: BigInt[]
 ): OrgDeployed {
   let orgDeployedEvent = changetype<OrgDeployed>(newMockEvent());
 
@@ -60,6 +64,30 @@ export function createOrgDeployedEvent(
     new ethereum.EventParam(
       "paymentManager",
       ethereum.Value.fromAddress(paymentManager)
+    )
+  );
+  orgDeployedEvent.parameters.push(
+    new ethereum.EventParam(
+      "eligibilityModule",
+      ethereum.Value.fromAddress(eligibilityModule)
+    )
+  );
+  orgDeployedEvent.parameters.push(
+    new ethereum.EventParam(
+      "toggleModule",
+      ethereum.Value.fromAddress(toggleModule)
+    )
+  );
+  orgDeployedEvent.parameters.push(
+    new ethereum.EventParam(
+      "topHatId",
+      ethereum.Value.fromUnsignedBigInt(topHatId)
+    )
+  );
+  orgDeployedEvent.parameters.push(
+    new ethereum.EventParam(
+      "roleHatIds",
+      ethereum.Value.fromUnsignedBigIntArray(roleHatIds)
     )
   );
 

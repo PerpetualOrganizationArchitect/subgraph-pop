@@ -21,6 +21,7 @@ import {
   Proposal,
   Vote
 } from "../generated/schema";
+import { getUsernameForAddress, getOrCreateUser } from "./utils";
 
 /**
  * Handler for Initialized event
@@ -195,6 +196,20 @@ export function handleNewProposal(event: NewProposal): void {
   proposal.proposalId = event.params.id;
   proposal.hybridVoting = event.address;
   proposal.creator = event.params.creator;
+  proposal.creatorUsername = getUsernameForAddress(event.params.creator);
+
+  // Link to User entity
+  let votingContract = HybridVotingContract.load(event.address);
+  if (votingContract) {
+    let user = getOrCreateUser(
+      votingContract.organization,
+      event.params.creator,
+      event.block.timestamp,
+      event.block.number
+    );
+    proposal.creatorUser = user.id;
+  }
+
   proposal.metadata = event.params.metadata;
   proposal.numOptions = event.params.numOptions;
   proposal.endTimestamp = event.params.endTs;
@@ -223,6 +238,20 @@ export function handleNewHatProposal(event: NewHatProposal): void {
   proposal.proposalId = event.params.id;
   proposal.hybridVoting = event.address;
   proposal.creator = event.params.creator;
+  proposal.creatorUsername = getUsernameForAddress(event.params.creator);
+
+  // Link to User entity
+  let votingContract = HybridVotingContract.load(event.address);
+  if (votingContract) {
+    let user = getOrCreateUser(
+      votingContract.organization,
+      event.params.creator,
+      event.block.timestamp,
+      event.block.number
+    );
+    proposal.creatorUser = user.id;
+  }
+
   proposal.metadata = event.params.metadata;
   proposal.numOptions = event.params.numOptions;
   proposal.endTimestamp = event.params.endTs;
@@ -252,6 +281,21 @@ export function handleVoteCast(event: VoteCast): void {
 
   vote.proposal = proposalId;
   vote.voter = event.params.voter;
+  vote.voterUsername = getUsernameForAddress(event.params.voter);
+
+  // Link to User entity and increment totalVotes
+  let votingContract = HybridVotingContract.load(event.address);
+  if (votingContract) {
+    let user = getOrCreateUser(
+      votingContract.organization,
+      event.params.voter,
+      event.block.timestamp,
+      event.block.number
+    );
+    vote.voterUser = user.id;
+    user.totalVotes = user.totalVotes.plus(BigInt.fromI32(1));
+    user.save();
+  }
 
   // Convert uint8[] arrays to Int arrays for optionIndexes and optionWeights
   let indexes: i32[] = [];

@@ -23,6 +23,7 @@ import {
   DDVProposal,
   DDVVote
 } from "../generated/schema";
+import { getUsernameForAddress, getOrCreateUser } from "./utils";
 
 /**
  * Handler for Initialized event
@@ -273,6 +274,21 @@ export function handleVoteCast(event: VoteCast): void {
 
   vote.proposal = proposalId;
   vote.voter = event.params.voter;
+  vote.voterUsername = getUsernameForAddress(event.params.voter);
+
+  // Link to User entity and increment totalVotes
+  let votingContract = DirectDemocracyVotingContract.load(event.address);
+  if (votingContract) {
+    let user = getOrCreateUser(
+      votingContract.organization,
+      event.params.voter,
+      event.block.timestamp,
+      event.block.number
+    );
+    vote.voterUser = user.id;
+    user.totalVotes = user.totalVotes.plus(BigInt.fromI32(1));
+    user.save();
+  }
 
   // Convert uint8[] arrays to Int arrays for optionIndexes and optionWeights
   let indexes: i32[] = [];
