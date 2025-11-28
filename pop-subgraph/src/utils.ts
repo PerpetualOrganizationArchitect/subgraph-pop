@@ -1,3 +1,4 @@
+// Utility functions for subgraph event handlers
 import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import { Account, User } from "../generated/schema";
 
