@@ -2,34 +2,36 @@ import { Address, Bytes, BigInt } from "@graphprotocol/graph-ts";
 import {
   Initialized,
   ExecutorUpdated,
-  QuorumSet,
+  QuorumPercentageSet,
   HatSet,
   HatToggled,
+  CreatorHatSet,
   TargetAllowed,
   NewProposal,
   NewHatProposal,
   VoteCast,
   Winner,
-  ProposalExecuted
-} from "../generated/templates/HybridVoting/HybridVoting";
+  ProposalCleaned
+} from "../generated/templates/DirectDemocracyVoting/DirectDemocracyVoting";
 import {
-  HybridVotingContract,
-  HybridVotingHatPermission,
-  HybridVotingTargetPermission,
-  HybridVotingQuorumChange,
-  HybridVotingExecutorChange,
-  Proposal,
-  Vote
+  DirectDemocracyVotingContract,
+  DirectDemocracyVotingHatPermission,
+  DirectDemocracyVotingCreatorHatPermission,
+  DirectDemocracyVotingTargetPermission,
+  DirectDemocracyVotingQuorumChange,
+  DirectDemocracyVotingExecutorChange,
+  DDVProposal,
+  DDVVote
 } from "../generated/schema";
 import { getUsernameForAddress, getOrCreateUser } from "./utils";
 
 /**
  * Handler for Initialized event
- * Updates the HybridVotingContract entity with initialization data.
+ * Updates the DirectDemocracyVotingContract entity with initialization data.
  * The entity should already exist, created by handleOrgDeployed.
  */
 export function handleInitialized(event: Initialized): void {
-  let contract = HybridVotingContract.load(event.address);
+  let contract = DirectDemocracyVotingContract.load(event.address);
 
   if (!contract) {
     // Edge case: contract doesn't exist yet (OrgDeployed not processed)
@@ -47,7 +49,7 @@ export function handleInitialized(event: Initialized): void {
  * Updates the executor address and creates a historical record
  */
 export function handleExecutorUpdated(event: ExecutorUpdated): void {
-  let contract = HybridVotingContract.load(event.address);
+  let contract = DirectDemocracyVotingContract.load(event.address);
 
   if (!contract) {
     // Edge case: contract doesn't exist yet (OrgDeployed not processed)
@@ -56,15 +58,15 @@ export function handleExecutorUpdated(event: ExecutorUpdated): void {
   }
 
   // Update current executor
-  contract.executor = event.params.newExec;
+  contract.executor = event.params.newExecutor;
   contract.save();
 
   // Create historical record
   let changeId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let change = new HybridVotingExecutorChange(changeId);
+  let change = new DirectDemocracyVotingExecutorChange(changeId);
 
-  change.hybridVoting = event.address;
-  change.newExecutor = event.params.newExec;
+  change.directDemocracyVoting = event.address;
+  change.newExecutor = event.params.newExecutor;
   change.changedAt = event.block.timestamp;
   change.changedAtBlock = event.block.number;
   change.transactionHash = event.transaction.hash;
@@ -73,11 +75,11 @@ export function handleExecutorUpdated(event: ExecutorUpdated): void {
 }
 
 /**
- * Handler for QuorumSet event
+ * Handler for QuorumPercentageSet event
  * Updates the quorum percentage and creates a historical record
  */
-export function handleQuorumSet(event: QuorumSet): void {
-  let contract = HybridVotingContract.load(event.address);
+export function handleQuorumPercentageSet(event: QuorumPercentageSet): void {
+  let contract = DirectDemocracyVotingContract.load(event.address);
 
   if (!contract) {
     // Edge case: contract doesn't exist yet (OrgDeployed not processed)
@@ -86,15 +88,15 @@ export function handleQuorumSet(event: QuorumSet): void {
   }
 
   // Update current quorum
-  contract.quorum = event.params.pct;
+  contract.quorumPercentage = event.params.pct;
   contract.save();
 
   // Create historical record
   let changeId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let change = new HybridVotingQuorumChange(changeId);
+  let change = new DirectDemocracyVotingQuorumChange(changeId);
 
-  change.hybridVoting = event.address;
-  change.newQuorum = event.params.pct;
+  change.directDemocracyVoting = event.address;
+  change.newQuorumPercentage = event.params.pct;
   change.changedAt = event.block.timestamp;
   change.changedAtBlock = event.block.number;
   change.transactionHash = event.transaction.hash;
@@ -104,18 +106,18 @@ export function handleQuorumSet(event: QuorumSet): void {
 
 /**
  * Handler for HatSet event
- * Creates or updates hat permissions with type information
+ * Creates or updates hat permissions (voting hats) with type information
  */
 export function handleHatSet(event: HatSet): void {
   let contractAddress = event.address.toHexString();
   let hatId = event.params.hat.toString();
-  let permissionId = contractAddress + "-" + hatId;
+  let permissionId = contractAddress + "-" + hatId + "-votingHat";
 
-  let permission = HybridVotingHatPermission.load(permissionId);
+  let permission = DirectDemocracyVotingHatPermission.load(permissionId);
 
   if (!permission) {
-    permission = new HybridVotingHatPermission(permissionId);
-    permission.hybridVoting = event.address;
+    permission = new DirectDemocracyVotingHatPermission(permissionId);
+    permission.directDemocracyVoting = event.address;
     permission.hatId = event.params.hat;
   }
 
@@ -130,20 +132,45 @@ export function handleHatSet(event: HatSet): void {
 
 /**
  * Handler for HatToggled event
- * Creates or updates hat permissions (without type information)
+ * Creates or updates hat permissions (voting hats) without type information
  */
 export function handleHatToggled(event: HatToggled): void {
   let contractAddress = event.address.toHexString();
   let hatId = event.params.hatId.toString();
-  let permissionId = contractAddress + "-" + hatId;
+  let permissionId = contractAddress + "-" + hatId + "-votingHat";
 
-  let permission = HybridVotingHatPermission.load(permissionId);
+  let permission = DirectDemocracyVotingHatPermission.load(permissionId);
 
   if (!permission) {
-    permission = new HybridVotingHatPermission(permissionId);
-    permission.hybridVoting = event.address;
+    permission = new DirectDemocracyVotingHatPermission(permissionId);
+    permission.directDemocracyVoting = event.address;
     permission.hatId = event.params.hatId;
     // hatType is not set in HatToggled event - it remains null
+  }
+
+  permission.allowed = event.params.allowed;
+  permission.setAt = event.block.timestamp;
+  permission.setAtBlock = event.block.number;
+  permission.transactionHash = event.transaction.hash;
+
+  permission.save();
+}
+
+/**
+ * Handler for CreatorHatSet event
+ * Creates or updates creator hat permissions
+ */
+export function handleCreatorHatSet(event: CreatorHatSet): void {
+  let contractAddress = event.address.toHexString();
+  let hatId = event.params.hat.toString();
+  let permissionId = contractAddress + "-" + hatId + "-creatorHat";
+
+  let permission = DirectDemocracyVotingCreatorHatPermission.load(permissionId);
+
+  if (!permission) {
+    permission = new DirectDemocracyVotingCreatorHatPermission(permissionId);
+    permission.directDemocracyVoting = event.address;
+    permission.hatId = event.params.hat;
   }
 
   permission.allowed = event.params.allowed;
@@ -163,11 +190,11 @@ export function handleTargetAllowed(event: TargetAllowed): void {
   let targetAddress = event.params.target.toHexString();
   let permissionId = contractAddress + "-" + targetAddress;
 
-  let permission = HybridVotingTargetPermission.load(permissionId);
+  let permission = DirectDemocracyVotingTargetPermission.load(permissionId);
 
   if (!permission) {
-    permission = new HybridVotingTargetPermission(permissionId);
-    permission.hybridVoting = event.address;
+    permission = new DirectDemocracyVotingTargetPermission(permissionId);
+    permission.directDemocracyVoting = event.address;
     permission.target = event.params.target;
   }
 
@@ -191,34 +218,17 @@ export function handleNewProposal(event: NewProposal): void {
   let contractAddress = event.address.toHexString();
   let proposalId = contractAddress + "-" + event.params.id.toString();
 
-  let proposal = new Proposal(proposalId);
+  let proposal = new DDVProposal(proposalId);
 
   proposal.proposalId = event.params.id;
-  proposal.hybridVoting = event.address;
-  proposal.creator = event.params.creator;
-  proposal.creatorUsername = getUsernameForAddress(event.params.creator);
-
-  // Link to User entity
-  let votingContract = HybridVotingContract.load(event.address);
-  if (votingContract) {
-    let user = getOrCreateUser(
-      votingContract.organization,
-      event.params.creator,
-      event.block.timestamp,
-      event.block.number
-    );
-    proposal.creatorUser = user.id;
-  }
-
+  proposal.directDemocracyVoting = event.address;
   proposal.metadata = event.params.metadata;
   proposal.numOptions = event.params.numOptions;
   proposal.endTimestamp = event.params.endTs;
   proposal.createdTimestamp = event.params.created;
-  proposal.hasExecutionBatches = event.params.hasExecutionBatches;
   proposal.isHatRestricted = false;
   proposal.restrictedHatIds = [];
   proposal.status = "Active";
-  proposal.wasExecuted = false;
   proposal.createdAtBlock = event.block.number;
   proposal.transactionHash = event.transaction.hash;
 
@@ -233,34 +243,17 @@ export function handleNewHatProposal(event: NewHatProposal): void {
   let contractAddress = event.address.toHexString();
   let proposalId = contractAddress + "-" + event.params.id.toString();
 
-  let proposal = new Proposal(proposalId);
+  let proposal = new DDVProposal(proposalId);
 
   proposal.proposalId = event.params.id;
-  proposal.hybridVoting = event.address;
-  proposal.creator = event.params.creator;
-  proposal.creatorUsername = getUsernameForAddress(event.params.creator);
-
-  // Link to User entity
-  let votingContract = HybridVotingContract.load(event.address);
-  if (votingContract) {
-    let user = getOrCreateUser(
-      votingContract.organization,
-      event.params.creator,
-      event.block.timestamp,
-      event.block.number
-    );
-    proposal.creatorUser = user.id;
-  }
-
+  proposal.directDemocracyVoting = event.address;
   proposal.metadata = event.params.metadata;
   proposal.numOptions = event.params.numOptions;
   proposal.endTimestamp = event.params.endTs;
   proposal.createdTimestamp = event.params.created;
-  proposal.hasExecutionBatches = event.params.hasExecutionBatches;
   proposal.isHatRestricted = true;
   proposal.restrictedHatIds = event.params.hatIds;
   proposal.status = "Active";
-  proposal.wasExecuted = false;
   proposal.createdAtBlock = event.block.number;
   proposal.transactionHash = event.transaction.hash;
 
@@ -277,14 +270,14 @@ export function handleVoteCast(event: VoteCast): void {
   let voterAddress = event.params.voter.toHexString();
   let voteId = proposalId + "-" + voterAddress;
 
-  let vote = new Vote(voteId);
+  let vote = new DDVVote(voteId);
 
   vote.proposal = proposalId;
   vote.voter = event.params.voter;
   vote.voterUsername = getUsernameForAddress(event.params.voter);
 
   // Link to User entity and increment totalVotes
-  let votingContract = HybridVotingContract.load(event.address);
+  let votingContract = DirectDemocracyVotingContract.load(event.address);
   if (votingContract) {
     let user = getOrCreateUser(
       votingContract.organization,
@@ -310,8 +303,7 @@ export function handleVoteCast(event: VoteCast): void {
   }
   vote.optionWeights = weights;
 
-  vote.classRawPowers = event.params.classRawPowers;
-  vote.votedAt = event.params.timestamp;
+  vote.votedAt = event.block.timestamp;
   vote.votedAtBlock = event.block.number;
   vote.transactionHash = event.transaction.hash;
 
@@ -326,7 +318,7 @@ export function handleWinner(event: Winner): void {
   let contractAddress = event.address.toHexString();
   let proposalId = contractAddress + "-" + event.params.id.toString();
 
-  let proposal = Proposal.load(proposalId);
+  let proposal = DDVProposal.load(proposalId);
 
   if (!proposal) {
     // Edge case: proposal not found, skip
@@ -335,38 +327,29 @@ export function handleWinner(event: Winner): void {
 
   proposal.winningOption = event.params.winningIdx;
   proposal.isValid = event.params.valid;
-  proposal.winnerAnnouncedAt = event.params.timestamp;
-
-  // Update status based on whether it was executed
-  if (event.params.executed) {
-    proposal.status = "Executed";
-    proposal.wasExecuted = true;
-  } else {
-    proposal.status = "Ended";
-  }
+  proposal.winnerAnnouncedAt = event.block.timestamp;
+  proposal.status = "Ended";
 
   proposal.save();
 }
 
 /**
- * Handler for ProposalExecuted event
- * Marks the proposal as executed and records execution details
+ * Handler for ProposalCleaned event
+ * Marks the proposal as cleaned
  */
-export function handleProposalExecuted(event: ProposalExecuted): void {
+export function handleProposalCleaned(event: ProposalCleaned): void {
   let contractAddress = event.address.toHexString();
   let proposalId = contractAddress + "-" + event.params.id.toString();
 
-  let proposal = Proposal.load(proposalId);
+  let proposal = DDVProposal.load(proposalId);
 
   if (!proposal) {
     // Edge case: proposal not found, skip
     return;
   }
 
-  proposal.wasExecuted = true;
-  proposal.status = "Executed";
-  proposal.executedAt = event.block.timestamp;
-  proposal.executedCallsCount = event.params.numCalls;
+  proposal.status = "Cleaned";
+  proposal.cleanedAt = event.block.timestamp;
 
   proposal.save();
 }

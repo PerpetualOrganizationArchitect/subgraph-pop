@@ -4,23 +4,21 @@ indexerHints:
 schema:
   file: ./schema.graphql
 # Contract Addresses:
-# PoaManager: 0xF4d36f199D77B5030F137C1DFf63C930772328EB
-# ImplementationRegistry: 0x3e625de090C398D033EE12A50a85e37be1dB9351
-# OrgRegistry: 0x61863caC092cB918d507DB6916a005cb14aC0E93
-# GovernanceFactory: 0x1b72b6caE29147189a112e3037c5193534B71aa8
-# AccessFactory: 0x50f28a7dDB37c13261A9cD1f51f4c2656b1739CF
-# ModulesFactory: 0xc0338FC4C4e4e32E4b99B968Cbd44A357328Ba01
-# HatsTreeSetup: 0x09Eb1E0c4CA13EBD46D6bB57FB3Dd3e2a15F23ac
-# PaymasterHub: 0xDBdf5B0532827917eFFd55439c05B4dB0e471205
-# OrgDeployer: 0xDced4506526Dc929590E5841FA2EE56Abf05fC32
+# PoaManager: 0xF8a26534f53fA89Ed89fA5814d167BFFc7645769
+# ImplementationRegistry: 0x0D102FD80DF9368b735C7914dec90823F7F60938
+# OrgRegistry: 0x7eFF3962d71a83C4d8C5fba4aF65D54E5513F0A4
+# GovernanceFactory: 0x7138B8f5C02E75ebA4C557410dd84d5da2DcF643
+# GlobalAccountRegistry: 0x6441247BCc1eDFf6213314D6910651401F99BbAE
+# PaymasterHub: 0x15C8539Bee81dA1e3fC81f283F70f234a41fA690
+# OrgDeployer: 0x35df5Fd21cEE486E130e0321D43EF2a916aEA758
 dataSources:
   - kind: ethereum
     name: OrgDeployer
     network: hoodi
     source:
-      address: "0xDced4506526Dc929590E5841FA2EE56Abf05fC32"
+      address: "0x35df5Fd21cEE486E130e0321D43EF2a916aEA758"
       abi: OrgDeployer
-      startBlock: 1429671
+      startBlock: 1470950
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -31,7 +29,7 @@ dataSources:
         - name: OrgDeployer
           file: ./abis/OrgDeployer.json
       eventHandlers:
-        - event: OrgDeployed(indexed bytes32,indexed address,address,address,address,address,address,address,address)
+        - event: OrgDeployed(indexed bytes32,indexed address,address,address,address,address,address,address,address,address,address,uint256,uint256[])
           handler: handleOrgDeployed
       file: ./src/org-deployer.ts
   # - kind: ethereum
@@ -58,9 +56,9 @@ dataSources:
     name: GovernanceFactory
     network: hoodi
     source:
-      address: "0x1b72b6caE29147189a112e3037c5193534B71aa8"
+      address: "0x7138B8f5C02E75ebA4C557410dd84d5da2DcF643"
       abi: GovernanceFactory
-      startBlock: 1429671
+      startBlock: 1470950
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -74,6 +72,41 @@ dataSources:
         - event: ModuleDeployed(indexed bytes32,indexed bytes32,address,address,bool,address)
           handler: handleModuleDeployed
       file: ./src/governance-factory.ts
+  - kind: ethereum
+    name: UniversalAccountRegistry
+    network: hoodi
+    source:
+      address: "0x6441247BCc1eDFf6213314D6910651401F99BbAE"
+      abi: UniversalAccountRegistry
+      startBlock: 1470950
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - UniversalAccountRegistry
+        - Account
+        - UsernameChange
+        - AccountDeletion
+        - BatchRegistration
+        - RegistryOwnershipTransfer
+      abis:
+        - name: UniversalAccountRegistry
+          file: ./abis/UniversalAccountRegistry.json
+      eventHandlers:
+        - event: Initialized(uint64)
+          handler: handleInitialized
+        - event: UserRegistered(indexed address,string)
+          handler: handleUserRegistered
+        - event: UsernameChanged(indexed address,string)
+          handler: handleUsernameChanged
+        - event: UserDeleted(indexed address,string)
+          handler: handleUserDeleted
+        - event: BatchRegistered(uint256)
+          handler: handleBatchRegistered
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+      file: ./src/universal-account-registry.ts
 templates:
   - kind: ethereum
     name: TaskManager
@@ -159,3 +192,260 @@ templates:
         - event: ProposalExecuted(indexed uint256,indexed uint256,uint256)
           handler: handleProposalExecuted
       file: ./src/hybrid-voting.ts
+  - kind: ethereum
+    name: DirectDemocracyVoting
+    network: hoodi
+    source:
+      abi: DirectDemocracyVoting
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - DirectDemocracyVotingContract
+        - DirectDemocracyVotingHatPermission
+        - DirectDemocracyVotingCreatorHatPermission
+        - DirectDemocracyVotingTargetPermission
+        - DirectDemocracyVotingQuorumChange
+        - DirectDemocracyVotingExecutorChange
+        - DDVProposal
+        - DDVVote
+      abis:
+        - name: DirectDemocracyVoting
+          file: ./abis/DirectDemocracyVoting.json
+      eventHandlers:
+        - event: Initialized(uint64)
+          handler: handleInitialized
+        - event: ExecutorUpdated(address)
+          handler: handleExecutorUpdated
+        - event: QuorumPercentageSet(uint8)
+          handler: handleQuorumPercentageSet
+        - event: HatSet(uint8,uint256,bool)
+          handler: handleHatSet
+        - event: HatToggled(indexed uint256,bool)
+          handler: handleHatToggled
+        - event: CreatorHatSet(uint256,bool)
+          handler: handleCreatorHatSet
+        - event: TargetAllowed(address,bool)
+          handler: handleTargetAllowed
+        - event: NewProposal(uint256,bytes,uint8,uint64,uint64)
+          handler: handleNewProposal
+        - event: NewHatProposal(uint256,bytes,uint8,uint64,uint64,uint256[])
+          handler: handleNewHatProposal
+        - event: VoteCast(uint256,address,uint8[],uint8[])
+          handler: handleVoteCast
+        - event: Winner(uint256,uint256,bool)
+          handler: handleWinner
+        - event: ProposalCleaned(uint256,uint256)
+          handler: handleProposalCleaned
+      file: ./src/direct-democracy-voting.ts
+  - kind: ethereum
+    name: EligibilityModule
+    network: hoodi
+    source:
+      abi: EligibilityModule
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - EligibilityModuleContract
+        - Hat
+        - WearerEligibility
+        - VouchConfig
+        - Vouch
+        - UserJoinTime
+      abis:
+        - name: EligibilityModule
+          file: ./abis/EligibilityModule.json
+      eventHandlers:
+        - event: EligibilityModuleInitialized(indexed address,indexed address)
+          handler: handleEligibilityModuleInitialized
+        - event: HatCreatedWithEligibility(indexed address,indexed uint256,indexed uint256,bool,bool,uint256)
+          handler: handleHatCreatedWithEligibility
+        - event: WearerEligibilityUpdated(indexed address,indexed uint256,bool,bool,indexed address)
+          handler: handleWearerEligibilityUpdated
+        - event: BulkWearerEligibilityUpdated(address[],indexed uint256,bool,bool,indexed address)
+          handler: handleBulkWearerEligibilityUpdated
+        - event: DefaultEligibilityUpdated(indexed uint256,bool,bool,indexed address)
+          handler: handleDefaultEligibilityUpdated
+        - event: VouchConfigSet(indexed uint256,uint32,uint256,bool,bool)
+          handler: handleVouchConfigSet
+        - event: Vouched(indexed address,indexed address,indexed uint256,uint32)
+          handler: handleVouched
+        - event: VouchRevoked(indexed address,indexed address,indexed uint256,uint32)
+          handler: handleVouchRevoked
+        - event: HatClaimed(indexed address,indexed uint256)
+          handler: handleHatClaimed
+        - event: UserJoinTimeSet(indexed address,indexed uint256)
+          handler: handleUserJoinTimeSet
+        - event: EligibilityModuleAdminHatSet(indexed uint256)
+          handler: handleEligibilityModuleAdminHatSet
+        - event: SuperAdminTransferred(indexed address,indexed address)
+          handler: handleSuperAdminTransferred
+        - event: Paused(indexed address)
+          handler: handlePaused
+        - event: Unpaused(indexed address)
+          handler: handleUnpaused
+      file: ./src/eligibility-module.ts
+  - kind: ethereum
+    name: ParticipationToken
+    network: hoodi
+    source:
+      abi: ParticipationToken
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - ParticipationTokenContract
+        - ParticipationTokenMemberHat
+        - ParticipationTokenApproverHat
+        - TokenRequest
+        - TokenBalance
+      abis:
+        - name: ParticipationToken
+          file: ./abis/ParticipationToken.json
+      eventHandlers:
+        - event: Initialized(uint64)
+          handler: handleInitialized
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+        - event: MemberHatSet(uint256,bool)
+          handler: handleMemberHatSet
+        - event: ApproverHatSet(uint256,bool)
+          handler: handleApproverHatSet
+        - event: Requested(indexed uint256,indexed address,uint96,string)
+          handler: handleRequested
+        - event: RequestApproved(indexed uint256,indexed address)
+          handler: handleRequestApproved
+        - event: RequestCancelled(indexed uint256,indexed address)
+          handler: handleRequestCancelled
+        - event: TaskManagerSet(indexed address)
+          handler: handleTaskManagerSet
+        - event: EducationHubSet(indexed address)
+          handler: handleEducationHubSet
+      file: ./src/participation-token.ts
+  - kind: ethereum
+    name: QuickJoin
+    network: hoodi
+    source:
+      abi: QuickJoin
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - QuickJoinContract
+        - QuickJoinMemberHat
+        - QuickJoinEvent
+        - QuickJoinExecutorChange
+        - QuickJoinAddressUpdate
+      abis:
+        - name: QuickJoin
+          file: ./abis/QuickJoin.json
+      eventHandlers:
+        - event: Initialized(uint64)
+          handler: handleInitialized
+        - event: QuickJoined(indexed address,bool,uint256[])
+          handler: handleQuickJoined
+        - event: QuickJoinedByMaster(indexed address,indexed address,bool,uint256[])
+          handler: handleQuickJoinedByMaster
+        - event: ExecutorUpdated(address)
+          handler: handleExecutorUpdated
+        - event: HatToggled(indexed uint256,bool)
+          handler: handleHatToggled
+        - event: MemberHatIdsUpdated(uint256[])
+          handler: handleMemberHatIdsUpdated
+        - event: AddressesUpdated(address,address,address)
+          handler: handleAddressesUpdated
+      file: ./src/quick-join.ts
+  - kind: ethereum
+    name: EducationHub
+    network: hoodi
+    source:
+      abi: EducationHub
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - EducationHubContract
+        - EducationModule
+        - ModuleCompletion
+        - ModuleUpdate
+        - EducationHubCreatorHat
+        - EducationHubMemberHat
+        - EducationHubExecutorChange
+        - EducationHubTokenChange
+        - EducationHubHatsChange
+        - EducationHubPauseEvent
+      abis:
+        - name: EducationHub
+          file: ./abis/EducationHub.json
+      eventHandlers:
+        - event: Initialized(uint64)
+          handler: handleInitialized
+        - event: ModuleCreated(indexed uint256,uint256,bytes)
+          handler: handleModuleCreated
+        - event: ModuleCompleted(indexed uint256,indexed address)
+          handler: handleModuleCompleted
+        - event: ModuleUpdated(indexed uint256,uint256,bytes)
+          handler: handleModuleUpdated
+        - event: ModuleRemoved(indexed uint256)
+          handler: handleModuleRemoved
+        - event: CreatorHatSet(indexed uint256,bool)
+          handler: handleCreatorHatSet
+        - event: MemberHatSet(indexed uint256,bool)
+          handler: handleMemberHatSet
+        - event: HatToggled(indexed uint256,bool)
+          handler: handleHatToggled
+        - event: ExecutorSet(indexed address)
+          handler: handleExecutorSet
+        - event: TokenSet(indexed address)
+          handler: handleTokenSet
+        - event: HatsSet(indexed address)
+          handler: handleHatsSet
+        - event: Paused(address)
+          handler: handlePaused
+        - event: Unpaused(address)
+          handler: handleUnpaused
+      file: ./src/education-hub.ts
+  - kind: ethereum
+    name: PaymentManager
+    network: hoodi
+    source:
+      abi: PaymentManager
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - PaymentManagerContract
+        - Distribution
+        - Claim
+        - Payment
+        - OptOutToggle
+        - OwnershipTransfer
+        - RevenueShareTokenChange
+      abis:
+        - name: PaymentManager
+          file: ./abis/PaymentManager.json
+      eventHandlers:
+        - event: Initialized(uint64)
+          handler: handleInitialized
+        - event: DistributionCreated(indexed uint256,indexed address,uint256,uint256,bytes32)
+          handler: handleDistributionCreated
+        - event: DistributionClaimed(indexed uint256,indexed address,uint256)
+          handler: handleDistributionClaimed
+        - event: DistributionFinalized(indexed uint256,uint256)
+          handler: handleDistributionFinalized
+        - event: PaymentReceived(indexed address,uint256,indexed address)
+          handler: handlePaymentReceived
+        - event: OptOutToggled(indexed address,bool)
+          handler: handleOptOutToggled
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: RevenueShareTokenSet(indexed address)
+          handler: handleRevenueShareTokenSet
+      file: ./src/payment-manager.ts

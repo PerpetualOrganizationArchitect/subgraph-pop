@@ -3,15 +3,70 @@ type Organization @entity(immutable: false) {
   orgId: Bytes!
   executor: Bytes!
   hybridVoting: HybridVotingContract! # Relationship to HybridVotingContract entity
-  directDemocracyVoting: Bytes!
-  quickJoin: Bytes!
-  participationToken: Bytes!
+  directDemocracyVoting: DirectDemocracyVotingContract! # Relationship to DirectDemocracyVotingContract entity
+  quickJoin: QuickJoinContract! # Relationship to QuickJoinContract entity
+  participationToken: ParticipationTokenContract! # Relationship to ParticipationTokenContract entity
   taskManager: TaskManager! # Relationship to TaskManager entity
-  educationHub: Bytes!
-  paymentManager: Bytes!
+  educationHub: EducationHubContract! # Relationship to EducationHubContract entity
+  paymentManager: PaymentManagerContract! # Relationship to PaymentManagerContract entity
+  eligibilityModule: EligibilityModuleContract! # Relationship to EligibilityModuleContract entity
+  toggleModule: Bytes!
+  topHatId: BigInt!
+  roleHatIds: [BigInt!]!
   deployedAt: BigInt!
   deployedAtBlock: BigInt!
   transactionHash: Bytes!
+  users: [User!]! @derivedFrom(field: "organization")
+}
+
+# ========================================
+# User - Aggregates all user activities within an organization
+# ========================================
+
+type User @entity(immutable: false) {
+  id: String! # orgId-userAddress
+  organization: Organization!
+  address: Bytes!
+  account: Account # Link to global Account for username
+  username: String # Denormalized from account for convenience
+
+  # Token balances
+  participationTokenBalance: BigInt!
+
+  # Activity relationships
+  assignedTasks: [Task!]! @derivedFrom(field: "assigneeUser")
+  completedTasks: [Task!]! @derivedFrom(field: "completerUser")
+  cancelledTasks: [Task!]! @derivedFrom(field: "cancellerUser")
+  taskApplications: [TaskApplication!]! @derivedFrom(field: "applicantUser")
+  approvedApplications: [TaskApplication!]! @derivedFrom(field: "approverUser")
+  hybridVotes: [Vote!]! @derivedFrom(field: "voterUser")
+  ddvVotes: [DDVVote!]! @derivedFrom(field: "voterUser")
+  hybridProposalsCreated: [Proposal!]! @derivedFrom(field: "creatorUser")
+  modulesCompleted: [ModuleCompletion!]! @derivedFrom(field: "learnerUser")
+  tokenRequests: [TokenRequest!]! @derivedFrom(field: "requesterUser")
+  approvedTokenRequests: [TokenRequest!]! @derivedFrom(field: "approverUser")
+  claims: [Claim!]! @derivedFrom(field: "claimerUser")
+  payments: [Payment!]! @derivedFrom(field: "payerUser")
+  quickJoinEvents: [QuickJoinEvent!]! @derivedFrom(field: "userUser")
+  hatsCreated: [Hat!]! @derivedFrom(field: "creatorUser")
+  wearerEligibilities: [WearerEligibility!]! @derivedFrom(field: "wearerUser")
+  vouchesGiven: [Vouch!]! @derivedFrom(field: "voucherUser")
+  vouchesReceived: [Vouch!]! @derivedFrom(field: "wearerUser")
+
+  # Aggregate statistics
+  totalVotes: BigInt!
+  totalTasksCompleted: BigInt!
+  totalTasksCancelled: BigInt!
+  totalModulesCompleted: BigInt!
+  totalClaimsAmount: BigInt!
+  totalPaymentsAmount: BigInt!
+  totalTokenRequestsAmount: BigInt!
+
+  # Timestamps
+  firstSeenAt: BigInt!
+  firstSeenAtBlock: BigInt!
+  lastActiveAt: BigInt!
+  lastActiveAtBlock: BigInt!
 }
 
 type TaskManager @entity(immutable: false) {
@@ -76,8 +131,14 @@ type Task @entity(immutable: false) {
   requiresApplication: Boolean!
   metadata: Bytes!
   assignee: Bytes
+  assigneeUsername: String
+  assigneeUser: User
   completer: Bytes
+  completerUsername: String
+  completerUser: User
   canceller: Bytes
+  cancellerUsername: String
+  cancellerUser: User
   status: TaskStatus!
   createdAt: BigInt!
   createdAtBlock: BigInt!
@@ -93,9 +154,13 @@ type TaskApplication @entity(immutable: false) {
   id: String! # taskManager-taskId-applicant
   task: Task!
   applicant: Bytes!
+  applicantUsername: String
+  applicantUser: User
   applicationHash: Bytes!
   approved: Boolean!
   approver: Bytes
+  approverUsername: String
+  approverUser: User
   appliedAt: BigInt!
   appliedAtBlock: BigInt!
   approvedAt: BigInt
@@ -169,6 +234,8 @@ type Proposal @entity(immutable: false) {
   proposalId: BigInt!
   hybridVoting: HybridVotingContract!
   creator: Bytes!
+  creatorUsername: String
+  creatorUser: User
   metadata: Bytes!
   numOptions: Int!
   endTimestamp: BigInt!
@@ -192,10 +259,660 @@ type Vote @entity(immutable: true) {
   id: String! # hybridVoting-proposalId-voter
   proposal: Proposal!
   voter: Bytes!
+  voterUsername: String
+  voterUser: User
   optionIndexes: [Int!]! # Vote distribution across options
   optionWeights: [Int!]! # Weight for each option (percentages)
   classRawPowers: [BigInt!]! # Raw voting power per class
   votedAt: BigInt!
   votedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# DirectDemocracyVoting Entities
+
+type DirectDemocracyVotingContract @entity(immutable: false) {
+  id: Bytes! # contract address
+  organization: Organization! # Organization this DirectDemocracyVotingContract belongs to
+  executor: Bytes!
+  quorumPercentage: Int!
+  hats: Bytes!
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  votingHatPermissions: [DirectDemocracyVotingHatPermission!]! @derivedFrom(field: "directDemocracyVoting")
+  creatorHatPermissions: [DirectDemocracyVotingCreatorHatPermission!]! @derivedFrom(field: "directDemocracyVoting")
+  targetPermissions: [DirectDemocracyVotingTargetPermission!]! @derivedFrom(field: "directDemocracyVoting")
+  quorumChanges: [DirectDemocracyVotingQuorumChange!]! @derivedFrom(field: "directDemocracyVoting")
+  executorChanges: [DirectDemocracyVotingExecutorChange!]! @derivedFrom(field: "directDemocracyVoting")
+  ddvProposals: [DDVProposal!]! @derivedFrom(field: "directDemocracyVoting")
+}
+
+type DirectDemocracyVotingHatPermission @entity(immutable: false) {
+  id: String! # contractAddress-hatId-votingHat
+  directDemocracyVoting: DirectDemocracyVotingContract!
+  hatId: BigInt!
+  allowed: Boolean!
+  hatType: Int # 1 = voting hat (VOTER), stored as int8 from contract
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type DirectDemocracyVotingCreatorHatPermission @entity(immutable: false) {
+  id: String! # contractAddress-hatId-creatorHat
+  directDemocracyVoting: DirectDemocracyVotingContract!
+  hatId: BigInt!
+  allowed: Boolean!
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type DirectDemocracyVotingTargetPermission @entity(immutable: false) {
+  id: String! # contractAddress-targetAddress
+  directDemocracyVoting: DirectDemocracyVotingContract!
+  target: Bytes!
+  allowed: Boolean!
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type DirectDemocracyVotingQuorumChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  directDemocracyVoting: DirectDemocracyVotingContract!
+  newQuorumPercentage: Int!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type DirectDemocracyVotingExecutorChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  directDemocracyVoting: DirectDemocracyVotingContract!
+  newExecutor: Bytes!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# DDV Proposal status enum
+enum DDVProposalStatus {
+  Active
+  Ended
+  Cleaned
+}
+
+type DDVProposal @entity(immutable: false) {
+  id: String! # directDemocracyVoting-proposalId
+  proposalId: BigInt!
+  directDemocracyVoting: DirectDemocracyVotingContract!
+  metadata: Bytes!
+  numOptions: Int!
+  endTimestamp: BigInt!
+  createdTimestamp: BigInt!
+  isHatRestricted: Boolean! # true for NewHatProposal, false for NewProposal
+  restrictedHatIds: [BigInt!] # only for hat-restricted proposals
+  status: DDVProposalStatus!
+  votes: [DDVVote!]! @derivedFrom(field: "proposal")
+  winningOption: BigInt
+  isValid: Boolean
+  winnerAnnouncedAt: BigInt
+  cleanedAt: BigInt
+  createdAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type DDVVote @entity(immutable: true) {
+  id: String! # directDemocracyVoting-proposalId-voter
+  proposal: DDVProposal!
+  voter: Bytes!
+  voterUsername: String
+  voterUser: User
+  optionIndexes: [Int!]! # Vote distribution across options
+  optionWeights: [Int!]! # Weight for each option (percentages)
+  votedAt: BigInt!
+  votedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# EligibilityModule Entities
+
+type EligibilityModuleContract @entity(immutable: false) {
+  id: Bytes! # contract address
+  organization: Organization! # Organization this EligibilityModuleContract belongs to
+  superAdmin: Bytes!
+  hatsContract: Bytes!
+  toggleModule: Bytes!
+  eligibilityModuleAdminHat: BigInt
+  isPaused: Boolean!
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  hats: [Hat!]! @derivedFrom(field: "eligibilityModule")
+  wearerEligibilities: [WearerEligibility!]! @derivedFrom(field: "eligibilityModule")
+  vouchConfigs: [VouchConfig!]! @derivedFrom(field: "eligibilityModule")
+  vouches: [Vouch!]! @derivedFrom(field: "eligibilityModule")
+  userJoinTimes: [UserJoinTime!]! @derivedFrom(field: "eligibilityModule")
+}
+
+type Hat @entity(immutable: false) {
+  id: String! # eligibilityModule-hatId
+  hatId: BigInt!
+  parentHatId: BigInt!
+  eligibilityModule: EligibilityModuleContract!
+  creator: Bytes!
+  creatorUser: User
+  creatorUsername: String
+  defaultEligible: Boolean!
+  defaultStanding: Boolean!
+  mintedCount: BigInt!
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  transactionHash: Bytes!
+  wearers: [WearerEligibility!]! @derivedFrom(field: "hat")
+  vouchConfig: VouchConfig @derivedFrom(field: "hat")
+}
+
+type WearerEligibility @entity(immutable: false) {
+  id: String! # eligibilityModule-hatId-wearer
+  eligibilityModule: EligibilityModuleContract!
+  hat: Hat!
+  wearer: Bytes!
+  wearerUser: User
+  wearerUsername: String
+  hatId: BigInt!
+  eligible: Boolean!
+  standing: Boolean!
+  hasSpecificRules: Boolean! # true if this wearer has custom rules, false if using defaults
+  admin: Bytes # admin who set the eligibility
+  adminUser: User
+  adminUsername: String
+  updatedAt: BigInt!
+  updatedAtBlock: BigInt!
+  transactionHash: Bytes!
+  vouches: [Vouch!]! @derivedFrom(field: "wearerEligibility")
+}
+
+type VouchConfig @entity(immutable: false) {
+  id: String! # eligibilityModule-hatId
+  eligibilityModule: EligibilityModuleContract!
+  hat: Hat!
+  hatId: BigInt!
+  quorum: Int!
+  membershipHatId: BigInt!
+  enabled: Boolean!
+  combinesWithHierarchy: Boolean!
+  updatedAt: BigInt!
+  updatedAtBlock: BigInt!
+  transactionHash: Bytes!
+  vouches: [Vouch!]! @derivedFrom(field: "vouchConfig")
+}
+
+type Vouch @entity(immutable: false) {
+  id: String! # eligibilityModule-hatId-wearer-voucher
+  eligibilityModule: EligibilityModuleContract!
+  vouchConfig: VouchConfig!
+  wearerEligibility: WearerEligibility!
+  hatId: BigInt!
+  wearer: Bytes!
+  wearerUser: User
+  wearerUsername: String
+  voucher: Bytes!
+  voucherUser: User
+  voucherUsername: String
+  vouchCount: Int! # current count after this vouch
+  isActive: Boolean! # false if revoked
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  revokedAt: BigInt
+  revokedAtBlock: BigInt
+  transactionHash: Bytes!
+}
+
+type UserJoinTime @entity(immutable: false) {
+  id: String! # eligibilityModule-user
+  eligibilityModule: EligibilityModuleContract!
+  user: Bytes!
+  joinTime: BigInt!
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# ParticipationToken Entities
+
+type ParticipationTokenContract @entity(immutable: false) {
+  id: Bytes! # contract address
+  organization: Organization! # Organization this ParticipationTokenContract belongs to
+  name: String!
+  symbol: String!
+  totalSupply: BigInt!
+  executor: Bytes!
+  hatsContract: Bytes!
+  taskManagerAddress: Bytes
+  educationHubAddress: Bytes
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  memberHats: [ParticipationTokenMemberHat!]! @derivedFrom(field: "participationToken")
+  approverHats: [ParticipationTokenApproverHat!]! @derivedFrom(field: "participationToken")
+  tokenRequests: [TokenRequest!]! @derivedFrom(field: "participationToken")
+  balances: [TokenBalance!]! @derivedFrom(field: "participationToken")
+}
+
+type ParticipationTokenMemberHat @entity(immutable: false) {
+  id: String! # participationToken-hatId
+  participationToken: ParticipationTokenContract!
+  hatId: BigInt!
+  allowed: Boolean!
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type ParticipationTokenApproverHat @entity(immutable: false) {
+  id: String! # participationToken-hatId
+  participationToken: ParticipationTokenContract!
+  hatId: BigInt!
+  allowed: Boolean!
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+enum TokenRequestStatus {
+  Pending
+  Approved
+  Cancelled
+}
+
+type TokenRequest @entity(immutable: false) {
+  id: String! # participationToken-requestId
+  requestId: BigInt!
+  participationToken: ParticipationTokenContract!
+  requester: Bytes!
+  requesterUser: User
+  requesterUsername: String
+  amount: BigInt!
+  ipfsHash: String!
+  status: TokenRequestStatus!
+  approver: Bytes
+  approverUser: User
+  approverUsername: String
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  approvedAt: BigInt
+  approvedAtBlock: BigInt
+  cancelledAt: BigInt
+  cancelledAtBlock: BigInt
+  transactionHash: Bytes!
+}
+
+type TokenBalance @entity(immutable: false) {
+  id: String! # participationToken-account
+  participationToken: ParticipationTokenContract!
+  account: Bytes!
+  balance: BigInt!
+  updatedAt: BigInt!
+  updatedAtBlock: BigInt!
+}
+
+# QuickJoin Entities
+
+type QuickJoinContract @entity(immutable: false) {
+  id: Bytes! # contract address
+  organization: Organization! # Organization this QuickJoinContract belongs to
+  executor: Bytes!
+  hatsContract: Bytes!
+  accountRegistry: Bytes!
+  masterDeployAddress: Bytes!
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  memberHats: [QuickJoinMemberHat!]! @derivedFrom(field: "quickJoin")
+  joinEvents: [QuickJoinEvent!]! @derivedFrom(field: "quickJoin")
+  executorChanges: [QuickJoinExecutorChange!]! @derivedFrom(field: "quickJoin")
+}
+
+type QuickJoinMemberHat @entity(immutable: false) {
+  id: String! # quickJoin-hatId
+  quickJoin: QuickJoinContract!
+  hatId: BigInt!
+  allowed: Boolean!
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type QuickJoinEvent @entity(immutable: true) {
+  id: String! # quickJoin-txHash-logIndex
+  quickJoin: QuickJoinContract!
+  user: Bytes!
+  userUser: User
+  userUsername: String
+  master: Bytes # only set for QuickJoinedByMaster events
+  masterUsername: String
+  usernameCreated: Boolean!
+  hatIds: [BigInt!]!
+  isMasterDeployJoin: Boolean! # true if joined by master, false if self-join
+  joinedAt: BigInt!
+  joinedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type QuickJoinExecutorChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  quickJoin: QuickJoinContract!
+  newExecutor: Bytes!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type QuickJoinAddressUpdate @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  quickJoin: QuickJoinContract!
+  hatsContract: Bytes!
+  accountRegistry: Bytes!
+  masterDeployAddress: Bytes!
+  updatedAt: BigInt!
+  updatedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# ========================================
+# EducationHub Contract and Related Entities
+# ========================================
+
+type EducationHubContract @entity(immutable: false) {
+  id: Bytes! # contract address
+  organization: Organization!
+  token: Bytes! # ParticipationToken address
+  hatsContract: Bytes!
+  executor: Bytes!
+  isPaused: Boolean!
+  nextModuleId: BigInt!
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  modules: [EducationModule!]! @derivedFrom(field: "educationHub")
+  completions: [ModuleCompletion!]! @derivedFrom(field: "educationHub")
+  creatorHats: [EducationHubCreatorHat!]! @derivedFrom(field: "educationHub")
+  memberHats: [EducationHubMemberHat!]! @derivedFrom(field: "educationHub")
+  executorChanges: [EducationHubExecutorChange!]! @derivedFrom(field: "educationHub")
+  tokenChanges: [EducationHubTokenChange!]! @derivedFrom(field: "educationHub")
+  hatsChanges: [EducationHubHatsChange!]! @derivedFrom(field: "educationHub")
+  pauseEvents: [EducationHubPauseEvent!]! @derivedFrom(field: "educationHub")
+}
+
+enum ModuleStatus {
+  Active
+  Removed
+}
+
+type EducationModule @entity(immutable: false) {
+  id: String! # educationHub-moduleId
+  educationHub: EducationHubContract!
+  moduleId: BigInt!
+  payout: BigInt!
+  metadata: Bytes!
+  status: ModuleStatus!
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  updatedAt: BigInt
+  updatedAtBlock: BigInt
+  removedAt: BigInt
+  removedAtBlock: BigInt
+  completions: [ModuleCompletion!]! @derivedFrom(field: "module")
+  updates: [ModuleUpdate!]! @derivedFrom(field: "module")
+}
+
+type ModuleCompletion @entity(immutable: true) {
+  id: String! # educationHub-moduleId-learner
+  educationHub: EducationHubContract!
+  module: EducationModule!
+  moduleId: BigInt!
+  learner: Bytes!
+  learnerUser: User
+  learnerUsername: String
+  completedAt: BigInt!
+  completedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type ModuleUpdate @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  module: EducationModule!
+  moduleId: BigInt!
+  payout: BigInt!
+  metadata: Bytes!
+  updatedAt: BigInt!
+  updatedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type EducationHubCreatorHat @entity(immutable: false) {
+  id: String! # educationHub-hatId
+  educationHub: EducationHubContract!
+  hatId: BigInt!
+  enabled: Boolean!
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type EducationHubMemberHat @entity(immutable: false) {
+  id: String! # educationHub-hatId
+  educationHub: EducationHubContract!
+  hatId: BigInt!
+  enabled: Boolean!
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type EducationHubExecutorChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  educationHub: EducationHubContract!
+  newExecutor: Bytes!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type EducationHubTokenChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  educationHub: EducationHubContract!
+  newToken: Bytes!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type EducationHubHatsChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  educationHub: EducationHubContract!
+  newHats: Bytes!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type EducationHubPauseEvent @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  educationHub: EducationHubContract!
+  isPaused: Boolean! # true for Paused, false for Unpaused
+  account: Bytes!
+  eventAt: BigInt!
+  eventAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# ========================================
+# PaymentManager Contract and Related Entities
+# ========================================
+
+type PaymentManagerContract @entity(immutable: false) {
+  id: Bytes! # contract address
+  organization: Organization!
+  owner: Bytes!
+  revenueShareToken: Bytes!
+  distributionCounter: BigInt!
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  distributions: [Distribution!]! @derivedFrom(field: "paymentManager")
+  payments: [Payment!]! @derivedFrom(field: "paymentManager")
+  claims: [Claim!]! @derivedFrom(field: "paymentManager")
+  optOuts: [OptOutToggle!]! @derivedFrom(field: "paymentManager")
+  ownershipTransfers: [OwnershipTransfer!]! @derivedFrom(field: "paymentManager")
+  revenueShareTokenChanges: [RevenueShareTokenChange!]! @derivedFrom(field: "paymentManager")
+}
+
+enum DistributionStatus {
+  Active
+  Finalized
+}
+
+type Distribution @entity(immutable: false) {
+  id: String! # paymentManager-distributionId
+  paymentManager: PaymentManagerContract!
+  distributionId: BigInt!
+  payoutToken: Bytes!
+  totalAmount: BigInt!
+  checkpointBlock: BigInt!
+  merkleRoot: Bytes!
+  totalClaimed: BigInt!
+  status: DistributionStatus!
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  finalizedAt: BigInt
+  finalizedAtBlock: BigInt
+  unclaimedAmount: BigInt # Amount returned when finalized
+  claims: [Claim!]! @derivedFrom(field: "distribution")
+}
+
+type Claim @entity(immutable: true) {
+  id: String! # paymentManager-distributionId-claimer-txHash
+  paymentManager: PaymentManagerContract!
+  distribution: Distribution!
+  distributionId: BigInt!
+  claimer: Bytes!
+  claimerUser: User
+  claimerUsername: String
+  amount: BigInt!
+  claimedAt: BigInt!
+  claimedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type Payment @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  paymentManager: PaymentManagerContract!
+  payer: Bytes!
+  payerUser: User
+  payerUsername: String
+  amount: BigInt!
+  token: Bytes! # Address.zero() for native ETH
+  receivedAt: BigInt!
+  receivedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type OptOutToggle @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  paymentManager: PaymentManagerContract!
+  user: Bytes!
+  optedOut: Boolean!
+  toggledAt: BigInt!
+  toggledAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type OwnershipTransfer @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  paymentManager: PaymentManagerContract!
+  previousOwner: Bytes!
+  newOwner: Bytes!
+  transferredAt: BigInt!
+  transferredAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type RevenueShareTokenChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  paymentManager: PaymentManagerContract!
+  newToken: Bytes!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# ========================================
+# Universal Account Registry (Singleton)
+# ========================================
+
+type UniversalAccountRegistry @entity(immutable: false) {
+  id: Bytes! # contract address (singleton)
+  owner: Bytes!
+  totalAccounts: BigInt!
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  accounts: [Account!]! @derivedFrom(field: "registry")
+  usernameChanges: [UsernameChange!]! @derivedFrom(field: "registry")
+  accountDeletions: [AccountDeletion!]! @derivedFrom(field: "registry")
+  batchRegistrations: [BatchRegistration!]! @derivedFrom(field: "registry")
+  ownershipTransfers: [RegistryOwnershipTransfer!]! @derivedFrom(field: "registry")
+}
+
+type Account @entity(immutable: false) {
+  id: Bytes! # user address
+  registry: UniversalAccountRegistry!
+  user: Bytes! # user address (same as id)
+  username: String!
+  isDeleted: Boolean!
+  registeredAt: BigInt!
+  registeredAtBlock: BigInt!
+  lastUpdatedAt: BigInt!
+  deletedAt: BigInt
+  deletedAtBlock: BigInt
+  users: [User!]! @derivedFrom(field: "account")
+  usernameChanges: [UsernameChange!]! @derivedFrom(field: "account")
+}
+
+type UsernameChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  registry: UniversalAccountRegistry!
+  account: Account!
+  user: Bytes!
+  oldUsername: String
+  newUsername: String!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type AccountDeletion @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  registry: UniversalAccountRegistry!
+  user: Bytes!
+  username: String!
+  deletedAt: BigInt!
+  deletedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type BatchRegistration @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  registry: UniversalAccountRegistry!
+  count: BigInt!
+  registeredAt: BigInt!
+  registeredAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type RegistryOwnershipTransfer @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  registry: UniversalAccountRegistry!
+  previousOwner: Bytes!
+  newOwner: Bytes!
+  transferredAt: BigInt!
+  transferredAtBlock: BigInt!
   transactionHash: Bytes!
 }

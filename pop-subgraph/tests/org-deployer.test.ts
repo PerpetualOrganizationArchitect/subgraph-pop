@@ -6,7 +6,7 @@ import {
   beforeEach,
   afterEach
 } from "matchstick-as/assembly/index";
-import { Address, Bytes } from "@graphprotocol/graph-ts";
+import { Address, Bytes, BigInt } from "@graphprotocol/graph-ts";
 import { handleOrgDeployed } from "../src/org-deployer";
 import { createOrgDeployedEvent } from "./org-deployer-utils";
 
@@ -43,6 +43,14 @@ describe("OrgDeployer", () => {
     let paymentManager = Address.fromString(
       "0x0000000000000000000000000000000000000008"
     );
+    let eligibilityModule = Address.fromString(
+      "0x0000000000000000000000000000000000000009"
+    );
+    let toggleModule = Address.fromString(
+      "0x000000000000000000000000000000000000000a"
+    );
+    let topHatId = BigInt.fromI32(1000);
+    let roleHatIds = [BigInt.fromI32(1001), BigInt.fromI32(1002), BigInt.fromI32(1003)];
 
     let orgDeployedEvent = createOrgDeployedEvent(
       orgId,
@@ -53,15 +61,25 @@ describe("OrgDeployer", () => {
       participationToken,
       taskManager,
       educationHub,
-      paymentManager
+      paymentManager,
+      eligibilityModule,
+      toggleModule,
+      topHatId,
+      roleHatIds
     );
 
     handleOrgDeployed(orgDeployedEvent);
 
-    // Verify Organization, TaskManager, and HybridVotingContract entities are created
+    // Verify Organization, TaskManager, HybridVotingContract, DirectDemocracyVotingContract, EligibilityModuleContract, ParticipationTokenContract, QuickJoinContract, EducationHubContract, and PaymentManagerContract entities are created
     assert.entityCount("Organization", 1);
     assert.entityCount("TaskManager", 1);
     assert.entityCount("HybridVotingContract", 1);
+    assert.entityCount("DirectDemocracyVotingContract", 1);
+    assert.entityCount("EligibilityModuleContract", 1);
+    assert.entityCount("ParticipationTokenContract", 1);
+    assert.entityCount("QuickJoinContract", 1);
+    assert.entityCount("EducationHubContract", 1);
+    assert.entityCount("PaymentManagerContract", 1);
 
     // Verify Organization fields
     assert.fieldEquals(
@@ -106,6 +124,24 @@ describe("OrgDeployer", () => {
       "paymentManager",
       "0x0000000000000000000000000000000000000008"
     );
+    assert.fieldEquals(
+      "Organization",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      "eligibilityModule",
+      "0x0000000000000000000000000000000000000009"
+    );
+    assert.fieldEquals(
+      "Organization",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      "toggleModule",
+      "0x000000000000000000000000000000000000000a"
+    );
+    assert.fieldEquals(
+      "Organization",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      "topHatId",
+      "1000"
+    );
 
     // Verify Organization.taskManager links to TaskManager entity
     assert.fieldEquals(
@@ -129,6 +165,90 @@ describe("OrgDeployer", () => {
       "0x0000000000000000000000000000000000000002",
       "organization",
       "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    );
+
+    // Verify DirectDemocracyVotingContract entity and its relationship back to Organization
+    assert.fieldEquals(
+      "DirectDemocracyVotingContract",
+      "0x0000000000000000000000000000000000000003",
+      "organization",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    );
+
+    // Verify EligibilityModuleContract entity and its relationship back to Organization
+    assert.fieldEquals(
+      "EligibilityModuleContract",
+      "0x0000000000000000000000000000000000000009",
+      "organization",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    );
+    assert.fieldEquals(
+      "EligibilityModuleContract",
+      "0x0000000000000000000000000000000000000009",
+      "isPaused",
+      "false"
+    );
+
+    // Verify ParticipationTokenContract entity and its relationship back to Organization
+    assert.fieldEquals(
+      "ParticipationTokenContract",
+      "0x0000000000000000000000000000000000000005",
+      "organization",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    );
+    assert.fieldEquals(
+      "ParticipationTokenContract",
+      "0x0000000000000000000000000000000000000005",
+      "totalSupply",
+      "0"
+    );
+
+    // Verify QuickJoinContract entity and its relationship back to Organization
+    assert.fieldEquals(
+      "QuickJoinContract",
+      "0x0000000000000000000000000000000000000004",
+      "organization",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    );
+    assert.fieldEquals(
+      "QuickJoinContract",
+      "0x0000000000000000000000000000000000000004",
+      "executor",
+      "0x0000000000000000000000000000000000000000"
+    );
+
+    // Verify EducationHubContract entity and its relationship back to Organization
+    assert.fieldEquals(
+      "EducationHubContract",
+      "0x0000000000000000000000000000000000000007",
+      "organization",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    );
+    assert.fieldEquals(
+      "EducationHubContract",
+      "0x0000000000000000000000000000000000000007",
+      "isPaused",
+      "false"
+    );
+    assert.fieldEquals(
+      "EducationHubContract",
+      "0x0000000000000000000000000000000000000007",
+      "nextModuleId",
+      "0"
+    );
+
+    // Verify PaymentManagerContract entity and its relationship back to Organization
+    assert.fieldEquals(
+      "PaymentManagerContract",
+      "0x0000000000000000000000000000000000000008",
+      "organization",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    );
+    assert.fieldEquals(
+      "PaymentManagerContract",
+      "0x0000000000000000000000000000000000000008",
+      "distributionCounter",
+      "0"
     );
   });
 });

@@ -1,16 +1,33 @@
-import { Address } from "@graphprotocol/graph-ts";
+import { Address, BigInt } from "@graphprotocol/graph-ts";
 import { OrgDeployed } from "../generated/OrgDeployer/OrgDeployer";
 import {
   Organization,
   TaskManager as TaskManagerEntity,
-  HybridVotingContract
+  HybridVotingContract,
+  DirectDemocracyVotingContract,
+  EligibilityModuleContract,
+  ParticipationTokenContract,
+  QuickJoinContract,
+  EducationHubContract,
+  PaymentManagerContract
 } from "../generated/schema";
-import { TaskManager as TaskManagerTemplate, HybridVoting as HybridVotingTemplate } from "../generated/templates";
+import {
+  TaskManager as TaskManagerTemplate,
+  HybridVoting as HybridVotingTemplate,
+  DirectDemocracyVoting as DirectDemocracyVotingTemplate,
+  EligibilityModule as EligibilityModuleTemplate,
+  ParticipationToken as ParticipationTokenTemplate,
+  QuickJoin as QuickJoinTemplate,
+  EducationHub as EducationHubTemplate,
+  PaymentManager as PaymentManagerTemplate
+} from "../generated/templates";
 
 /**
  * Handles the OrgDeployed event from the OrgDeployer contract.
  * Creates an Organization entity, a TaskManager entity, a HybridVotingContract entity,
- * and instantiates data source templates for dynamic contract tracking.
+ * a DirectDemocracyVotingContract entity, an EligibilityModuleContract entity,
+ * a ParticipationTokenContract entity, a QuickJoinContract entity, an EducationHubContract entity,
+ * a PaymentManagerContract entity, and instantiates data source templates for dynamic contract tracking.
  */
 export function handleOrgDeployed(event: OrgDeployed): void {
   // Create TaskManager entity first so we can reference it
@@ -27,17 +44,75 @@ export function handleOrgDeployed(event: OrgDeployed): void {
   hybridVoting.createdAt = event.block.timestamp;
   hybridVoting.createdAtBlock = event.block.number;
 
+  // Create DirectDemocracyVotingContract entity
+  let directDemocracyVoting = new DirectDemocracyVotingContract(event.params.directDemocracyVoting);
+  directDemocracyVoting.executor = Address.zero(); // Will be set by ExecutorUpdated event
+  directDemocracyVoting.quorumPercentage = 0; // Will be set by QuorumPercentageSet event
+  directDemocracyVoting.hats = Address.zero(); // Will be set by Initialized event
+  directDemocracyVoting.createdAt = event.block.timestamp;
+  directDemocracyVoting.createdAtBlock = event.block.number;
+
+  // Create EligibilityModuleContract entity
+  let eligibilityModule = new EligibilityModuleContract(event.params.eligibilityModule);
+  eligibilityModule.superAdmin = Address.zero(); // Will be set by EligibilityModuleInitialized event
+  eligibilityModule.hatsContract = Address.zero(); // Will be set by EligibilityModuleInitialized event
+  eligibilityModule.toggleModule = event.params.toggleModule;
+  eligibilityModule.isPaused = false;
+  eligibilityModule.createdAt = event.block.timestamp;
+  eligibilityModule.createdAtBlock = event.block.number;
+
+  // Create ParticipationTokenContract entity
+  let participationToken = new ParticipationTokenContract(event.params.participationToken);
+  participationToken.name = ""; // Will be set by Initialized event
+  participationToken.symbol = ""; // Will be set by Initialized event
+  participationToken.totalSupply = BigInt.fromI32(0);
+  participationToken.executor = Address.zero(); // Will be set by Initialized event
+  participationToken.hatsContract = Address.zero(); // Will be set by Initialized event
+  participationToken.createdAt = event.block.timestamp;
+  participationToken.createdAtBlock = event.block.number;
+
+  // Create QuickJoinContract entity
+  let quickJoin = new QuickJoinContract(event.params.quickJoin);
+  quickJoin.executor = Address.zero(); // Will be set by Initialized event
+  quickJoin.hatsContract = Address.zero(); // Will be set by Initialized event
+  quickJoin.accountRegistry = Address.zero(); // Will be set by Initialized event
+  quickJoin.masterDeployAddress = Address.zero(); // Will be set by Initialized event
+  quickJoin.createdAt = event.block.timestamp;
+  quickJoin.createdAtBlock = event.block.number;
+
+  // Create EducationHubContract entity
+  let educationHub = new EducationHubContract(event.params.educationHub);
+  educationHub.token = Address.zero(); // Will be set by Initialized event
+  educationHub.hatsContract = Address.zero(); // Will be set by Initialized event
+  educationHub.executor = Address.zero(); // Will be set by Initialized event
+  educationHub.isPaused = false;
+  educationHub.nextModuleId = BigInt.fromI32(0); // Will be incremented as modules are created
+  educationHub.createdAt = event.block.timestamp;
+  educationHub.createdAtBlock = event.block.number;
+
+  // Create PaymentManagerContract entity
+  let paymentManager = new PaymentManagerContract(event.params.paymentManager);
+  paymentManager.owner = Address.zero(); // Will be set by Initialized event
+  paymentManager.revenueShareToken = Address.zero(); // Will be set by Initialized event
+  paymentManager.distributionCounter = BigInt.fromI32(0); // Will be incremented as distributions are created
+  paymentManager.createdAt = event.block.timestamp;
+  paymentManager.createdAtBlock = event.block.number;
+
   // Create Organization entity
   let organization = new Organization(event.params.orgId);
   organization.orgId = event.params.orgId;
   organization.executor = event.params.executor;
   organization.hybridVoting = hybridVoting.id; // Link to HybridVotingContract entity
-  organization.directDemocracyVoting = event.params.directDemocracyVoting;
-  organization.quickJoin = event.params.quickJoin;
-  organization.participationToken = event.params.participationToken;
+  organization.directDemocracyVoting = directDemocracyVoting.id; // Link to DirectDemocracyVotingContract entity
+  organization.quickJoin = quickJoin.id; // Link to QuickJoinContract entity
+  organization.participationToken = participationToken.id; // Link to ParticipationTokenContract entity
   organization.taskManager = taskManager.id; // Link to TaskManager entity
-  organization.educationHub = event.params.educationHub;
-  organization.paymentManager = event.params.paymentManager;
+  organization.educationHub = educationHub.id; // Link to EducationHubContract entity
+  organization.paymentManager = paymentManager.id; // Link to PaymentManagerContract entity
+  organization.eligibilityModule = eligibilityModule.id; // Link to EligibilityModuleContract entity
+  organization.toggleModule = event.params.toggleModule;
+  organization.topHatId = event.params.topHatId;
+  organization.roleHatIds = event.params.roleHatIds;
   organization.deployedAt = event.block.timestamp;
   organization.deployedAtBlock = event.block.number;
   organization.transactionHash = event.transaction.hash;
@@ -45,13 +120,31 @@ export function handleOrgDeployed(event: OrgDeployed): void {
   // Set the reverse relationships
   taskManager.organization = organization.id;
   hybridVoting.organization = organization.id;
+  directDemocracyVoting.organization = organization.id;
+  eligibilityModule.organization = organization.id;
+  participationToken.organization = organization.id;
+  quickJoin.organization = organization.id;
+  educationHub.organization = organization.id;
+  paymentManager.organization = organization.id;
 
   // Save entities
   taskManager.save();
   hybridVoting.save();
+  directDemocracyVoting.save();
+  eligibilityModule.save();
+  participationToken.save();
+  quickJoin.save();
+  educationHub.save();
+  paymentManager.save();
   organization.save();
 
   // Instantiate data source templates for this organization
   TaskManagerTemplate.create(event.params.taskManager);
   HybridVotingTemplate.create(event.params.hybridVoting);
+  DirectDemocracyVotingTemplate.create(event.params.directDemocracyVoting);
+  EligibilityModuleTemplate.create(event.params.eligibilityModule);
+  ParticipationTokenTemplate.create(event.params.participationToken);
+  QuickJoinTemplate.create(event.params.quickJoin);
+  EducationHubTemplate.create(event.params.educationHub);
+  PaymentManagerTemplate.create(event.params.paymentManager);
 }
