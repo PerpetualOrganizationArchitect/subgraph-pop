@@ -10,6 +10,7 @@ import { Address, Bytes, BigInt } from "@graphprotocol/graph-ts";
 import { handleOrgDeployed } from "../src/org-deployer";
 import { createOrgDeployedEvent } from "./org-deployer-utils";
 
+// Tests for OrgDeployer event handlers
 describe("OrgDeployer", () => {
   afterEach(() => {
     clearStore();
