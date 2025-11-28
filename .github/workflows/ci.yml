@@ -72,9 +72,9 @@ jobs:
         run: yarn build
 
       - name: Authenticate with The Graph Studio
-        run: yarn graph auth --studio ${{ secrets.GRAPH_DEPLOY_KEY }}
+        run: yarn graph auth ${{ secrets.GRAPH_DEPLOY_KEY }}
 
       - name: Deploy subgraph
         run: |
           VERSION_LABEL=$(echo ${{ github.sha }} | cut -c1-7)
-          yarn graph deploy --studio --version-label $VERSION_LABEL poa-2
+          yarn graph deploy --version-label $VERSION_LABEL poa-2
