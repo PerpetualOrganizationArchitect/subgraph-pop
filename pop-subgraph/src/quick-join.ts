@@ -15,9 +15,12 @@ import {
   QuickJoinExecutorChange,
   QuickJoinAddressUpdate
 } from "../generated/schema";
-import { QuickJoin as QuickJoinBinding } from "../generated/templates/QuickJoin/QuickJoin";
 
 export function handleInitialized(event: InitializedEvent): void {
+  // Initialization is handled by OrgDeployer when the contract is created.
+  // Initial values for executor, hatsContract, accountRegistry, masterDeployAddress
+  // will be populated by subsequent events (ExecutorUpdated, AddressesUpdated).
+  // We avoid contract calls here to support non-archive RPC nodes.
   let contract = QuickJoinContract.load(event.address);
   if (contract == null) {
     log.warning("QuickJoinContract not found at address {}", [
@@ -25,30 +28,7 @@ export function handleInitialized(event: InitializedEvent): void {
     ]);
     return;
   }
-
-  // Bind to contract to read initial state
-  let quickJoinContract = QuickJoinBinding.bind(event.address);
-
-  let executorResult = quickJoinContract.try_executor();
-  if (!executorResult.reverted) {
-    contract.executor = executorResult.value;
-  }
-
-  let hatsResult = quickJoinContract.try_hats();
-  if (!hatsResult.reverted) {
-    contract.hatsContract = hatsResult.value;
-  }
-
-  let registryResult = quickJoinContract.try_accountRegistry();
-  if (!registryResult.reverted) {
-    contract.accountRegistry = registryResult.value;
-  }
-
-  let masterResult = quickJoinContract.try_masterDeployAddress();
-  if (!masterResult.reverted) {
-    contract.masterDeployAddress = masterResult.value;
-  }
-
+  // Just save to mark initialization
   contract.save();
 }
 

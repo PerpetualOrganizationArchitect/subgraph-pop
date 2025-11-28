@@ -17,9 +17,13 @@ import {
   TokenRequest,
   TokenBalance
 } from "../generated/schema";
-import { ParticipationToken as ParticipationTokenBinding } from "../generated/templates/ParticipationToken/ParticipationToken";
+
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 export function handleInitialized(event: InitializedEvent): void {
+  // Initialization is handled by OrgDeployer when the contract is created.
+  // Initial values for name, symbol, executor, hats will be populated there.
+  // We avoid contract calls here to support non-archive RPC nodes.
   let contract = ParticipationTokenContract.load(event.address);
   if (contract == null) {
     log.warning("ParticipationTokenContract not found at address {}", [
@@ -27,79 +31,71 @@ export function handleInitialized(event: InitializedEvent): void {
     ]);
     return;
   }
-
-  // Bind to contract to read name, symbol, and other state
-  let tokenContract = ParticipationTokenBinding.bind(event.address);
-
-  let nameResult = tokenContract.try_name();
-  if (!nameResult.reverted) {
-    contract.name = nameResult.value;
-  }
-
-  let symbolResult = tokenContract.try_symbol();
-  if (!symbolResult.reverted) {
-    contract.symbol = symbolResult.value;
-  }
-
-  let executorResult = tokenContract.try_executor();
-  if (!executorResult.reverted) {
-    contract.executor = executorResult.value;
-  }
-
-  let hatsResult = tokenContract.try_hats();
-  if (!hatsResult.reverted) {
-    contract.hatsContract = hatsResult.value;
-  }
-
+  // Just save to mark initialization
   contract.save();
 }
 
 export function handleTransfer(event: TransferEvent): void {
   let contractAddress = event.address;
+  let amount = event.params.value;
+  let fromAddress = event.params.from;
+  let toAddress = event.params.to;
 
-  // Update sender balance (if not zero address)
-  if (event.params.from.toHexString() != "0x0000000000000000000000000000000000000000") {
-    updateBalance(contractAddress, event.params.from, event.block.timestamp, event.block.number);
-  }
-
-  // Update receiver balance (if not zero address)
-  if (event.params.to.toHexString() != "0x0000000000000000000000000000000000000000") {
-    updateBalance(contractAddress, event.params.to, event.block.timestamp, event.block.number);
-  }
-
-  // Update total supply
+  // Load contract to update total supply
   let contract = ParticipationTokenContract.load(contractAddress);
-  if (contract != null) {
-    let tokenContract = ParticipationTokenBinding.bind(contractAddress);
-    let totalSupplyResult = tokenContract.try_totalSupply();
-    if (!totalSupplyResult.reverted) {
-      contract.totalSupply = totalSupplyResult.value;
-      contract.save();
+
+  // Update sender balance (if not zero address - zero address means mint)
+  if (fromAddress.toHexString() != ZERO_ADDRESS) {
+    let fromBalanceId = contractAddress.toHexString() + "-" + fromAddress.toHexString();
+    let fromBalance = TokenBalance.load(fromBalanceId);
+
+    if (fromBalance == null) {
+      fromBalance = new TokenBalance(fromBalanceId);
+      fromBalance.participationToken = contractAddress;
+      fromBalance.account = fromAddress;
+      fromBalance.balance = BigInt.fromI32(0);
+    }
+
+    // Decrease sender balance
+    fromBalance.balance = fromBalance.balance.minus(amount);
+    fromBalance.updatedAt = event.block.timestamp;
+    fromBalance.updatedAtBlock = event.block.number;
+    fromBalance.save();
+  } else {
+    // This is a mint - increase total supply
+    if (contract != null) {
+      contract.totalSupply = contract.totalSupply.plus(amount);
     }
   }
-}
 
-function updateBalance(contractAddress: Address, account: Address, timestamp: BigInt, blockNumber: BigInt): void {
-  let balanceId = contractAddress.toHexString() + "-" + account.toHexString();
-  let balance = TokenBalance.load(balanceId);
+  // Update receiver balance (if not zero address - zero address means burn)
+  if (toAddress.toHexString() != ZERO_ADDRESS) {
+    let toBalanceId = contractAddress.toHexString() + "-" + toAddress.toHexString();
+    let toBalance = TokenBalance.load(toBalanceId);
 
-  if (balance == null) {
-    balance = new TokenBalance(balanceId);
-    balance.participationToken = contractAddress;
-    balance.account = account;
-    balance.balance = BigInt.fromI32(0);
+    if (toBalance == null) {
+      toBalance = new TokenBalance(toBalanceId);
+      toBalance.participationToken = contractAddress;
+      toBalance.account = toAddress;
+      toBalance.balance = BigInt.fromI32(0);
+    }
+
+    // Increase receiver balance
+    toBalance.balance = toBalance.balance.plus(amount);
+    toBalance.updatedAt = event.block.timestamp;
+    toBalance.updatedAtBlock = event.block.number;
+    toBalance.save();
+  } else {
+    // This is a burn - decrease total supply
+    if (contract != null) {
+      contract.totalSupply = contract.totalSupply.minus(amount);
+    }
   }
 
-  // Fetch current balance from contract
-  let tokenContract = ParticipationTokenBinding.bind(contractAddress);
-  let balanceResult = tokenContract.try_balanceOf(account);
-  if (!balanceResult.reverted) {
-    balance.balance = balanceResult.value;
+  // Save contract if it exists
+  if (contract != null) {
+    contract.save();
   }
-
-  balance.updatedAt = timestamp;
-  balance.updatedAtBlock = blockNumber;
-  balance.save();
 }
 
 export function handleMemberHatSet(event: MemberHatSetEvent): void {
