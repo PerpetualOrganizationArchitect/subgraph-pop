@@ -184,6 +184,65 @@ dataSources:
         - event: GracePeriodConfigUpdated(uint32,uint128,uint128)
           handler: handleGracePeriodConfigUpdated
       file: ./src/paymaster-hub.ts
+  - kind: ethereum
+    name: OrgRegistry
+    network: hoodi
+    source:
+      address: "0x7eFF3962d71a83C4d8C5fba4aF65D54E5513F0A4"
+      abi: OrgRegistry
+      startBlock: 1470950
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - OrgRegistryContract
+        - RegisteredOrg
+        - OrgMetaUpdate
+        - RegisteredContract
+        - AutoUpgradeChange
+      abis:
+        - name: OrgRegistry
+          file: ./abis/OrgRegistry.json
+      eventHandlers:
+        - event: OrgRegistered(indexed bytes32,indexed address,bytes)
+          handler: handleOrgRegistered
+        - event: MetaUpdated(indexed bytes32,bytes)
+          handler: handleMetaUpdated
+        - event: ContractRegistered(indexed bytes32,indexed bytes32,indexed bytes32,address,address,bool,address)
+          handler: handleContractRegistered
+        - event: AutoUpgradeSet(indexed bytes32,bool)
+          handler: handleAutoUpgradeSet
+        - event: HatsTreeRegistered(indexed bytes32,uint256,uint256[])
+          handler: handleHatsTreeRegistered
+      file: ./src/org-registry.ts
+  - kind: ethereum
+    name: PoaManager
+    network: hoodi
+    source:
+      address: "0xF8a26534f53fA89Ed89fA5814d167BFFc7645769"
+      abi: PoaManager
+      startBlock: 1470950
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - PoaManagerContract
+        - Beacon
+        - BeaconUpgradeEvent
+        - RegistryUpdate
+      abis:
+        - name: PoaManager
+          file: ./abis/PoaManager.json
+      eventHandlers:
+        - event: BeaconCreated(indexed bytes32,string,address,address)
+          handler: handleBeaconCreated
+        - event: BeaconUpgraded(indexed bytes32,address,string)
+          handler: handleBeaconUpgraded
+        - event: RegistryUpdated(address,address)
+          handler: handleRegistryUpdated
+      file: ./src/poa-manager.ts
 templates:
   - kind: ethereum
     name: TaskManager
@@ -198,6 +257,11 @@ templates:
         - Project
         - Task
         - TaskApplication
+        - ProjectManager
+        - ProjectRolePermission
+        - ProjectBountyCap
+        - ProjectCapChange
+        - BountyCapChange
       abis:
         - name: TaskManager
           file: ./abis/TaskManager.json
@@ -206,6 +270,14 @@ templates:
           handler: handleProjectCreated
         - event: ProjectDeleted(indexed bytes32,bytes)
           handler: handleProjectDeleted
+        - event: ProjectCapUpdated(indexed bytes32,uint256,uint256)
+          handler: handleProjectCapUpdated
+        - event: ProjectManagerUpdated(indexed bytes32,indexed address,bool)
+          handler: handleProjectManagerUpdated
+        - event: ProjectRolePermSet(indexed bytes32,indexed uint256,uint8)
+          handler: handleProjectRolePermSet
+        - event: BountyCapSet(indexed bytes32,indexed address,uint256,uint256)
+          handler: handleBountyCapSet
         - event: TaskCreated(indexed uint256,indexed bytes32,uint256,address,uint256,bool,bytes)
           handler: handleTaskCreated
         - event: TaskAssigned(indexed uint256,indexed address,indexed address)
@@ -332,6 +404,9 @@ templates:
         - VouchConfig
         - Vouch
         - UserJoinTime
+        - VouchingRestrictionEvent
+        - HatAutoMintEvent
+        - HatClaimEvent
       abis:
         - name: EligibilityModule
           file: ./abis/EligibilityModule.json
@@ -364,6 +439,12 @@ templates:
           handler: handlePaused
         - event: Unpaused(indexed address)
           handler: handleUnpaused
+        - event: VouchingRateLimitExceededEvent(indexed address)
+          handler: handleVouchingRateLimitExceeded
+        - event: NewUserVouchingRestrictedEvent(indexed address)
+          handler: handleNewUserVouchingRestricted
+        - event: HatAutoMinted(indexed address,indexed uint256,uint32)
+          handler: handleHatAutoMinted
       file: ./src/eligibility-module.ts
   - kind: ethereum
     name: ParticipationToken

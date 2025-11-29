@@ -3,6 +3,10 @@ import { ethereum, Address, Bytes, BigInt } from "@graphprotocol/graph-ts";
 import {
   ProjectCreated,
   ProjectDeleted,
+  ProjectCapUpdated,
+  ProjectManagerUpdated,
+  ProjectRolePermSet,
+  BountyCapSet,
   TaskCreated,
   TaskAssigned,
   TaskCompleted
@@ -99,6 +103,94 @@ export function createTaskCompletedEvent(
   );
   event.parameters.push(
     new ethereum.EventParam("completer", ethereum.Value.fromAddress(completer))
+  );
+
+  return event;
+}
+
+export function createProjectCapUpdatedEvent(
+  id: Bytes,
+  oldCap: BigInt,
+  newCap: BigInt
+): ProjectCapUpdated {
+  let event = changetype<ProjectCapUpdated>(newMockEvent());
+
+  event.parameters = new Array();
+  event.parameters.push(
+    new ethereum.EventParam("id", ethereum.Value.fromFixedBytes(id))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("oldCap", ethereum.Value.fromUnsignedBigInt(oldCap))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("newCap", ethereum.Value.fromUnsignedBigInt(newCap))
+  );
+
+  return event;
+}
+
+export function createProjectManagerUpdatedEvent(
+  id: Bytes,
+  manager: Address,
+  isManager: boolean
+): ProjectManagerUpdated {
+  let event = changetype<ProjectManagerUpdated>(newMockEvent());
+
+  event.parameters = new Array();
+  event.parameters.push(
+    new ethereum.EventParam("id", ethereum.Value.fromFixedBytes(id))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("manager", ethereum.Value.fromAddress(manager))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("isManager", ethereum.Value.fromBoolean(isManager))
+  );
+
+  return event;
+}
+
+export function createProjectRolePermSetEvent(
+  id: Bytes,
+  hatId: BigInt,
+  mask: i32
+): ProjectRolePermSet {
+  let event = changetype<ProjectRolePermSet>(newMockEvent());
+
+  event.parameters = new Array();
+  event.parameters.push(
+    new ethereum.EventParam("id", ethereum.Value.fromFixedBytes(id))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("hatId", ethereum.Value.fromUnsignedBigInt(hatId))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("mask", ethereum.Value.fromI32(mask))
+  );
+
+  return event;
+}
+
+export function createBountyCapSetEvent(
+  projectId: Bytes,
+  token: Address,
+  oldCap: BigInt,
+  newCap: BigInt
+): BountyCapSet {
+  let event = changetype<BountyCapSet>(newMockEvent());
+
+  event.parameters = new Array();
+  event.parameters.push(
+    new ethereum.EventParam("projectId", ethereum.Value.fromFixedBytes(projectId))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("token", ethereum.Value.fromAddress(token))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("oldCap", ethereum.Value.fromUnsignedBigInt(oldCap))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("newCap", ethereum.Value.fromUnsignedBigInt(newCap))
   );
 
   return event;
