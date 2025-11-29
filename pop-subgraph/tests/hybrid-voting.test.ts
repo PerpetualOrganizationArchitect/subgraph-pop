@@ -32,7 +32,7 @@ import {
   createWinnerEvent,
   createProposalExecutedEvent
 } from "./hybrid-voting-utils";
-import { Organization, HybridVotingContract, TaskManager, DirectDemocracyVotingContract, EligibilityModuleContract, ParticipationTokenContract, QuickJoinContract, EducationHubContract, PaymentManagerContract } from "../generated/schema";
+import { Organization, HybridVotingContract, TaskManager, DirectDemocracyVotingContract, EligibilityModuleContract, ParticipationTokenContract, QuickJoinContract, EducationHubContract, PaymentManagerContract, ExecutorContract, ToggleModuleContract } from "../generated/schema";
 
 /**
  * Helper function to create necessary entities for hybrid voting tests.
@@ -45,17 +45,30 @@ function setupHybridVotingContract(contractAddress: Address): void {
   );
   let organization = new Organization(orgId);
   organization.orgId = orgId;
-  organization.executor = Address.fromString("0x0000000000000000000000000000000000000001");
-  organization.quickJoin = Address.fromString("0x0000000000000000000000000000000000000004");
-  organization.participationToken = Address.fromString("0x0000000000000000000000000000000000000005");
-  organization.educationHub = Address.fromString("0x0000000000000000000000000000000000000007");
-  organization.paymentManager = Address.fromString("0x0000000000000000000000000000000000000008");
-  organization.toggleModule = Address.fromString("0x000000000000000000000000000000000000000a");
   organization.topHatId = BigInt.fromI32(1000);
   organization.roleHatIds = [BigInt.fromI32(1001), BigInt.fromI32(1002)];
   organization.deployedAt = BigInt.fromI32(1000);
   organization.deployedAtBlock = BigInt.fromI32(100);
   organization.transactionHash = Bytes.fromHexString("0xabcd");
+
+  // Create ExecutorContract entity
+  let executorAddress = Address.fromString("0x0000000000000000000000000000000000000001");
+  let executor = new ExecutorContract(executorAddress);
+  executor.organization = orgId;
+  executor.owner = Address.zero();
+  executor.allowedCaller = null;
+  executor.hatsContract = Address.zero();
+  executor.isPaused = false;
+  executor.createdAt = BigInt.fromI32(1000);
+  executor.createdAtBlock = BigInt.fromI32(100);
+
+  // Create ToggleModuleContract entity
+  let toggleModuleAddress = Address.fromString("0x000000000000000000000000000000000000000a");
+  let toggleModule = new ToggleModuleContract(toggleModuleAddress);
+  toggleModule.organization = orgId;
+  toggleModule.admin = Address.zero();
+  toggleModule.createdAt = BigInt.fromI32(1000);
+  toggleModule.createdAtBlock = BigInt.fromI32(100);
 
   // Create TaskManager entity (required by Organization schema)
   let taskManagerAddress = Address.fromString("0x0000000000000000000000000000000000000006");
@@ -141,6 +154,8 @@ function setupHybridVotingContract(contractAddress: Address): void {
   paymentManager.createdAtBlock = BigInt.fromI32(100);
 
   // Link organization to entities
+  organization.executorContract = executorAddress;
+  organization.toggleModuleContract = toggleModuleAddress;
   organization.taskManager = taskManagerAddress;
   organization.hybridVoting = contractAddress;
   organization.directDemocracyVoting = ddvAddress;
@@ -151,6 +166,8 @@ function setupHybridVotingContract(contractAddress: Address): void {
   organization.paymentManager = paymentManagerAddress;
 
   // Save entities
+  executor.save();
+  toggleModule.save();
   taskManager.save();
   hybridVoting.save();
   ddv.save();
