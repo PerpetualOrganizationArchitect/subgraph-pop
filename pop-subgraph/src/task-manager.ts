@@ -320,7 +320,6 @@ export function handleProjectManagerUpdated(event: ProjectManagerUpdated): void 
     manager = new ProjectManager(id);
     manager.project = projectId;
     manager.manager = managerAddress;
-    manager.managerUsername = getUsernameForAddress(managerAddress);
     manager.addedAt = event.block.timestamp;
     manager.addedAtBlock = event.block.number;
 

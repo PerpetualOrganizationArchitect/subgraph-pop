@@ -127,7 +127,6 @@ type ProjectManager @entity(immutable: false) {
   project: Project!
   manager: Bytes!
   managerUser: User
-  managerUsername: String
   isActive: Boolean! # true if currently a manager, false if removed
   addedAt: BigInt!
   addedAtBlock: BigInt!
