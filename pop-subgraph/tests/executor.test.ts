@@ -319,9 +319,10 @@ describe("Executor", () => {
     let pauseEvent = createPausedEvent(Address.fromString("0x0000000000000000000000000000000000000001"));
     handlePaused(pauseEvent);
 
-    // Then unpause
+    // Then unpause - need different logIndex to get unique entity ID (default is 1)
     let account = Address.fromString("0x0000000000000000000000000000000000000001");
     let unpauseEvent = createUnpausedEvent(account);
+    unpauseEvent.logIndex = BigInt.fromI32(2);
     handleUnpaused(unpauseEvent);
 
     assert.fieldEquals(

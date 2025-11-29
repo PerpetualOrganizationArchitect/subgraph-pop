@@ -226,8 +226,8 @@ describe("ToggleModule", () => {
 
     // Toggle hat off
     let event2 = createHatToggledEvent(hatId, false);
-    // Need to change the log index to get a different ID
-    event2.logIndex = BigInt.fromI32(1);
+    // Need to change the log index to get a different ID (default is 1)
+    event2.logIndex = BigInt.fromI32(2);
     handleHatToggled(event2);
 
     assert.entityCount("HatToggleEvent", 2);
