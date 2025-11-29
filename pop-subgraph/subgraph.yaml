@@ -449,3 +449,75 @@ templates:
         - event: RevenueShareTokenSet(indexed address)
           handler: handleRevenueShareTokenSet
       file: ./src/payment-manager.ts
+  - kind: ethereum
+    name: Executor
+    network: hoodi
+    source:
+      abi: Executor
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - ExecutorContract
+        - CallerChange
+        - BatchExecution
+        - CallExecution
+        - ExecutorSweep
+        - HatMinterAuthorization
+        - HatsMintedEvent
+        - ExecutorPauseEvent
+        - ExecutorOwnershipTransfer
+      abis:
+        - name: Executor
+          file: ./abis/Executor.json
+      eventHandlers:
+        - event: Initialized(uint64)
+          handler: handleInitialized
+        - event: CallerSet(indexed address)
+          handler: handleCallerSet
+        - event: BatchExecuted(indexed uint256,uint256)
+          handler: handleBatchExecuted
+        - event: CallExecuted(indexed uint256,indexed uint256,address,uint256)
+          handler: handleCallExecuted
+        - event: Swept(indexed address,uint256)
+          handler: handleSwept
+        - event: HatsSet(indexed address)
+          handler: handleHatsSet
+        - event: HatMinterAuthorized(indexed address,bool)
+          handler: handleHatMinterAuthorized
+        - event: HatsMinted(indexed address,uint256[])
+          handler: handleHatsMinted
+        - event: Paused(address)
+          handler: handlePaused
+        - event: Unpaused(address)
+          handler: handleUnpaused
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+      file: ./src/executor.ts
+  - kind: ethereum
+    name: ToggleModule
+    network: hoodi
+    source:
+      abi: ToggleModule
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - ToggleModuleContract
+        - HatToggleEvent
+        - ToggleAdminTransfer
+      abis:
+        - name: ToggleModule
+          file: ./abis/ToggleModule.json
+      eventHandlers:
+        - event: Initialized(uint64)
+          handler: handleInitialized
+        - event: ToggleModuleInitialized(indexed address)
+          handler: handleToggleModuleInitialized
+        - event: HatToggled(indexed uint256,bool)
+          handler: handleHatToggled
+        - event: AdminTransferred(indexed address,indexed address)
+          handler: handleAdminTransferred
+      file: ./src/toggle-module.ts

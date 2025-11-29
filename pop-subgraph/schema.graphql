@@ -1,7 +1,7 @@
 type Organization @entity(immutable: false) {
   id: Bytes! # orgId
   orgId: Bytes!
-  executor: Bytes!
+  executorContract: ExecutorContract! # Relationship to ExecutorContract entity
   hybridVoting: HybridVotingContract! # Relationship to HybridVotingContract entity
   directDemocracyVoting: DirectDemocracyVotingContract! # Relationship to DirectDemocracyVotingContract entity
   quickJoin: QuickJoinContract! # Relationship to QuickJoinContract entity
@@ -10,7 +10,7 @@ type Organization @entity(immutable: false) {
   educationHub: EducationHubContract! # Relationship to EducationHubContract entity
   paymentManager: PaymentManagerContract! # Relationship to PaymentManagerContract entity
   eligibilityModule: EligibilityModuleContract! # Relationship to EligibilityModuleContract entity
-  toggleModule: Bytes!
+  toggleModuleContract: ToggleModuleContract! # Relationship to ToggleModuleContract entity
   topHatId: BigInt!
   roleHatIds: [BigInt!]!
   deployedAt: BigInt!
@@ -52,6 +52,7 @@ type User @entity(immutable: false) {
   wearerEligibilities: [WearerEligibility!]! @derivedFrom(field: "wearerUser")
   vouchesGiven: [Vouch!]! @derivedFrom(field: "voucherUser")
   vouchesReceived: [Vouch!]! @derivedFrom(field: "wearerUser")
+  hatsMintedEvents: [HatsMintedEvent!]! @derivedFrom(field: "recipientUser")
 
   # Aggregate statistics
   totalVotes: BigInt!
@@ -912,6 +913,152 @@ type RegistryOwnershipTransfer @entity(immutable: true) {
   registry: UniversalAccountRegistry!
   previousOwner: Bytes!
   newOwner: Bytes!
+  transferredAt: BigInt!
+  transferredAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# ========================================
+# Executor Contract and Related Entities
+# ========================================
+
+type ExecutorContract @entity(immutable: false) {
+  id: Bytes! # contract address
+  organization: Organization! # Organization this ExecutorContract belongs to
+  owner: Bytes!
+  allowedCaller: Bytes # The governance contract authorized to call execute
+  hatsContract: Bytes!
+  isPaused: Boolean!
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  callerChanges: [CallerChange!]! @derivedFrom(field: "executor")
+  batchExecutions: [BatchExecution!]! @derivedFrom(field: "executor")
+  sweeps: [ExecutorSweep!]! @derivedFrom(field: "executor")
+  minterAuthorizations: [HatMinterAuthorization!]! @derivedFrom(field: "executor")
+  hatsMintedEvents: [HatsMintedEvent!]! @derivedFrom(field: "executor")
+  pauseEvents: [ExecutorPauseEvent!]! @derivedFrom(field: "executor")
+  ownershipTransfers: [ExecutorOwnershipTransfer!]! @derivedFrom(field: "executor")
+}
+
+type CallerChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  executor: ExecutorContract!
+  newCaller: Bytes!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type BatchExecution @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  executor: ExecutorContract!
+  proposalId: BigInt!
+  callCount: BigInt!
+  # Link to proposal if it exists (may be from HybridVoting or DirectDemocracy)
+  hybridProposal: Proposal
+  ddvProposal: DDVProposal
+  executedAt: BigInt!
+  executedAtBlock: BigInt!
+  transactionHash: Bytes!
+  calls: [CallExecution!]! @derivedFrom(field: "batch")
+}
+
+type CallExecution @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex-callIndex
+  batch: BatchExecution!
+  executor: ExecutorContract!
+  proposalId: BigInt!
+  callIndex: BigInt!
+  target: Bytes!
+  value: BigInt!
+  executedAt: BigInt!
+  executedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type ExecutorSweep @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  executor: ExecutorContract!
+  to: Bytes!
+  amount: BigInt!
+  sweptAt: BigInt!
+  sweptAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type HatMinterAuthorization @entity(immutable: false) {
+  id: String! # executor-minter
+  executor: ExecutorContract!
+  minter: Bytes!
+  authorized: Boolean!
+  updatedAt: BigInt!
+  updatedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type HatsMintedEvent @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  executor: ExecutorContract!
+  recipient: Bytes!
+  recipientUser: User
+  recipientUsername: String
+  recipientAccount: Account # Link to global account
+  hatIds: [BigInt!]!
+  mintedAt: BigInt!
+  mintedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type ExecutorPauseEvent @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  executor: ExecutorContract!
+  isPaused: Boolean! # true for Paused, false for Unpaused
+  account: Bytes!
+  eventAt: BigInt!
+  eventAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type ExecutorOwnershipTransfer @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  executor: ExecutorContract!
+  previousOwner: Bytes!
+  newOwner: Bytes!
+  transferredAt: BigInt!
+  transferredAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# ========================================
+# ToggleModule Contract and Related Entities
+# ========================================
+
+type ToggleModuleContract @entity(immutable: false) {
+  id: Bytes! # contract address
+  organization: Organization! # Organization this ToggleModuleContract belongs to
+  admin: Bytes!
+  eligibilityModule: Bytes # Reference to the eligibility module that can also toggle
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  hatToggles: [HatToggleEvent!]! @derivedFrom(field: "toggleModule")
+  adminTransfers: [ToggleAdminTransfer!]! @derivedFrom(field: "toggleModule")
+}
+
+type HatToggleEvent @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  toggleModule: ToggleModuleContract!
+  hatId: BigInt!
+  newStatus: Boolean! # true = active, false = inactive
+  toggledAt: BigInt!
+  toggledAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type ToggleAdminTransfer @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  toggleModule: ToggleModuleContract!
+  oldAdmin: Bytes!
+  newAdmin: Bytes!
   transferredAt: BigInt!
   transferredAtBlock: BigInt!
   transactionHash: Bytes!
