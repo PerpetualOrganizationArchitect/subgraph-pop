@@ -153,6 +153,11 @@ templates:
         - Project
         - Task
         - TaskApplication
+        - ProjectManager
+        - ProjectRolePermission
+        - ProjectBountyCap
+        - ProjectCapChange
+        - BountyCapChange
       abis:
         - name: TaskManager
           file: ./abis/TaskManager.json
@@ -161,6 +166,14 @@ templates:
           handler: handleProjectCreated
         - event: ProjectDeleted(indexed bytes32,bytes)
           handler: handleProjectDeleted
+        - event: ProjectCapUpdated(indexed bytes32,uint256,uint256)
+          handler: handleProjectCapUpdated
+        - event: ProjectManagerUpdated(indexed bytes32,indexed address,bool)
+          handler: handleProjectManagerUpdated
+        - event: ProjectRolePermSet(indexed bytes32,indexed uint256,uint8)
+          handler: handleProjectRolePermSet
+        - event: BountyCapSet(indexed bytes32,indexed address,uint256,uint256)
+          handler: handleBountyCapSet
         - event: TaskCreated(indexed uint256,indexed bytes32,uint256,address,uint256,bool,bytes)
           handler: handleTaskCreated
         - event: TaskAssigned(indexed uint256,indexed address,indexed address)
