@@ -107,6 +107,83 @@ dataSources:
         - event: OwnershipTransferred(indexed address,indexed address)
           handler: handleOwnershipTransferred
       file: ./src/universal-account-registry.ts
+  - kind: ethereum
+    name: PaymasterHub
+    network: hoodi
+    source:
+      address: "0x15C8539Bee81dA1e3fC81f283F70f234a41fA690"
+      abi: PaymasterHub
+      startBlock: 1470950
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - PaymasterHubContract
+        - PaymasterOrgConfig
+        - PaymasterRule
+        - PaymasterBudget
+        - PaymasterFeeCaps
+        - PaymasterBountyConfig
+        - PaymasterOrgStats
+        - PaymasterDepositEvent
+        - BountyEvent
+        - UsageEvent
+        - UserOpEvent
+        - SolidarityEvent
+        - PaymasterConfigChange
+        - GracePeriodChange
+        - PauseToggle
+        - OrgBanRecord
+      abis:
+        - name: PaymasterHub
+          file: ./abis/PaymasterHub.json
+      eventHandlers:
+        - event: PaymasterInitialized(indexed address,indexed address,indexed address)
+          handler: handlePaymasterInitialized
+        - event: OrgRegistered(indexed bytes32,uint256,uint256)
+          handler: handleOrgRegistered
+        - event: RuleSet(indexed bytes32,indexed address,indexed bytes4,bool,uint32)
+          handler: handleRuleSet
+        - event: BudgetSet(indexed bytes32,bytes32,uint128,uint32,uint32)
+          handler: handleBudgetSet
+        - event: FeeCapsSet(indexed bytes32,uint256,uint256,uint32,uint32,uint32)
+          handler: handleFeeCapsSet
+        - event: PauseSet(indexed bytes32,bool)
+          handler: handlePauseSet
+        - event: OperatorHatSet(indexed bytes32,uint256)
+          handler: handleOperatorHatSet
+        - event: DepositIncrease(uint256,uint256)
+          handler: handleDepositIncrease
+        - event: DepositWithdraw(indexed address,uint256)
+          handler: handleDepositWithdraw
+        - event: OrgDepositReceived(indexed bytes32,indexed address,uint256)
+          handler: handleOrgDepositReceived
+        - event: BountyConfig(indexed bytes32,bool,uint96,uint16)
+          handler: handleBountyConfig
+        - event: BountyFunded(uint256,uint256)
+          handler: handleBountyFunded
+        - event: BountySweep(indexed address,uint256)
+          handler: handleBountySweep
+        - event: BountyPaid(indexed bytes32,indexed address,uint256)
+          handler: handleBountyPaid
+        - event: BountyPayFailed(indexed bytes32,indexed address,uint256)
+          handler: handleBountyPayFailed
+        - event: UsageIncreased(indexed bytes32,bytes32,uint256,uint128,uint32)
+          handler: handleUsageIncreased
+        - event: UserOpPosted(indexed bytes32,indexed address)
+          handler: handleUserOpPosted
+        - event: SolidarityFeeCollected(indexed bytes32,uint256)
+          handler: handleSolidarityFeeCollected
+        - event: SolidarityDonationReceived(indexed address,uint256)
+          handler: handleSolidarityDonationReceived
+        - event: OrgBannedFromSolidarity(indexed bytes32,bool)
+          handler: handleOrgBannedFromSolidarity
+        - event: EmergencyWithdraw(indexed address,uint256)
+          handler: handleEmergencyWithdraw
+        - event: GracePeriodConfigUpdated(uint32,uint128,uint128)
+          handler: handleGracePeriodConfigUpdated
+      file: ./src/paymaster-hub.ts
 templates:
   - kind: ethereum
     name: TaskManager

@@ -1063,3 +1063,294 @@ type ToggleAdminTransfer @entity(immutable: true) {
   transferredAtBlock: BigInt!
   transactionHash: Bytes!
 }
+
+# ========================================
+# PaymasterHub Contract and Related Entities
+# ERC-4337 Paymaster for gas sponsorship across organizations
+# ========================================
+
+# Enums for PaymasterHub event types
+enum DepositEventType {
+  HubDeposit
+  HubWithdraw
+  OrgDeposit
+  EmergencyWithdraw
+}
+
+enum BountyEventType {
+  Funded
+  Paid
+  PayFailed
+  Swept
+}
+
+enum SolidarityEventType {
+  FeeCollected
+  DonationReceived
+  OrgBanned
+  OrgUnbanned
+}
+
+enum ConfigChangeType {
+  OrgRegistered
+  OperatorHatSet
+  FeeCapsSet
+  PauseSet
+  RuleSet
+  BudgetSet
+  BountyConfigSet
+}
+
+# 1. PaymasterHubContract - Singleton contract entity
+type PaymasterHubContract @entity(immutable: false) {
+  id: Bytes! # contract address
+  entryPoint: Bytes!
+  hats: Bytes!
+  poaManager: Bytes!
+  totalDeposit: BigInt!
+  bountyPoolBalance: BigInt!
+  solidarityBalance: BigInt!
+  gracePeriodDays: Int!
+  maxSpendDuringGrace: BigInt!
+  minDepositRequired: BigInt!
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  transactionHash: Bytes!
+  # Derived relationships
+  orgConfigs: [PaymasterOrgConfig!]! @derivedFrom(field: "paymasterHub")
+  depositEvents: [PaymasterDepositEvent!]! @derivedFrom(field: "paymasterHub")
+  bountyEvents: [BountyEvent!]! @derivedFrom(field: "paymasterHub")
+  userOpEvents: [UserOpEvent!]! @derivedFrom(field: "paymasterHub")
+  solidarityEvents: [SolidarityEvent!]! @derivedFrom(field: "paymasterHub")
+  configChanges: [PaymasterConfigChange!]! @derivedFrom(field: "paymasterHub")
+  gracePeriodChanges: [GracePeriodChange!]! @derivedFrom(field: "paymasterHub")
+}
+
+# 2. PaymasterOrgConfig - Per-organization configuration
+type PaymasterOrgConfig @entity(immutable: false) {
+  id: String! # paymasterHub-orgId
+  paymasterHub: PaymasterHubContract!
+  organization: Organization # Optional link to existing org
+  orgId: Bytes!
+  adminHatId: BigInt!
+  operatorHatId: BigInt!
+  isPaused: Boolean!
+  isBannedFromSolidarity: Boolean!
+  depositBalance: BigInt!
+  totalDeposited: BigInt!
+  totalSpent: BigInt!
+  registeredAt: BigInt!
+  registeredAtBlock: BigInt!
+  transactionHash: Bytes!
+  # Derived relationships
+  rules: [PaymasterRule!]! @derivedFrom(field: "orgConfig")
+  budgets: [PaymasterBudget!]! @derivedFrom(field: "orgConfig")
+  feeCaps: PaymasterFeeCaps @derivedFrom(field: "orgConfig")
+  bountyConfig: PaymasterBountyConfig @derivedFrom(field: "orgConfig")
+  stats: PaymasterOrgStats @derivedFrom(field: "orgConfig")
+  usageEvents: [UsageEvent!]! @derivedFrom(field: "orgConfig")
+  depositEvents: [PaymasterDepositEvent!]! @derivedFrom(field: "orgConfig")
+  configChanges: [PaymasterConfigChange!]! @derivedFrom(field: "orgConfig")
+  pauseToggles: [PauseToggle!]! @derivedFrom(field: "orgConfig")
+  banRecords: [OrgBanRecord!]! @derivedFrom(field: "orgConfig")
+}
+
+# 3. PaymasterRule - Target/selector permissions
+type PaymasterRule @entity(immutable: false) {
+  id: String! # paymasterHub-orgId-target-selector
+  orgConfig: PaymasterOrgConfig!
+  target: Bytes!
+  selector: Bytes! # bytes4
+  allowed: Boolean!
+  maxCallGasHint: Int!
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+"""
+Budget for a specific subject (user account or hat role).
+subjectKey = keccak256(abi.encodePacked(subjectType, subjectId))
+- subjectType 0x00 = account (subjectId is user address)
+- subjectType 0x01 = hat (subjectId is hat ID as bytes20)
+"""
+# 4. PaymasterBudget - Per-subject spending limits
+type PaymasterBudget @entity(immutable: false) {
+  id: String! # paymasterHub-orgId-subjectKey
+  orgConfig: PaymasterOrgConfig!
+  subjectKey: Bytes! # keccak256 hash of (subjectType, subjectId)
+  capPerEpoch: BigInt! # Max gas cost per epoch
+  usedInEpoch: BigInt! # Current epoch usage
+  epochLen: Int! # Epoch duration in seconds
+  epochStart: Int! # Current epoch start timestamp
+  totalUsed: BigInt! # Lifetime total
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# 5. PaymasterFeeCaps - Per-org fee limits
+type PaymasterFeeCaps @entity(immutable: false) {
+  id: String! # paymasterHub-orgId
+  orgConfig: PaymasterOrgConfig!
+  maxFeePerGas: BigInt!
+  maxPriorityFeePerGas: BigInt!
+  maxCallGas: Int!
+  maxVerificationGas: Int!
+  maxPreVerificationGas: Int!
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# 6. PaymasterBountyConfig - Per-org bounty settings
+type PaymasterBountyConfig @entity(immutable: false) {
+  id: String! # paymasterHub-orgId
+  orgConfig: PaymasterOrgConfig!
+  enabled: Boolean!
+  maxBountyPerOp: BigInt!
+  pctBpCap: Int!
+  totalPaid: BigInt!
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+"""
+Pre-computed aggregate statistics for an organization's paymaster usage.
+Updated on each sponsored operation for efficient querying.
+"""
+# 7. PaymasterOrgStats - Aggregated statistics per org
+type PaymasterOrgStats @entity(immutable: false) {
+  id: String! # paymasterHub-orgId (same as PaymasterOrgConfig)
+  orgConfig: PaymasterOrgConfig!
+  # Operation counts
+  totalUserOps: BigInt!
+  totalSuccessfulBounties: BigInt!
+  totalFailedBounties: BigInt!
+  # Gas statistics
+  totalGasSponsored: BigInt! # Sum of all gas costs sponsored
+  # Financial
+  totalDeposited: BigInt!
+  totalWithdrawn: BigInt!
+  totalBountyPaid: BigInt!
+  totalSolidarityFeesCollected: BigInt!
+  # Time tracking
+  lastOperationAt: BigInt!
+  lastOperationAtBlock: BigInt!
+}
+
+# ========================================
+# PaymasterHub Immutable Event Records
+# ========================================
+
+# 8. PaymasterDepositEvent - Deposit and withdrawal history
+type PaymasterDepositEvent @entity(immutable: true) {
+  id: Bytes! # txHash.concatI32(logIndex)
+  paymasterHub: PaymasterHubContract!
+  orgConfig: PaymasterOrgConfig # null for hub-level events
+  eventType: DepositEventType!
+  from: Bytes
+  to: Bytes
+  amount: BigInt!
+  newBalance: BigInt
+  eventAt: BigInt!
+  eventAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# 9. BountyEvent - Bounty pool activity history
+type BountyEvent @entity(immutable: true) {
+  id: Bytes! # txHash.concatI32(logIndex)
+  paymasterHub: PaymasterHubContract!
+  orgConfig: PaymasterOrgConfig
+  eventType: BountyEventType!
+  userOpHash: Bytes
+  recipient: Bytes
+  amount: BigInt!
+  newBalance: BigInt
+  eventAt: BigInt!
+  eventAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# 10. UsageEvent - Gas usage tracking
+type UsageEvent @entity(immutable: true) {
+  id: Bytes! # txHash.concatI32(logIndex)
+  orgConfig: PaymasterOrgConfig!
+  budget: PaymasterBudget
+  subjectKey: Bytes!
+  delta: BigInt!
+  usedInEpoch: BigInt!
+  epochStart: Int!
+  eventAt: BigInt!
+  eventAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# 11. UserOpEvent - UserOperation posting history
+type UserOpEvent @entity(immutable: true) {
+  id: Bytes! # txHash.concatI32(logIndex)
+  paymasterHub: PaymasterHubContract!
+  opHash: Bytes!
+  postedBy: Bytes!
+  eventAt: BigInt!
+  eventAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# 12. SolidarityEvent - Solidarity pool activity
+type SolidarityEvent @entity(immutable: true) {
+  id: Bytes! # txHash.concatI32(logIndex)
+  paymasterHub: PaymasterHubContract!
+  orgConfig: PaymasterOrgConfig
+  eventType: SolidarityEventType!
+  from: Bytes
+  amount: BigInt
+  eventAt: BigInt!
+  eventAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# 13. PaymasterConfigChange - Configuration change audit trail
+type PaymasterConfigChange @entity(immutable: true) {
+  id: Bytes! # txHash.concatI32(logIndex)
+  paymasterHub: PaymasterHubContract!
+  orgConfig: PaymasterOrgConfig
+  changeType: ConfigChangeType!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# 14. GracePeriodChange - Grace period configuration history
+type GracePeriodChange @entity(immutable: true) {
+  id: Bytes! # txHash.concatI32(logIndex)
+  paymasterHub: PaymasterHubContract!
+  initialGraceDays: Int!
+  maxSpendDuringGrace: BigInt!
+  minDepositRequired: BigInt!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# 15. PauseToggle - Org pause state history
+type PauseToggle @entity(immutable: true) {
+  id: Bytes! # txHash.concatI32(logIndex)
+  orgConfig: PaymasterOrgConfig!
+  paused: Boolean!
+  toggledAt: BigInt!
+  toggledAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# 16. OrgBanRecord - Solidarity ban history
+type OrgBanRecord @entity(immutable: true) {
+  id: Bytes! # txHash.concatI32(logIndex)
+  orgConfig: PaymasterOrgConfig!
+  banned: Boolean!
+  bannedAt: BigInt!
+  bannedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
