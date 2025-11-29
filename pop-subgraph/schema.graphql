@@ -114,6 +114,76 @@ type Project @entity(immutable: false) {
   deletedAt: BigInt
   deletedMetadata: Bytes
   tasks: [Task!]! @derivedFrom(field: "project")
+  # Project permissions and caps
+  managers: [ProjectManager!]! @derivedFrom(field: "project")
+  rolePermissions: [ProjectRolePermission!]! @derivedFrom(field: "project")
+  bountyCaps: [ProjectBountyCap!]! @derivedFrom(field: "project")
+  capChanges: [ProjectCapChange!]! @derivedFrom(field: "project")
+}
+
+# ========================================
+# Project Permissions and Caps Entities
+# ========================================
+
+type ProjectManager @entity(immutable: false) {
+  id: String! # projectId-managerAddress
+  project: Project!
+  manager: Bytes!
+  managerUser: User
+  isActive: Boolean! # true if currently a manager, false if removed
+  addedAt: BigInt!
+  addedAtBlock: BigInt!
+  removedAt: BigInt
+  removedAtBlock: BigInt
+  lastUpdatedAt: BigInt!
+  transactionHash: Bytes!
+}
+
+type ProjectRolePermission @entity(immutable: false) {
+  id: String! # projectId-hatId
+  project: Project!
+  hatId: BigInt!
+  mask: Int! # Permission bitmask (uint8: create=1, claim=2, review=4, assign=8)
+  canCreate: Boolean! # mask & 1
+  canClaim: Boolean! # mask & 2
+  canReview: Boolean! # mask & 4
+  canAssign: Boolean! # mask & 8
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type ProjectBountyCap @entity(immutable: false) {
+  id: String! # projectId-tokenAddress
+  project: Project!
+  token: Bytes! # ERC-20 token address
+  cap: BigInt! # Current cap amount
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+  capChanges: [BountyCapChange!]! @derivedFrom(field: "bountyCap")
+}
+
+type ProjectCapChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  project: Project!
+  oldCap: BigInt!
+  newCap: BigInt!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type BountyCapChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  bountyCap: ProjectBountyCap!
+  project: Project!
+  token: Bytes!
+  oldCap: BigInt!
+  newCap: BigInt!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
+  transactionHash: Bytes!
 }
 
 enum TaskStatus {
@@ -1111,5 +1181,73 @@ type ToggleAdminTransfer @entity(immutable: true) {
   newAdmin: Bytes!
   transferredAt: BigInt!
   transferredAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# ========================================
+# OrgRegistry Contract and Related Entities
+# ========================================
+
+type OrgRegistryContract @entity(immutable: false) {
+  id: Bytes! # contract address (singleton)
+  totalOrgs: BigInt!
+  totalContracts: BigInt!
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  registeredOrgs: [RegisteredOrg!]! @derivedFrom(field: "orgRegistry")
+  registeredContracts: [RegisteredContract!]! @derivedFrom(field: "orgRegistry")
+}
+
+type RegisteredOrg @entity(immutable: false) {
+  id: Bytes! # orgId
+  orgRegistry: OrgRegistryContract!
+  executor: Bytes! # executor address (can be updated via setOrgExecutor)
+  metaData: Bytes! # current metadata (can be updated)
+  topHatId: BigInt # set via HatsTreeRegistered
+  roleHatIds: [BigInt!] # set via HatsTreeRegistered
+  contractCount: BigInt! # number of contracts registered
+  registeredAt: BigInt!
+  registeredAtBlock: BigInt!
+  lastUpdatedAt: BigInt!
+  transactionHash: Bytes!
+  contracts: [RegisteredContract!]! @derivedFrom(field: "org")
+  metaUpdates: [OrgMetaUpdate!]! @derivedFrom(field: "org")
+}
+
+type OrgMetaUpdate @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  org: RegisteredOrg!
+  orgId: Bytes!
+  newMetaData: Bytes!
+  updatedAt: BigInt!
+  updatedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type RegisteredContract @entity(immutable: false) {
+  id: Bytes! # contractId (keccak256(orgId, typeId))
+  orgRegistry: OrgRegistryContract!
+  org: RegisteredOrg!
+  orgId: Bytes!
+  typeId: Bytes! # module type identifier
+  proxy: Bytes! # BeaconProxy address
+  beacon: Bytes! # Beacon address
+  autoUpgrade: Boolean! # current auto-upgrade status
+  owner: Bytes! # module owner
+  registeredAt: BigInt!
+  registeredAtBlock: BigInt!
+  lastUpdatedAt: BigInt!
+  transactionHash: Bytes!
+  autoUpgradeChanges: [AutoUpgradeChange!]! @derivedFrom(field: "contract")
+}
+
+type AutoUpgradeChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  orgRegistry: OrgRegistryContract!
+  contract: RegisteredContract!
+  contractId: Bytes!
+  enabled: Boolean!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
   transactionHash: Bytes!
 }
