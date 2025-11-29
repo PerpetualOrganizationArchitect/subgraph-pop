@@ -20,13 +20,12 @@ import {
   ExecutorSweep,
   HatMinterAuthorization,
   HatsMintedEvent as HatsMintedEntity,
-  ExecutorPauseEvent,
   ExecutorOwnershipTransfer,
   Proposal,
   DDVProposal,
   Account
 } from "../generated/schema";
-import { getUsernameForAddress, getOrCreateUser } from "./utils";
+import { getUsernameForAddress, getOrCreateUser, createPauseEvent } from "./utils";
 
 export function handleInitialized(event: InitializedEvent): void {
   // Initialization handled in org-deployer.ts
@@ -212,51 +211,45 @@ export function handleHatsMinted(event: HatsMintedEvent): void {
 }
 
 export function handlePaused(event: PausedEvent): void {
-  let contractAddress = event.address;
-
-  // Update contract
-  let executor = ExecutorContract.load(contractAddress);
-  if (executor) {
-    executor.isPaused = true;
-    executor.save();
+  let executor = ExecutorContract.load(event.address);
+  if (!executor) {
+    return;
   }
 
-  // Create pause event record
-  let eventId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let pauseEvent = new ExecutorPauseEvent(eventId);
+  // Update contract
+  executor.isPaused = true;
+  executor.save();
 
-  pauseEvent.executor = contractAddress;
-  pauseEvent.isPaused = true;
-  pauseEvent.account = event.params.account;
-  pauseEvent.eventAt = event.block.timestamp;
-  pauseEvent.eventAtBlock = event.block.number;
-  pauseEvent.transactionHash = event.transaction.hash;
-
-  pauseEvent.save();
+  // Create pause event record using consolidated PauseEvent entity
+  createPauseEvent(
+    event.address,
+    "Executor",
+    executor.organization,
+    true,
+    event.params.account,
+    event
+  );
 }
 
 export function handleUnpaused(event: UnpausedEvent): void {
-  let contractAddress = event.address;
-
-  // Update contract
-  let executor = ExecutorContract.load(contractAddress);
-  if (executor) {
-    executor.isPaused = false;
-    executor.save();
+  let executor = ExecutorContract.load(event.address);
+  if (!executor) {
+    return;
   }
 
-  // Create unpause event record
-  let eventId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let pauseEvent = new ExecutorPauseEvent(eventId);
+  // Update contract
+  executor.isPaused = false;
+  executor.save();
 
-  pauseEvent.executor = contractAddress;
-  pauseEvent.isPaused = false;
-  pauseEvent.account = event.params.account;
-  pauseEvent.eventAt = event.block.timestamp;
-  pauseEvent.eventAtBlock = event.block.number;
-  pauseEvent.transactionHash = event.transaction.hash;
-
-  pauseEvent.save();
+  // Create unpause event record using consolidated PauseEvent entity
+  createPauseEvent(
+    event.address,
+    "Executor",
+    executor.organization,
+    false,
+    event.params.account,
+    event
+  );
 }
 
 export function handleOwnershipTransferred(event: OwnershipTransferredEvent): void {
