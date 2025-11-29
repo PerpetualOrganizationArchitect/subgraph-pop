@@ -10,11 +10,11 @@ import {
 } from "../generated/templates/QuickJoin/QuickJoin";
 import {
   QuickJoinContract,
-  QuickJoinMemberHat,
+  HatPermission,
   QuickJoinEvent,
-  QuickJoinExecutorChange,
   QuickJoinAddressUpdate
 } from "../generated/schema";
+import { createExecutorChange } from "./utils";
 
 export function handleInitialized(event: InitializedEvent): void {
   // Initialization is handled by OrgDeployer when the contract is created.
@@ -79,61 +79,78 @@ export function handleExecutorUpdated(event: ExecutorUpdatedEvent): void {
   contract.executor = event.params.newExecutor;
   contract.save();
 
-  // Create historical record
-  let changeId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let change = new QuickJoinExecutorChange(changeId);
-  change.quickJoin = event.address;
-  change.newExecutor = event.params.newExecutor;
-  change.changedAt = event.block.timestamp;
-  change.changedAtBlock = event.block.number;
-  change.transactionHash = event.transaction.hash;
-
-  change.save();
+  // Create historical record using consolidated ExecutorChange entity
+  createExecutorChange(
+    event.address,
+    "QuickJoin",
+    contract.organization,
+    event.params.newExecutor,
+    event
+  );
 }
 
 export function handleHatToggled(event: HatToggledEvent): void {
-  let contractAddress = event.address;
-  let hatId = event.params.hatId;
-
-  let memberHatId = contractAddress.toHexString() + "-" + hatId.toString();
-  let memberHat = QuickJoinMemberHat.load(memberHatId);
-
-  if (memberHat == null) {
-    memberHat = new QuickJoinMemberHat(memberHatId);
-    memberHat.quickJoin = contractAddress;
-    memberHat.hatId = hatId;
+  let contract = QuickJoinContract.load(event.address);
+  if (!contract) {
+    return;
   }
 
-  memberHat.allowed = event.params.allowed;
-  memberHat.setAt = event.block.timestamp;
-  memberHat.setAtBlock = event.block.number;
-  memberHat.transactionHash = event.transaction.hash;
+  // Create or update consolidated HatPermission entity with Member role
+  let permissionId =
+    event.address.toHexString() +
+    "-" +
+    event.params.hatId.toString() +
+    "-Member";
 
-  memberHat.save();
+  let permission = HatPermission.load(permissionId);
+  if (!permission) {
+    permission = new HatPermission(permissionId);
+    permission.contractAddress = event.address;
+    permission.contractType = "QuickJoin";
+    permission.organization = contract.organization;
+    permission.hatId = event.params.hatId;
+    permission.role = "Member";
+  }
+
+  permission.allowed = event.params.allowed;
+  permission.setAt = event.block.timestamp;
+  permission.setAtBlock = event.block.number;
+  permission.transactionHash = event.transaction.hash;
+  permission.save();
 }
 
 export function handleMemberHatIdsUpdated(event: MemberHatIdsUpdatedEvent): void {
-  let contractAddress = event.address;
+  let contract = QuickJoinContract.load(event.address);
+  if (!contract) {
+    return;
+  }
+
   let hatIds = event.params.hatIds;
 
   // Update all member hats based on the new list
   for (let i = 0; i < hatIds.length; i++) {
     let hatId = hatIds[i];
-    let memberHatId = contractAddress.toHexString() + "-" + hatId.toString();
-    let memberHat = QuickJoinMemberHat.load(memberHatId);
+    let permissionId =
+      event.address.toHexString() +
+      "-" +
+      hatId.toString() +
+      "-Member";
 
-    if (memberHat == null) {
-      memberHat = new QuickJoinMemberHat(memberHatId);
-      memberHat.quickJoin = contractAddress;
-      memberHat.hatId = hatId;
-      memberHat.allowed = true; // Assume allowed if in the list
+    let permission = HatPermission.load(permissionId);
+    if (!permission) {
+      permission = new HatPermission(permissionId);
+      permission.contractAddress = event.address;
+      permission.contractType = "QuickJoin";
+      permission.organization = contract.organization;
+      permission.hatId = hatId;
+      permission.role = "Member";
+      permission.allowed = true; // Assume allowed if in the list
     }
 
-    memberHat.setAt = event.block.timestamp;
-    memberHat.setAtBlock = event.block.number;
-    memberHat.transactionHash = event.transaction.hash;
-
-    memberHat.save();
+    permission.setAt = event.block.timestamp;
+    permission.setAtBlock = event.block.number;
+    permission.transactionHash = event.transaction.hash;
+    permission.save();
   }
 }
 

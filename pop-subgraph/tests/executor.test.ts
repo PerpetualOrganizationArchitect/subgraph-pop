@@ -296,7 +296,7 @@ describe("Executor", () => {
     assert.entityCount("HatsMintedEvent", 1);
   });
 
-  test("Paused updates ExecutorContract and creates ExecutorPauseEvent", () => {
+  test("Paused updates ExecutorContract and creates PauseEvent", () => {
     setupExecutorEntities();
 
     let account = Address.fromString("0x0000000000000000000000000000000000000001");
@@ -309,10 +309,11 @@ describe("Executor", () => {
       "isPaused",
       "true"
     );
-    assert.entityCount("ExecutorPauseEvent", 1);
+    // Verify consolidated PauseEvent entity was created
+    assert.entityCount("PauseEvent", 1);
   });
 
-  test("Unpaused updates ExecutorContract and creates ExecutorPauseEvent", () => {
+  test("Unpaused updates ExecutorContract and creates PauseEvent", () => {
     setupExecutorEntities();
 
     // First pause
@@ -331,7 +332,22 @@ describe("Executor", () => {
       "isPaused",
       "false"
     );
-    assert.entityCount("ExecutorPauseEvent", 2);
+    // Verify consolidated PauseEvent entities were created (one for pause, one for unpause)
+    assert.entityCount("PauseEvent", 2);
+  });
+
+  test("PauseEvent has correct fields for Executor contract type", () => {
+    setupExecutorEntities();
+
+    let account = Address.fromString("0x0000000000000000000000000000000000000001");
+    let event = createPausedEvent(account);
+    handlePaused(event);
+
+    // PauseEvent uses txHash-logIndex as ID
+    let pauseEventId = event.transaction.hash.concatI32(event.logIndex.toI32()).toHexString();
+    assert.fieldEquals("PauseEvent", pauseEventId, "contractType", "Executor");
+    assert.fieldEquals("PauseEvent", pauseEventId, "isPaused", "true");
+    assert.fieldEquals("PauseEvent", pauseEventId, "account", "0x0000000000000000000000000000000000000001");
   });
 
   test("OwnershipTransferred updates ExecutorContract and creates ExecutorOwnershipTransfer", () => {

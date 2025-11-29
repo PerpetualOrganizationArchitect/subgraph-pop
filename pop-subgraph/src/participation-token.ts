@@ -12,8 +12,7 @@ import {
 } from "../generated/templates/ParticipationToken/ParticipationToken";
 import {
   ParticipationTokenContract,
-  ParticipationTokenMemberHat,
-  ParticipationTokenApproverHat,
+  HatPermission,
   TokenRequest,
   TokenBalance
 } from "../generated/schema";
@@ -99,45 +98,63 @@ export function handleTransfer(event: TransferEvent): void {
 }
 
 export function handleMemberHatSet(event: MemberHatSetEvent): void {
-  let contractAddress = event.address;
-  let hatId = event.params.hat;
-
-  let memberHatId = contractAddress.toHexString() + "-" + hatId.toString();
-  let memberHat = ParticipationTokenMemberHat.load(memberHatId);
-
-  if (memberHat == null) {
-    memberHat = new ParticipationTokenMemberHat(memberHatId);
-    memberHat.participationToken = contractAddress;
-    memberHat.hatId = hatId;
+  let contract = ParticipationTokenContract.load(event.address);
+  if (!contract) {
+    return;
   }
 
-  memberHat.allowed = event.params.allowed;
-  memberHat.setAt = event.block.timestamp;
-  memberHat.setAtBlock = event.block.number;
-  memberHat.transactionHash = event.transaction.hash;
+  // Create or update consolidated HatPermission entity with Member role
+  let permissionId =
+    event.address.toHexString() +
+    "-" +
+    event.params.hat.toString() +
+    "-Member";
 
-  memberHat.save();
+  let permission = HatPermission.load(permissionId);
+  if (!permission) {
+    permission = new HatPermission(permissionId);
+    permission.contractAddress = event.address;
+    permission.contractType = "ParticipationToken";
+    permission.organization = contract.organization;
+    permission.hatId = event.params.hat;
+    permission.role = "Member";
+  }
+
+  permission.allowed = event.params.allowed;
+  permission.setAt = event.block.timestamp;
+  permission.setAtBlock = event.block.number;
+  permission.transactionHash = event.transaction.hash;
+  permission.save();
 }
 
 export function handleApproverHatSet(event: ApproverHatSetEvent): void {
-  let contractAddress = event.address;
-  let hatId = event.params.hat;
-
-  let approverHatId = contractAddress.toHexString() + "-" + hatId.toString();
-  let approverHat = ParticipationTokenApproverHat.load(approverHatId);
-
-  if (approverHat == null) {
-    approverHat = new ParticipationTokenApproverHat(approverHatId);
-    approverHat.participationToken = contractAddress;
-    approverHat.hatId = hatId;
+  let contract = ParticipationTokenContract.load(event.address);
+  if (!contract) {
+    return;
   }
 
-  approverHat.allowed = event.params.allowed;
-  approverHat.setAt = event.block.timestamp;
-  approverHat.setAtBlock = event.block.number;
-  approverHat.transactionHash = event.transaction.hash;
+  // Create or update consolidated HatPermission entity with Approver role
+  let permissionId =
+    event.address.toHexString() +
+    "-" +
+    event.params.hat.toString() +
+    "-Approver";
 
-  approverHat.save();
+  let permission = HatPermission.load(permissionId);
+  if (!permission) {
+    permission = new HatPermission(permissionId);
+    permission.contractAddress = event.address;
+    permission.contractType = "ParticipationToken";
+    permission.organization = contract.organization;
+    permission.hatId = event.params.hat;
+    permission.role = "Approver";
+  }
+
+  permission.allowed = event.params.allowed;
+  permission.setAt = event.block.timestamp;
+  permission.setAtBlock = event.block.number;
+  permission.transactionHash = event.transaction.hash;
+  permission.save();
 }
 
 export function handleRequested(event: RequestedEvent): void {
