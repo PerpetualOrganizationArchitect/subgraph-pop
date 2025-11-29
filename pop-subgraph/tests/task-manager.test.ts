@@ -11,13 +11,21 @@ import {
   handleProjectCreated,
   handleTaskCreated,
   handleTaskAssigned,
-  handleTaskCompleted
+  handleTaskCompleted,
+  handleProjectCapUpdated,
+  handleProjectManagerUpdated,
+  handleProjectRolePermSet,
+  handleBountyCapSet
 } from "../src/task-manager";
 import {
   createProjectCreatedEvent,
   createTaskCreatedEvent,
   createTaskAssignedEvent,
-  createTaskCompletedEvent
+  createTaskCompletedEvent,
+  createProjectCapUpdatedEvent,
+  createProjectManagerUpdatedEvent,
+  createProjectRolePermSetEvent,
+  createBountyCapSetEvent
 } from "./task-manager-utils";
 import { Organization, TaskManager, HybridVotingContract, DirectDemocracyVotingContract, EligibilityModuleContract, ParticipationTokenContract, QuickJoinContract, EducationHubContract, PaymentManagerContract, ExecutorContract, ToggleModuleContract } from "../generated/schema";
 
@@ -331,5 +339,355 @@ describe("TaskManager", () => {
 
     let expectedId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1";
     assert.fieldEquals("Task", expectedId, "status", "Completed");
+  });
+
+  // ========================================
+  // ProjectCapUpdated Tests
+  // ========================================
+
+  test("ProjectCapUpdated updates project cap and creates history", () => {
+    setupTaskManagerEntities();
+
+    // Create a project first
+    let projectId = Bytes.fromHexString(
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    );
+    let metadata = Bytes.fromHexString("0xabcd");
+    let initialCap = BigInt.fromI32(1000);
+    let projectEvent = createProjectCreatedEvent(projectId, metadata, initialCap);
+    handleProjectCreated(projectEvent);
+
+    // Update the cap
+    let oldCap = BigInt.fromI32(1000);
+    let newCap = BigInt.fromI32(2000);
+    let capUpdateEvent = createProjectCapUpdatedEvent(projectId, oldCap, newCap);
+    handleProjectCapUpdated(capUpdateEvent);
+
+    // Verify project cap was updated
+    assert.fieldEquals(
+      "Project",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      "cap",
+      "2000"
+    );
+
+    // Verify history record was created
+    assert.entityCount("ProjectCapChange", 1);
+  });
+
+  test("ProjectCapUpdated on non-existent project does not create history", () => {
+    setupTaskManagerEntities();
+
+    // Try to update cap on non-existent project
+    let projectId = Bytes.fromHexString(
+      "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+    );
+    let oldCap = BigInt.fromI32(1000);
+    let newCap = BigInt.fromI32(2000);
+    let capUpdateEvent = createProjectCapUpdatedEvent(projectId, oldCap, newCap);
+    handleProjectCapUpdated(capUpdateEvent);
+
+    // No history should be created
+    assert.entityCount("ProjectCapChange", 0);
+  });
+
+  // ========================================
+  // ProjectManagerUpdated Tests
+  // ========================================
+
+  test("ProjectManagerUpdated adds a new manager", () => {
+    setupTaskManagerEntities();
+
+    // Create a project first
+    let projectId = Bytes.fromHexString(
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    );
+    let metadata = Bytes.fromHexString("0xabcd");
+    let cap = BigInt.fromI32(1000);
+    let projectEvent = createProjectCreatedEvent(projectId, metadata, cap);
+    handleProjectCreated(projectEvent);
+
+    // Add a manager
+    let managerAddress = Address.fromString("0x0000000000000000000000000000000000000099");
+    let addManagerEvent = createProjectManagerUpdatedEvent(projectId, managerAddress, true);
+    handleProjectManagerUpdated(addManagerEvent);
+
+    // Verify manager entity was created
+    assert.entityCount("ProjectManager", 1);
+    let expectedId = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-0x0000000000000000000000000000000000000099";
+    assert.fieldEquals("ProjectManager", expectedId, "isActive", "true");
+    assert.fieldEquals(
+      "ProjectManager",
+      expectedId,
+      "manager",
+      "0x0000000000000000000000000000000000000099"
+    );
+  });
+
+  test("ProjectManagerUpdated removes a manager", () => {
+    setupTaskManagerEntities();
+
+    // Create a project
+    let projectId = Bytes.fromHexString(
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    );
+    let metadata = Bytes.fromHexString("0xabcd");
+    let cap = BigInt.fromI32(1000);
+    let projectEvent = createProjectCreatedEvent(projectId, metadata, cap);
+    handleProjectCreated(projectEvent);
+
+    // Add a manager
+    let managerAddress = Address.fromString("0x0000000000000000000000000000000000000099");
+    let addManagerEvent = createProjectManagerUpdatedEvent(projectId, managerAddress, true);
+    handleProjectManagerUpdated(addManagerEvent);
+
+    // Remove the manager
+    let removeManagerEvent = createProjectManagerUpdatedEvent(projectId, managerAddress, false);
+    handleProjectManagerUpdated(removeManagerEvent);
+
+    // Verify manager is now inactive
+    let expectedId = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-0x0000000000000000000000000000000000000099";
+    assert.fieldEquals("ProjectManager", expectedId, "isActive", "false");
+  });
+
+  // ========================================
+  // ProjectRolePermSet Tests
+  // ========================================
+
+  test("ProjectRolePermSet creates permission with full permissions (mask=15)", () => {
+    setupTaskManagerEntities();
+
+    // Create a project
+    let projectId = Bytes.fromHexString(
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    );
+    let metadata = Bytes.fromHexString("0xabcd");
+    let cap = BigInt.fromI32(1000);
+    let projectEvent = createProjectCreatedEvent(projectId, metadata, cap);
+    handleProjectCreated(projectEvent);
+
+    // Set permissions with mask=15 (all permissions)
+    let hatId = BigInt.fromI32(1001);
+    let mask: i32 = 15; // 0b1111 = all permissions
+    let permEvent = createProjectRolePermSetEvent(projectId, hatId, mask);
+    handleProjectRolePermSet(permEvent);
+
+    // Verify permission entity
+    assert.entityCount("ProjectRolePermission", 1);
+    let expectedId = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-1001";
+    assert.fieldEquals("ProjectRolePermission", expectedId, "mask", "15");
+    assert.fieldEquals("ProjectRolePermission", expectedId, "canCreate", "true");
+    assert.fieldEquals("ProjectRolePermission", expectedId, "canClaim", "true");
+    assert.fieldEquals("ProjectRolePermission", expectedId, "canReview", "true");
+    assert.fieldEquals("ProjectRolePermission", expectedId, "canAssign", "true");
+  });
+
+  test("ProjectRolePermSet creates permission with no permissions (mask=0)", () => {
+    setupTaskManagerEntities();
+
+    // Create a project
+    let projectId = Bytes.fromHexString(
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    );
+    let metadata = Bytes.fromHexString("0xabcd");
+    let cap = BigInt.fromI32(1000);
+    let projectEvent = createProjectCreatedEvent(projectId, metadata, cap);
+    handleProjectCreated(projectEvent);
+
+    // Set permissions with mask=0 (no permissions)
+    let hatId = BigInt.fromI32(1002);
+    let mask: i32 = 0;
+    let permEvent = createProjectRolePermSetEvent(projectId, hatId, mask);
+    handleProjectRolePermSet(permEvent);
+
+    // Verify all permissions are false
+    let expectedId = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-1002";
+    assert.fieldEquals("ProjectRolePermission", expectedId, "mask", "0");
+    assert.fieldEquals("ProjectRolePermission", expectedId, "canCreate", "false");
+    assert.fieldEquals("ProjectRolePermission", expectedId, "canClaim", "false");
+    assert.fieldEquals("ProjectRolePermission", expectedId, "canReview", "false");
+    assert.fieldEquals("ProjectRolePermission", expectedId, "canAssign", "false");
+  });
+
+  test("ProjectRolePermSet decodes individual permission bits correctly", () => {
+    setupTaskManagerEntities();
+
+    // Create a project
+    let projectId = Bytes.fromHexString(
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    );
+    let metadata = Bytes.fromHexString("0xabcd");
+    let cap = BigInt.fromI32(1000);
+    let projectEvent = createProjectCreatedEvent(projectId, metadata, cap);
+    handleProjectCreated(projectEvent);
+
+    // Set permissions with mask=5 (canCreate=true, canReview=true)
+    // 5 = 0b0101 = CREATE(1) + REVIEW(4)
+    let hatId = BigInt.fromI32(1003);
+    let mask: i32 = 5;
+    let permEvent = createProjectRolePermSetEvent(projectId, hatId, mask);
+    handleProjectRolePermSet(permEvent);
+
+    let expectedId = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-1003";
+    assert.fieldEquals("ProjectRolePermission", expectedId, "mask", "5");
+    assert.fieldEquals("ProjectRolePermission", expectedId, "canCreate", "true");
+    assert.fieldEquals("ProjectRolePermission", expectedId, "canClaim", "false");
+    assert.fieldEquals("ProjectRolePermission", expectedId, "canReview", "true");
+    assert.fieldEquals("ProjectRolePermission", expectedId, "canAssign", "false");
+  });
+
+  test("ProjectRolePermSet updates existing permission", () => {
+    setupTaskManagerEntities();
+
+    // Create a project
+    let projectId = Bytes.fromHexString(
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    );
+    let metadata = Bytes.fromHexString("0xabcd");
+    let cap = BigInt.fromI32(1000);
+    let projectEvent = createProjectCreatedEvent(projectId, metadata, cap);
+    handleProjectCreated(projectEvent);
+
+    let hatId = BigInt.fromI32(1004);
+
+    // First set mask=1 (only create)
+    let permEvent1 = createProjectRolePermSetEvent(projectId, hatId, 1);
+    handleProjectRolePermSet(permEvent1);
+
+    // Then update to mask=15 (all permissions)
+    let permEvent2 = createProjectRolePermSetEvent(projectId, hatId, 15);
+    handleProjectRolePermSet(permEvent2);
+
+    // Should still have only 1 entity, but with updated values
+    assert.entityCount("ProjectRolePermission", 1);
+    let expectedId = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-1004";
+    assert.fieldEquals("ProjectRolePermission", expectedId, "mask", "15");
+    assert.fieldEquals("ProjectRolePermission", expectedId, "canCreate", "true");
+    assert.fieldEquals("ProjectRolePermission", expectedId, "canClaim", "true");
+    assert.fieldEquals("ProjectRolePermission", expectedId, "canReview", "true");
+    assert.fieldEquals("ProjectRolePermission", expectedId, "canAssign", "true");
+  });
+
+  // ========================================
+  // BountyCapSet Tests
+  // ========================================
+
+  test("BountyCapSet creates bounty cap and history", () => {
+    setupTaskManagerEntities();
+
+    // Create a project
+    let projectId = Bytes.fromHexString(
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    );
+    let metadata = Bytes.fromHexString("0xabcd");
+    let cap = BigInt.fromI32(1000);
+    let projectEvent = createProjectCreatedEvent(projectId, metadata, cap);
+    handleProjectCreated(projectEvent);
+
+    // Set bounty cap
+    let token = Address.fromString("0x0000000000000000000000000000000000000088");
+    let oldCap = BigInt.fromI32(0);
+    let newCap = BigInt.fromI32(5000);
+    let bountyCapEvent = createBountyCapSetEvent(projectId, token, oldCap, newCap);
+    handleBountyCapSet(bountyCapEvent);
+
+    // Verify ProjectBountyCap entity
+    assert.entityCount("ProjectBountyCap", 1);
+    let expectedCapId = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-0x0000000000000000000000000000000000000088";
+    assert.fieldEquals("ProjectBountyCap", expectedCapId, "cap", "5000");
+    assert.fieldEquals(
+      "ProjectBountyCap",
+      expectedCapId,
+      "token",
+      "0x0000000000000000000000000000000000000088"
+    );
+
+    // Verify BountyCapChange history
+    assert.entityCount("BountyCapChange", 1);
+  });
+
+  test("BountyCapSet creates separate entities for different tokens", () => {
+    setupTaskManagerEntities();
+
+    // Create a project
+    let projectId = Bytes.fromHexString(
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    );
+    let metadata = Bytes.fromHexString("0xabcd");
+    let cap = BigInt.fromI32(1000);
+    let projectEvent = createProjectCreatedEvent(projectId, metadata, cap);
+    handleProjectCreated(projectEvent);
+
+    // Set bounty cap for token 1
+    let token1 = Address.fromString("0x0000000000000000000000000000000000000088");
+    let bountyCapEvent1 = createBountyCapSetEvent(
+      projectId,
+      token1,
+      BigInt.fromI32(0),
+      BigInt.fromI32(5000)
+    );
+    handleBountyCapSet(bountyCapEvent1);
+
+    // Set bounty cap for token 2
+    let token2 = Address.fromString("0x0000000000000000000000000000000000000099");
+    let bountyCapEvent2 = createBountyCapSetEvent(
+      projectId,
+      token2,
+      BigInt.fromI32(0),
+      BigInt.fromI32(10000)
+    );
+    handleBountyCapSet(bountyCapEvent2);
+
+    // Should have 2 ProjectBountyCap entities
+    assert.entityCount("ProjectBountyCap", 2);
+
+    // Verify each cap
+    let expectedCapId1 = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-0x0000000000000000000000000000000000000088";
+    let expectedCapId2 = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-0x0000000000000000000000000000000000000099";
+    assert.fieldEquals("ProjectBountyCap", expectedCapId1, "cap", "5000");
+    assert.fieldEquals("ProjectBountyCap", expectedCapId2, "cap", "10000");
+  });
+
+  test("BountyCapSet updates existing cap and creates new history", () => {
+    setupTaskManagerEntities();
+
+    // Create a project
+    let projectId = Bytes.fromHexString(
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    );
+    let metadata = Bytes.fromHexString("0xabcd");
+    let cap = BigInt.fromI32(1000);
+    let projectEvent = createProjectCreatedEvent(projectId, metadata, cap);
+    handleProjectCreated(projectEvent);
+
+    let token = Address.fromString("0x0000000000000000000000000000000000000088");
+
+    // Initial cap
+    let bountyCapEvent1 = createBountyCapSetEvent(
+      projectId,
+      token,
+      BigInt.fromI32(0),
+      BigInt.fromI32(5000)
+    );
+    handleBountyCapSet(bountyCapEvent1);
+
+    // Update cap - use different transaction hash to create separate history record
+    let bountyCapEvent2 = createBountyCapSetEvent(
+      projectId,
+      token,
+      BigInt.fromI32(5000),
+      BigInt.fromI32(7500)
+    );
+    // Set different transaction hash for second event to ensure unique history ID
+    bountyCapEvent2.transaction.hash = Bytes.fromHexString("0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef");
+    handleBountyCapSet(bountyCapEvent2);
+
+    // Should still have 1 ProjectBountyCap entity with updated value
+    assert.entityCount("ProjectBountyCap", 1);
+    let expectedCapId = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-0x0000000000000000000000000000000000000088";
+    assert.fieldEquals("ProjectBountyCap", expectedCapId, "cap", "7500");
+
+    // Should have 2 history records (different tx hashes)
+    assert.entityCount("BountyCapChange", 2);
   });
 });
