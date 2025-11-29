@@ -1185,7 +1185,6 @@ type ToggleAdminTransfer @entity(immutable: true) {
 }
 
 # ========================================
-<<<<<<< HEAD
 # PaymasterHub Contract and Related Entities
 # ERC-4337 Paymaster for gas sponsorship across organizations
 # ========================================
