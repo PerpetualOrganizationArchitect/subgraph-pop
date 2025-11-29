@@ -1201,3 +1201,56 @@ type AutoUpgradeChange @entity(immutable: true) {
   changedAtBlock: BigInt!
   transactionHash: Bytes!
 }
+
+# ========================================
+# PoaManager Contract and Related Entities
+# ========================================
+
+type PoaManagerContract @entity(immutable: false) {
+  id: Bytes! # contract address (singleton)
+  registry: Bytes! # Current ImplementationRegistry address
+  beaconCount: BigInt! # Total number of beacons created
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  beacons: [Beacon!]! @derivedFrom(field: "poaManager")
+  beaconUpgrades: [BeaconUpgradeEvent!]! @derivedFrom(field: "poaManager")
+  registryUpdates: [RegistryUpdate!]! @derivedFrom(field: "poaManager")
+}
+
+type Beacon @entity(immutable: false) {
+  id: String! # typeId (bytes32 as hex string for readability)
+  poaManager: PoaManagerContract!
+  typeId: Bytes! # bytes32 type identifier
+  typeName: String! # Human-readable type name (e.g., "TaskManager", "HybridVoting")
+  beaconAddress: Bytes! # UpgradeableBeacon contract address
+  currentImplementation: Bytes! # Current implementation address
+  version: String! # Current version (starts at "v1")
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  updatedAt: BigInt!
+  updatedAtBlock: BigInt!
+  transactionHash: Bytes!
+  upgrades: [BeaconUpgradeEvent!]! @derivedFrom(field: "beacon")
+}
+
+type BeaconUpgradeEvent @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  poaManager: PoaManagerContract!
+  beacon: Beacon!
+  typeId: Bytes!
+  newImplementation: Bytes!
+  version: String!
+  upgradedAt: BigInt!
+  upgradedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type RegistryUpdate @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  poaManager: PoaManagerContract!
+  oldRegistry: Bytes!
+  newRegistry: Bytes!
+  updatedAt: BigInt!
+  updatedAtBlock: BigInt!
+  transactionHash: Bytes!
+}

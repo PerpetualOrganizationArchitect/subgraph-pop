@@ -139,6 +139,33 @@ dataSources:
         - event: HatsTreeRegistered(indexed bytes32,uint256,uint256[])
           handler: handleHatsTreeRegistered
       file: ./src/org-registry.ts
+  - kind: ethereum
+    name: PoaManager
+    network: hoodi
+    source:
+      address: "0xF8a26534f53fA89Ed89fA5814d167BFFc7645769"
+      abi: PoaManager
+      startBlock: 1470950
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - PoaManagerContract
+        - Beacon
+        - BeaconUpgradeEvent
+        - RegistryUpdate
+      abis:
+        - name: PoaManager
+          file: ./abis/PoaManager.json
+      eventHandlers:
+        - event: BeaconCreated(indexed bytes32,string,address,address)
+          handler: handleBeaconCreated
+        - event: BeaconUpgraded(indexed bytes32,address,string)
+          handler: handleBeaconUpgraded
+        - event: RegistryUpdated(address,address)
+          handler: handleRegistryUpdated
+      file: ./src/poa-manager.ts
 templates:
   - kind: ethereum
     name: TaskManager
