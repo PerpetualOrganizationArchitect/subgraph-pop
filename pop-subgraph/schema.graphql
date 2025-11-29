@@ -111,6 +111,77 @@ type Project @entity(immutable: false) {
   deletedAt: BigInt
   deletedMetadata: Bytes
   tasks: [Task!]! @derivedFrom(field: "project")
+  # Project permissions and caps
+  managers: [ProjectManager!]! @derivedFrom(field: "project")
+  rolePermissions: [ProjectRolePermission!]! @derivedFrom(field: "project")
+  bountyCaps: [ProjectBountyCap!]! @derivedFrom(field: "project")
+  capChanges: [ProjectCapChange!]! @derivedFrom(field: "project")
+}
+
+# ========================================
+# Project Permissions and Caps Entities
+# ========================================
+
+type ProjectManager @entity(immutable: false) {
+  id: String! # projectId-managerAddress
+  project: Project!
+  manager: Bytes!
+  managerUser: User
+  managerUsername: String
+  isActive: Boolean! # true if currently a manager, false if removed
+  addedAt: BigInt!
+  addedAtBlock: BigInt!
+  removedAt: BigInt
+  removedAtBlock: BigInt
+  lastUpdatedAt: BigInt!
+  transactionHash: Bytes!
+}
+
+type ProjectRolePermission @entity(immutable: false) {
+  id: String! # projectId-hatId
+  project: Project!
+  hatId: BigInt!
+  mask: Int! # Permission bitmask (uint8: create=1, claim=2, review=4, assign=8)
+  canCreate: Boolean! # mask & 1
+  canClaim: Boolean! # mask & 2
+  canReview: Boolean! # mask & 4
+  canAssign: Boolean! # mask & 8
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type ProjectBountyCap @entity(immutable: false) {
+  id: String! # projectId-tokenAddress
+  project: Project!
+  token: Bytes! # ERC-20 token address
+  cap: BigInt! # Current cap amount
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+  capChanges: [BountyCapChange!]! @derivedFrom(field: "bountyCap")
+}
+
+type ProjectCapChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  project: Project!
+  oldCap: BigInt!
+  newCap: BigInt!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type BountyCapChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  bountyCap: ProjectBountyCap!
+  project: Project!
+  token: Bytes!
+  oldCap: BigInt!
+  newCap: BigInt!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
+  transactionHash: Bytes!
 }
 
 enum TaskStatus {
