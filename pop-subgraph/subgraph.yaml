@@ -300,6 +300,9 @@ templates:
         - VouchConfig
         - Vouch
         - UserJoinTime
+        - VouchingRestrictionEvent
+        - HatAutoMintEvent
+        - HatClaimEvent
       abis:
         - name: EligibilityModule
           file: ./abis/EligibilityModule.json
@@ -332,6 +335,12 @@ templates:
           handler: handlePaused
         - event: Unpaused(indexed address)
           handler: handleUnpaused
+        - event: VouchingRateLimitExceededEvent(indexed address)
+          handler: handleVouchingRateLimitExceeded
+        - event: NewUserVouchingRestrictedEvent(indexed address)
+          handler: handleNewUserVouchingRestricted
+        - event: HatAutoMinted(indexed address,indexed uint256,uint32)
+          handler: handleHatAutoMinted
       file: ./src/eligibility-module.ts
   - kind: ethereum
     name: ParticipationToken

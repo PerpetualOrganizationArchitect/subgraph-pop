@@ -13,7 +13,10 @@ import {
   EligibilityModuleAdminHatSet as EligibilityModuleAdminHatSetEvent,
   SuperAdminTransferred as SuperAdminTransferredEvent,
   Paused as PausedEvent,
-  Unpaused as UnpausedEvent
+  Unpaused as UnpausedEvent,
+  VouchingRateLimitExceededEvent as VouchingRateLimitExceededEventEvent,
+  NewUserVouchingRestrictedEvent as NewUserVouchingRestrictedEventEvent,
+  HatAutoMinted as HatAutoMintedEvent
 } from "../generated/templates/EligibilityModule/EligibilityModule";
 import {
   EligibilityModuleContract,
@@ -21,7 +24,10 @@ import {
   WearerEligibility,
   VouchConfig,
   Vouch,
-  UserJoinTime
+  UserJoinTime,
+  VouchingRestrictionEvent,
+  HatAutoMintEvent,
+  HatClaimEvent
 } from "../generated/schema";
 import { getUsernameForAddress, getOrCreateUser } from "./utils";
 
@@ -312,12 +318,34 @@ export function handleVouchRevoked(event: VouchRevokedEvent): void {
 }
 
 export function handleHatClaimed(event: HatClaimedEvent): void {
-  // Hat claimed by wearer after vouching threshold met
-  // This is tracked in the Vouch entities, no additional action needed
-  log.info("Hat claimed by wearer {} for hatId {}", [
-    event.params.wearer.toHexString(),
-    event.params.hatId.toString()
-  ]);
+  let id = event.transaction.hash.concatI32(event.logIndex.toI32());
+  let claim = new HatClaimEvent(id);
+
+  let contractAddress = event.address;
+  let hatId = event.params.hatId;
+
+  claim.eligibilityModule = contractAddress;
+  claim.wearer = event.params.wearer;
+  claim.wearerUsername = getUsernameForAddress(event.params.wearer);
+  claim.hatId = hatId;
+  claim.hat = contractAddress.toHexString() + "-" + hatId.toString();
+  claim.claimedAt = event.block.timestamp;
+  claim.claimedAtBlock = event.block.number;
+  claim.transactionHash = event.transaction.hash;
+
+  // Link to User entity
+  let eligibilityModule = EligibilityModuleContract.load(contractAddress);
+  if (eligibilityModule) {
+    let user = getOrCreateUser(
+      eligibilityModule.organization,
+      event.params.wearer,
+      event.block.timestamp,
+      event.block.number
+    );
+    claim.wearerUser = user.id;
+  }
+
+  claim.save();
 }
 
 export function handleUserJoinTimeSet(event: UserJoinTimeSetEvent): void {
@@ -395,4 +423,94 @@ export function handleUnpaused(event: UnpausedEvent): void {
 
   contract.isPaused = false;
   contract.save();
+}
+
+export function handleVouchingRateLimitExceeded(
+  event: VouchingRateLimitExceededEventEvent
+): void {
+  let id = event.transaction.hash.concatI32(event.logIndex.toI32());
+  let restriction = new VouchingRestrictionEvent(id);
+
+  restriction.eligibilityModule = event.address;
+  restriction.user = event.params.user;
+  restriction.userUsername = getUsernameForAddress(event.params.user);
+  restriction.restrictionType = "RateLimit";
+  restriction.eventAt = event.block.timestamp;
+  restriction.eventAtBlock = event.block.number;
+  restriction.transactionHash = event.transaction.hash;
+
+  // Link to User entity
+  let eligibilityModule = EligibilityModuleContract.load(event.address);
+  if (eligibilityModule) {
+    let user = getOrCreateUser(
+      eligibilityModule.organization,
+      event.params.user,
+      event.block.timestamp,
+      event.block.number
+    );
+    restriction.userUser = user.id;
+  }
+
+  restriction.save();
+}
+
+export function handleNewUserVouchingRestricted(
+  event: NewUserVouchingRestrictedEventEvent
+): void {
+  let id = event.transaction.hash.concatI32(event.logIndex.toI32());
+  let restriction = new VouchingRestrictionEvent(id);
+
+  restriction.eligibilityModule = event.address;
+  restriction.user = event.params.user;
+  restriction.userUsername = getUsernameForAddress(event.params.user);
+  restriction.restrictionType = "NewUser";
+  restriction.eventAt = event.block.timestamp;
+  restriction.eventAtBlock = event.block.number;
+  restriction.transactionHash = event.transaction.hash;
+
+  // Link to User entity
+  let eligibilityModule = EligibilityModuleContract.load(event.address);
+  if (eligibilityModule) {
+    let user = getOrCreateUser(
+      eligibilityModule.organization,
+      event.params.user,
+      event.block.timestamp,
+      event.block.number
+    );
+    restriction.userUser = user.id;
+  }
+
+  restriction.save();
+}
+
+export function handleHatAutoMinted(event: HatAutoMintedEvent): void {
+  let id = event.transaction.hash.concatI32(event.logIndex.toI32());
+  let autoMint = new HatAutoMintEvent(id);
+
+  let contractAddress = event.address;
+  let hatId = event.params.hatId;
+
+  autoMint.eligibilityModule = contractAddress;
+  autoMint.wearer = event.params.wearer;
+  autoMint.wearerUsername = getUsernameForAddress(event.params.wearer);
+  autoMint.hatId = hatId;
+  autoMint.hat = contractAddress.toHexString() + "-" + hatId.toString();
+  autoMint.vouchCount = event.params.vouchCount.toI32();
+  autoMint.mintedAt = event.block.timestamp;
+  autoMint.mintedAtBlock = event.block.number;
+  autoMint.transactionHash = event.transaction.hash;
+
+  // Link to User entity
+  let eligibilityModule = EligibilityModuleContract.load(contractAddress);
+  if (eligibilityModule) {
+    let user = getOrCreateUser(
+      eligibilityModule.organization,
+      event.params.wearer,
+      event.block.timestamp,
+      event.block.number
+    );
+    autoMint.wearerUser = user.id;
+  }
+
+  autoMint.save();
 }

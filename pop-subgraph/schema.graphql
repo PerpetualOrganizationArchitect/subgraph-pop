@@ -53,6 +53,9 @@ type User @entity(immutable: false) {
   vouchesGiven: [Vouch!]! @derivedFrom(field: "voucherUser")
   vouchesReceived: [Vouch!]! @derivedFrom(field: "wearerUser")
   hatsMintedEvents: [HatsMintedEvent!]! @derivedFrom(field: "recipientUser")
+  vouchingRestrictions: [VouchingRestrictionEvent!]! @derivedFrom(field: "userUser")
+  hatAutoMints: [HatAutoMintEvent!]! @derivedFrom(field: "wearerUser")
+  hatClaims: [HatClaimEvent!]! @derivedFrom(field: "wearerUser")
 
   # Aggregate statistics
   totalVotes: BigInt!
@@ -464,6 +467,9 @@ type EligibilityModuleContract @entity(immutable: false) {
   vouchConfigs: [VouchConfig!]! @derivedFrom(field: "eligibilityModule")
   vouches: [Vouch!]! @derivedFrom(field: "eligibilityModule")
   userJoinTimes: [UserJoinTime!]! @derivedFrom(field: "eligibilityModule")
+  vouchingRestrictions: [VouchingRestrictionEvent!]! @derivedFrom(field: "eligibilityModule")
+  hatAutoMints: [HatAutoMintEvent!]! @derivedFrom(field: "eligibilityModule")
+  hatClaims: [HatClaimEvent!]! @derivedFrom(field: "eligibilityModule")
 }
 
 type Hat @entity(immutable: false) {
@@ -547,6 +553,50 @@ type UserJoinTime @entity(immutable: false) {
   joinTime: BigInt!
   setAt: BigInt!
   setAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+enum VouchingRestrictionType {
+  RateLimit
+  NewUser
+}
+
+type VouchingRestrictionEvent @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  eligibilityModule: EligibilityModuleContract!
+  user: Bytes!
+  userUser: User
+  userUsername: String
+  restrictionType: VouchingRestrictionType!
+  eventAt: BigInt!
+  eventAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type HatAutoMintEvent @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  eligibilityModule: EligibilityModuleContract!
+  wearer: Bytes!
+  wearerUser: User
+  wearerUsername: String
+  hatId: BigInt!
+  hat: Hat
+  vouchCount: Int!
+  mintedAt: BigInt!
+  mintedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type HatClaimEvent @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  eligibilityModule: EligibilityModuleContract!
+  wearer: Bytes!
+  wearerUser: User
+  wearerUsername: String
+  hatId: BigInt!
+  hat: Hat
+  claimedAt: BigInt!
+  claimedAtBlock: BigInt!
   transactionHash: Bytes!
 }
 
