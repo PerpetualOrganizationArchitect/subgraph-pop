@@ -9,7 +9,9 @@ import {
   ParticipationTokenContract,
   QuickJoinContract,
   EducationHubContract,
-  PaymentManagerContract
+  PaymentManagerContract,
+  ExecutorContract,
+  ToggleModuleContract
 } from "../generated/schema";
 import {
   TaskManager as TaskManagerTemplate,
@@ -19,7 +21,9 @@ import {
   ParticipationToken as ParticipationTokenTemplate,
   QuickJoin as QuickJoinTemplate,
   EducationHub as EducationHubTemplate,
-  PaymentManager as PaymentManagerTemplate
+  PaymentManager as PaymentManagerTemplate,
+  Executor as ExecutorTemplate,
+  ToggleModule as ToggleModuleTemplate
 } from "../generated/templates";
 
 /**
@@ -98,10 +102,26 @@ export function handleOrgDeployed(event: OrgDeployed): void {
   paymentManager.createdAt = event.block.timestamp;
   paymentManager.createdAtBlock = event.block.number;
 
+  // Create ExecutorContract entity
+  let executor = new ExecutorContract(event.params.executor);
+  executor.owner = Address.zero(); // Will be set by OwnershipTransferred event
+  executor.allowedCaller = null; // Will be set by CallerSet event
+  executor.hatsContract = Address.zero(); // Will be set by HatsSet event
+  executor.isPaused = false;
+  executor.createdAt = event.block.timestamp;
+  executor.createdAtBlock = event.block.number;
+
+  // Create ToggleModuleContract entity
+  let toggleModule = new ToggleModuleContract(event.params.toggleModule);
+  toggleModule.admin = Address.zero(); // Will be set by ToggleModuleInitialized event
+  toggleModule.eligibilityModule = null; // Will be set when eligibility module calls setEligibilityModule
+  toggleModule.createdAt = event.block.timestamp;
+  toggleModule.createdAtBlock = event.block.number;
+
   // Create Organization entity
   let organization = new Organization(event.params.orgId);
   organization.orgId = event.params.orgId;
-  organization.executor = event.params.executor;
+  organization.executorContract = executor.id; // Link to ExecutorContract entity
   organization.hybridVoting = hybridVoting.id; // Link to HybridVotingContract entity
   organization.directDemocracyVoting = directDemocracyVoting.id; // Link to DirectDemocracyVotingContract entity
   organization.quickJoin = quickJoin.id; // Link to QuickJoinContract entity
@@ -110,7 +130,7 @@ export function handleOrgDeployed(event: OrgDeployed): void {
   organization.educationHub = educationHub.id; // Link to EducationHubContract entity
   organization.paymentManager = paymentManager.id; // Link to PaymentManagerContract entity
   organization.eligibilityModule = eligibilityModule.id; // Link to EligibilityModuleContract entity
-  organization.toggleModule = event.params.toggleModule;
+  organization.toggleModuleContract = toggleModule.id; // Link to ToggleModuleContract entity
   organization.topHatId = event.params.topHatId;
   organization.roleHatIds = event.params.roleHatIds;
   organization.deployedAt = event.block.timestamp;
@@ -126,6 +146,8 @@ export function handleOrgDeployed(event: OrgDeployed): void {
   quickJoin.organization = organization.id;
   educationHub.organization = organization.id;
   paymentManager.organization = organization.id;
+  executor.organization = organization.id;
+  toggleModule.organization = organization.id;
 
   // Save entities
   taskManager.save();
@@ -136,6 +158,8 @@ export function handleOrgDeployed(event: OrgDeployed): void {
   quickJoin.save();
   educationHub.save();
   paymentManager.save();
+  executor.save();
+  toggleModule.save();
   organization.save();
 
   // Instantiate data source templates for this organization
@@ -147,4 +171,6 @@ export function handleOrgDeployed(event: OrgDeployed): void {
   QuickJoinTemplate.create(event.params.quickJoin);
   EducationHubTemplate.create(event.params.educationHub);
   PaymentManagerTemplate.create(event.params.paymentManager);
+  ExecutorTemplate.create(event.params.executor);
+  ToggleModuleTemplate.create(event.params.toggleModule);
 }

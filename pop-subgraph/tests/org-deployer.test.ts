@@ -71,7 +71,7 @@ describe("OrgDeployer", () => {
 
     handleOrgDeployed(orgDeployedEvent);
 
-    // Verify Organization, TaskManager, HybridVotingContract, DirectDemocracyVotingContract, EligibilityModuleContract, ParticipationTokenContract, QuickJoinContract, EducationHubContract, and PaymentManagerContract entities are created
+    // Verify Organization, TaskManager, HybridVotingContract, DirectDemocracyVotingContract, EligibilityModuleContract, ParticipationTokenContract, QuickJoinContract, EducationHubContract, PaymentManagerContract, ExecutorContract, and ToggleModuleContract entities are created
     assert.entityCount("Organization", 1);
     assert.entityCount("TaskManager", 1);
     assert.entityCount("HybridVotingContract", 1);
@@ -81,12 +81,14 @@ describe("OrgDeployer", () => {
     assert.entityCount("QuickJoinContract", 1);
     assert.entityCount("EducationHubContract", 1);
     assert.entityCount("PaymentManagerContract", 1);
+    assert.entityCount("ExecutorContract", 1);
+    assert.entityCount("ToggleModuleContract", 1);
 
     // Verify Organization fields
     assert.fieldEquals(
       "Organization",
       "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-      "executor",
+      "executorContract",
       "0x0000000000000000000000000000000000000001"
     );
     assert.fieldEquals(
@@ -134,7 +136,7 @@ describe("OrgDeployer", () => {
     assert.fieldEquals(
       "Organization",
       "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-      "toggleModule",
+      "toggleModuleContract",
       "0x000000000000000000000000000000000000000a"
     );
     assert.fieldEquals(
