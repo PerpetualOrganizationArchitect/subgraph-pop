@@ -1063,3 +1063,71 @@ type ToggleAdminTransfer @entity(immutable: true) {
   transferredAtBlock: BigInt!
   transactionHash: Bytes!
 }
+
+# ========================================
+# OrgRegistry Contract and Related Entities
+# ========================================
+
+type OrgRegistryContract @entity(immutable: false) {
+  id: Bytes! # contract address (singleton)
+  totalOrgs: BigInt!
+  totalContracts: BigInt!
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  registeredOrgs: [RegisteredOrg!]! @derivedFrom(field: "orgRegistry")
+  registeredContracts: [RegisteredContract!]! @derivedFrom(field: "orgRegistry")
+}
+
+type RegisteredOrg @entity(immutable: false) {
+  id: Bytes! # orgId
+  orgRegistry: OrgRegistryContract!
+  executor: Bytes! # executor address (can be updated via setOrgExecutor)
+  metaData: Bytes! # current metadata (can be updated)
+  topHatId: BigInt # set via HatsTreeRegistered
+  roleHatIds: [BigInt!] # set via HatsTreeRegistered
+  contractCount: BigInt! # number of contracts registered
+  registeredAt: BigInt!
+  registeredAtBlock: BigInt!
+  lastUpdatedAt: BigInt!
+  transactionHash: Bytes!
+  contracts: [RegisteredContract!]! @derivedFrom(field: "org")
+  metaUpdates: [OrgMetaUpdate!]! @derivedFrom(field: "org")
+}
+
+type OrgMetaUpdate @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  org: RegisteredOrg!
+  orgId: Bytes!
+  newMetaData: Bytes!
+  updatedAt: BigInt!
+  updatedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type RegisteredContract @entity(immutable: false) {
+  id: Bytes! # contractId (keccak256(orgId, typeId))
+  orgRegistry: OrgRegistryContract!
+  org: RegisteredOrg!
+  orgId: Bytes!
+  typeId: Bytes! # module type identifier
+  proxy: Bytes! # BeaconProxy address
+  beacon: Bytes! # Beacon address
+  autoUpgrade: Boolean! # current auto-upgrade status
+  owner: Bytes! # module owner
+  registeredAt: BigInt!
+  registeredAtBlock: BigInt!
+  lastUpdatedAt: BigInt!
+  transactionHash: Bytes!
+  autoUpgradeChanges: [AutoUpgradeChange!]! @derivedFrom(field: "contract")
+}
+
+type AutoUpgradeChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  orgRegistry: OrgRegistryContract!
+  contract: RegisteredContract!
+  contractId: Bytes!
+  enabled: Boolean!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
