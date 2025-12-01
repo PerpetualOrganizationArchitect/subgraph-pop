@@ -19,14 +19,11 @@ import {
   EducationModule,
   ModuleCompletion,
   ModuleUpdate,
-  EducationHubCreatorHat,
-  EducationHubMemberHat,
-  EducationHubExecutorChange,
+  HatPermission,
   EducationHubTokenChange,
-  EducationHubHatsChange,
-  EducationHubPauseEvent
+  EducationHubHatsChange
 } from "../generated/schema";
-import { getUsernameForAddress, getOrCreateUser } from "./utils";
+import { getUsernameForAddress, getOrCreateUser, createExecutorChange, createPauseEvent } from "./utils";
 
 export function handleInitialized(event: InitializedEvent): void {
   // Initialization handled in org-deployer.ts
@@ -42,8 +39,9 @@ export function handleModuleCreated(event: ModuleCreatedEvent): void {
 
   module.educationHub = contractAddress;
   module.moduleId = moduleId;
+  module.title = event.params.title;
+  module.contentHash = event.params.contentHash;
   module.payout = event.params.payout;
-  module.metadata = event.params.metadata;
   module.status = "Active";
   module.createdAt = event.block.timestamp;
   module.createdAtBlock = event.block.number;
@@ -107,8 +105,9 @@ export function handleModuleUpdated(event: ModuleUpdatedEvent): void {
   let module = EducationModule.load(moduleEntityId);
 
   if (module) {
+    module.title = event.params.title;
+    module.contentHash = event.params.contentHash;
     module.payout = event.params.payout;
-    module.metadata = event.params.metadata;
     module.updatedAt = event.block.timestamp;
     module.updatedAtBlock = event.block.number;
     module.save();
@@ -120,8 +119,9 @@ export function handleModuleUpdated(event: ModuleUpdatedEvent): void {
 
   update.module = moduleEntityId;
   update.moduleId = moduleId;
+  update.title = event.params.title;
+  update.contentHash = event.params.contentHash;
   update.payout = event.params.payout;
-  update.metadata = event.params.metadata;
   update.updatedAt = event.block.timestamp;
   update.updatedAtBlock = event.block.number;
   update.transactionHash = event.transaction.hash;
@@ -145,94 +145,118 @@ export function handleModuleRemoved(event: ModuleRemovedEvent): void {
 }
 
 export function handleCreatorHatSet(event: CreatorHatSetEvent): void {
-  let contractAddress = event.address;
-  let hatId = event.params.hatId;
-
-  let hatEntityId = contractAddress.toHexString() + "-" + hatId.toString();
-  let hat = EducationHubCreatorHat.load(hatEntityId);
-
-  if (!hat) {
-    hat = new EducationHubCreatorHat(hatEntityId);
-    hat.educationHub = contractAddress;
-    hat.hatId = hatId;
+  let contract = EducationHubContract.load(event.address);
+  if (!contract) {
+    return;
   }
 
-  hat.enabled = event.params.enabled;
-  hat.setAt = event.block.timestamp;
-  hat.setAtBlock = event.block.number;
-  hat.transactionHash = event.transaction.hash;
+  // Create or update consolidated HatPermission entity with Creator role
+  let permissionId =
+    event.address.toHexString() +
+    "-" +
+    event.params.hatId.toString() +
+    "-Creator";
 
-  hat.save();
+  let permission = HatPermission.load(permissionId);
+  if (!permission) {
+    permission = new HatPermission(permissionId);
+    permission.contractAddress = event.address;
+    permission.contractType = "EducationHub";
+    permission.organization = contract.organization;
+    permission.hatId = event.params.hatId;
+    permission.role = "Creator";
+  }
+
+  permission.allowed = event.params.enabled;
+  permission.setAt = event.block.timestamp;
+  permission.setAtBlock = event.block.number;
+  permission.transactionHash = event.transaction.hash;
+  permission.save();
 }
 
 export function handleMemberHatSet(event: MemberHatSetEvent): void {
-  let contractAddress = event.address;
-  let hatId = event.params.hatId;
-
-  let hatEntityId = contractAddress.toHexString() + "-" + hatId.toString();
-  let hat = EducationHubMemberHat.load(hatEntityId);
-
-  if (!hat) {
-    hat = new EducationHubMemberHat(hatEntityId);
-    hat.educationHub = contractAddress;
-    hat.hatId = hatId;
+  let contract = EducationHubContract.load(event.address);
+  if (!contract) {
+    return;
   }
 
-  hat.enabled = event.params.enabled;
-  hat.setAt = event.block.timestamp;
-  hat.setAtBlock = event.block.number;
-  hat.transactionHash = event.transaction.hash;
+  // Create or update consolidated HatPermission entity with Member role
+  let permissionId =
+    event.address.toHexString() +
+    "-" +
+    event.params.hatId.toString() +
+    "-Member";
 
-  hat.save();
+  let permission = HatPermission.load(permissionId);
+  if (!permission) {
+    permission = new HatPermission(permissionId);
+    permission.contractAddress = event.address;
+    permission.contractType = "EducationHub";
+    permission.organization = contract.organization;
+    permission.hatId = event.params.hatId;
+    permission.role = "Member";
+  }
+
+  permission.allowed = event.params.enabled;
+  permission.setAt = event.block.timestamp;
+  permission.setAtBlock = event.block.number;
+  permission.transactionHash = event.transaction.hash;
+  permission.save();
 }
 
 export function handleHatToggled(event: HatToggledEvent): void {
   // HatToggled event could apply to either creator or member hats
   // This is a generic toggle event - we'll track it but might not know the hat type
   // The specific setCreatorHatAllowed/setMemberHatAllowed events are more precise
-
   // For now, we'll handle this as a member hat since that's the completion permission
-  let contractAddress = event.address;
-  let hatId = event.params.hatId;
 
-  let hatEntityId = contractAddress.toHexString() + "-" + hatId.toString();
-  let hat = EducationHubMemberHat.load(hatEntityId);
-
-  if (!hat) {
-    hat = new EducationHubMemberHat(hatEntityId);
-    hat.educationHub = contractAddress;
-    hat.hatId = hatId;
+  let contract = EducationHubContract.load(event.address);
+  if (!contract) {
+    return;
   }
 
-  hat.enabled = event.params.allowed;
-  hat.setAt = event.block.timestamp;
-  hat.setAtBlock = event.block.number;
-  hat.transactionHash = event.transaction.hash;
+  // Create or update consolidated HatPermission entity with Member role
+  let permissionId =
+    event.address.toHexString() +
+    "-" +
+    event.params.hatId.toString() +
+    "-Member";
 
-  hat.save();
+  let permission = HatPermission.load(permissionId);
+  if (!permission) {
+    permission = new HatPermission(permissionId);
+    permission.contractAddress = event.address;
+    permission.contractType = "EducationHub";
+    permission.organization = contract.organization;
+    permission.hatId = event.params.hatId;
+    permission.role = "Member";
+  }
+
+  permission.allowed = event.params.allowed;
+  permission.setAt = event.block.timestamp;
+  permission.setAtBlock = event.block.number;
+  permission.transactionHash = event.transaction.hash;
+  permission.save();
 }
 
 export function handleExecutorSet(event: ExecutorSetEvent): void {
-  let contractAddress = event.address;
-
-  // Update contract
-  let contract = EducationHubContract.load(contractAddress);
-  if (contract) {
-    contract.executor = event.params.newExecutor;
-    contract.save();
+  let contract = EducationHubContract.load(event.address);
+  if (!contract) {
+    return;
   }
 
-  // Create historical record
-  let changeId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let change = new EducationHubExecutorChange(changeId);
+  // Update contract
+  contract.executor = event.params.newExecutor;
+  contract.save();
 
-  change.educationHub = contractAddress;
-  change.newExecutor = event.params.newExecutor;
-  change.changedAt = event.block.timestamp;
-  change.changedAtBlock = event.block.number;
-  change.transactionHash = event.transaction.hash;
-
-  change.save();
+  // Create historical record using consolidated ExecutorChange entity
+  createExecutorChange(
+    event.address,
+    "EducationHub",
+    contract.organization,
+    event.params.newExecutor,
+    event
+  );
 }
 
 export function handleTokenSet(event: TokenSetEvent): void {
@@ -282,49 +306,43 @@ export function handleHatsSet(event: HatsSetEvent): void {
 }
 
 export function handlePaused(event: PausedEvent): void {
-  let contractAddress = event.address;
-
-  // Update contract
-  let contract = EducationHubContract.load(contractAddress);
-  if (contract) {
-    contract.isPaused = true;
-    contract.save();
+  let contract = EducationHubContract.load(event.address);
+  if (!contract) {
+    return;
   }
 
-  // Create pause event record
-  let eventId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let pauseEvent = new EducationHubPauseEvent(eventId);
+  // Update contract
+  contract.isPaused = true;
+  contract.save();
 
-  pauseEvent.educationHub = contractAddress;
-  pauseEvent.isPaused = true;
-  pauseEvent.account = event.params.account;
-  pauseEvent.eventAt = event.block.timestamp;
-  pauseEvent.eventAtBlock = event.block.number;
-  pauseEvent.transactionHash = event.transaction.hash;
-
-  pauseEvent.save();
+  // Create pause event record using consolidated PauseEvent entity
+  createPauseEvent(
+    event.address,
+    "EducationHub",
+    contract.organization,
+    true,
+    event.params.account,
+    event
+  );
 }
 
 export function handleUnpaused(event: UnpausedEvent): void {
-  let contractAddress = event.address;
-
-  // Update contract
-  let contract = EducationHubContract.load(contractAddress);
-  if (contract) {
-    contract.isPaused = false;
-    contract.save();
+  let contract = EducationHubContract.load(event.address);
+  if (!contract) {
+    return;
   }
 
-  // Create unpause event record
-  let eventId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let pauseEvent = new EducationHubPauseEvent(eventId);
+  // Update contract
+  contract.isPaused = false;
+  contract.save();
 
-  pauseEvent.educationHub = contractAddress;
-  pauseEvent.isPaused = false;
-  pauseEvent.account = event.params.account;
-  pauseEvent.eventAt = event.block.timestamp;
-  pauseEvent.eventAtBlock = event.block.number;
-  pauseEvent.transactionHash = event.transaction.hash;
-
-  pauseEvent.save();
+  // Create unpause event record using consolidated PauseEvent entity
+  createPauseEvent(
+    event.address,
+    "EducationHub",
+    contract.organization,
+    false,
+    event.params.account,
+    event
+  );
 }

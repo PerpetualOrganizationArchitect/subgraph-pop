@@ -17,6 +17,10 @@ type Organization @entity(immutable: false) {
   deployedAtBlock: BigInt!
   transactionHash: Bytes!
   users: [User!]! @derivedFrom(field: "organization")
+  # Consolidated entity references
+  hatPermissions: [HatPermission!]! @derivedFrom(field: "organization")
+  executorChanges: [ExecutorChange!]! @derivedFrom(field: "organization")
+  pauseEvents: [PauseEvent!]! @derivedFrom(field: "organization")
 }
 
 # ========================================
@@ -29,6 +33,12 @@ type User @entity(immutable: false) {
   address: Bytes!
   account: Account # Link to global Account for username
   username: String # Denormalized from account for convenience
+
+  # Membership tracking
+  joinMethod: String # "QuickJoin", "HatClaim", "VouchingAutoMint", "ExecutorMint"
+  currentHatIds: [BigInt!]! # Currently held hats
+  membershipStatus: MembershipStatus! # Active/Inactive
+  hatChanges: [UserHatChange!]! @derivedFrom(field: "user")
 
   # Token balances
   participationTokenBalance: BigInt!
@@ -106,13 +116,13 @@ type GovernanceModule @entity(immutable: true) {
 type Project @entity(immutable: false) {
   id: Bytes! # projectId
   taskManager: TaskManager! # Relationship to TaskManager entity
-  metadata: Bytes!
+  title: Bytes! # project title
+  metadataHash: Bytes! # project metadata hash
   cap: BigInt!
   createdAt: BigInt!
   createdAtBlock: BigInt!
   deleted: Boolean!
   deletedAt: BigInt
-  deletedMetadata: Bytes
   tasks: [Task!]! @derivedFrom(field: "project")
   # Project permissions and caps
   managers: [ProjectManager!]! @derivedFrom(field: "project")
@@ -186,6 +196,36 @@ type BountyCapChange @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
+# ========================================
+# Consolidated Enums
+# ========================================
+
+enum ContractType {
+  HybridVoting
+  DirectDemocracyVoting
+  ParticipationToken
+  QuickJoin
+  EducationHub
+  Executor
+  ToggleModule
+}
+
+enum HatPermissionRole {
+  Voter
+  Creator
+  Member
+  Approver
+}
+
+enum MembershipStatus {
+  Active
+  Inactive
+}
+
+# ========================================
+# Task Enums
+# ========================================
+
 enum TaskStatus {
   Open
   Assigned
@@ -203,7 +243,8 @@ type Task @entity(immutable: false) {
   bountyToken: Bytes!
   bountyPayout: BigInt!
   requiresApplication: Boolean!
-  metadata: Bytes!
+  title: Bytes! # task title
+  metadataHash: Bytes! # task metadata hash
   assignee: Bytes
   assigneeUsername: String
   assigneeUser: User
@@ -250,22 +291,9 @@ type HybridVotingContract @entity(immutable: false) {
   hats: Bytes!
   createdAt: BigInt!
   createdAtBlock: BigInt!
-  hatPermissions: [HybridVotingHatPermission!]! @derivedFrom(field: "hybridVoting")
   targetPermissions: [HybridVotingTargetPermission!]! @derivedFrom(field: "hybridVoting")
   quorumChanges: [HybridVotingQuorumChange!]! @derivedFrom(field: "hybridVoting")
-  executorChanges: [HybridVotingExecutorChange!]! @derivedFrom(field: "hybridVoting")
   proposals: [Proposal!]! @derivedFrom(field: "hybridVoting")
-}
-
-type HybridVotingHatPermission @entity(immutable: false) {
-  id: String! # contractAddress-hatId
-  hybridVoting: HybridVotingContract!
-  hatId: BigInt!
-  allowed: Boolean!
-  hatType: Int # 0 = creator, stored as int8 from contract
-  setAt: BigInt!
-  setAtBlock: BigInt!
-  transactionHash: Bytes!
 }
 
 type HybridVotingTargetPermission @entity(immutable: false) {
@@ -287,15 +315,6 @@ type HybridVotingQuorumChange @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
-type HybridVotingExecutorChange @entity(immutable: true) {
-  id: Bytes! # txHash-logIndex
-  hybridVoting: HybridVotingContract!
-  newExecutor: Bytes!
-  changedAt: BigInt!
-  changedAtBlock: BigInt!
-  transactionHash: Bytes!
-}
-
 # Proposal status enum
 enum ProposalStatus {
   Active
@@ -307,18 +326,19 @@ type Proposal @entity(immutable: false) {
   id: String! # hybridVoting-proposalId
   proposalId: BigInt!
   hybridVoting: HybridVotingContract!
-  creator: Bytes!
+  creator: Bytes! # from transaction.from
   creatorUsername: String
   creatorUser: User
-  metadata: Bytes!
+  title: Bytes! # proposal title
+  descriptionHash: Bytes! # hash of proposal description
   numOptions: Int!
+  startTimestamp: BigInt!
   endTimestamp: BigInt!
-  createdTimestamp: BigInt!
-  hasExecutionBatches: Boolean!
   isHatRestricted: Boolean! # true for NewHatProposal, false for NewProposal
   restrictedHatIds: [BigInt!] # only for hat-restricted proposals
   status: ProposalStatus!
   votes: [Vote!]! @derivedFrom(field: "proposal")
+  batchExecutions: [BatchExecution!]! @derivedFrom(field: "hybridProposal") # Link to executions
   winningOption: BigInt
   isValid: Boolean
   wasExecuted: Boolean!
@@ -353,33 +373,9 @@ type DirectDemocracyVotingContract @entity(immutable: false) {
   hats: Bytes!
   createdAt: BigInt!
   createdAtBlock: BigInt!
-  votingHatPermissions: [DirectDemocracyVotingHatPermission!]! @derivedFrom(field: "directDemocracyVoting")
-  creatorHatPermissions: [DirectDemocracyVotingCreatorHatPermission!]! @derivedFrom(field: "directDemocracyVoting")
   targetPermissions: [DirectDemocracyVotingTargetPermission!]! @derivedFrom(field: "directDemocracyVoting")
   quorumChanges: [DirectDemocracyVotingQuorumChange!]! @derivedFrom(field: "directDemocracyVoting")
-  executorChanges: [DirectDemocracyVotingExecutorChange!]! @derivedFrom(field: "directDemocracyVoting")
   ddvProposals: [DDVProposal!]! @derivedFrom(field: "directDemocracyVoting")
-}
-
-type DirectDemocracyVotingHatPermission @entity(immutable: false) {
-  id: String! # contractAddress-hatId-votingHat
-  directDemocracyVoting: DirectDemocracyVotingContract!
-  hatId: BigInt!
-  allowed: Boolean!
-  hatType: Int # 1 = voting hat (VOTER), stored as int8 from contract
-  setAt: BigInt!
-  setAtBlock: BigInt!
-  transactionHash: Bytes!
-}
-
-type DirectDemocracyVotingCreatorHatPermission @entity(immutable: false) {
-  id: String! # contractAddress-hatId-creatorHat
-  directDemocracyVoting: DirectDemocracyVotingContract!
-  hatId: BigInt!
-  allowed: Boolean!
-  setAt: BigInt!
-  setAtBlock: BigInt!
-  transactionHash: Bytes!
 }
 
 type DirectDemocracyVotingTargetPermission @entity(immutable: false) {
@@ -401,15 +397,6 @@ type DirectDemocracyVotingQuorumChange @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
-type DirectDemocracyVotingExecutorChange @entity(immutable: true) {
-  id: Bytes! # txHash-logIndex
-  directDemocracyVoting: DirectDemocracyVotingContract!
-  newExecutor: Bytes!
-  changedAt: BigInt!
-  changedAtBlock: BigInt!
-  transactionHash: Bytes!
-}
-
 # DDV Proposal status enum
 enum DDVProposalStatus {
   Active
@@ -421,14 +408,16 @@ type DDVProposal @entity(immutable: false) {
   id: String! # directDemocracyVoting-proposalId
   proposalId: BigInt!
   directDemocracyVoting: DirectDemocracyVotingContract!
-  metadata: Bytes!
+  title: Bytes! # proposal title
+  descriptionHash: Bytes! # hash of proposal description
   numOptions: Int!
+  startTimestamp: BigInt!
   endTimestamp: BigInt!
-  createdTimestamp: BigInt!
   isHatRestricted: Boolean! # true for NewHatProposal, false for NewProposal
   restrictedHatIds: [BigInt!] # only for hat-restricted proposals
   status: DDVProposalStatus!
   votes: [DDVVote!]! @derivedFrom(field: "proposal")
+  batchExecutions: [BatchExecution!]! @derivedFrom(field: "ddvProposal") # Link to executions
   winningOption: BigInt
   isValid: Boolean
   winnerAnnouncedAt: BigInt
@@ -476,6 +465,9 @@ type Hat @entity(immutable: false) {
   id: String! # eligibilityModule-hatId
   hatId: BigInt!
   parentHatId: BigInt!
+  parentHat: Hat # Link to parent Hat entity for hierarchy traversal
+  childHats: [Hat!]! @derivedFrom(field: "parentHat") # Derived children
+  level: Int! # Depth in hierarchy (topHat = 0)
   eligibilityModule: EligibilityModuleContract!
   creator: Bytes!
   creatorUser: User
@@ -614,30 +606,8 @@ type ParticipationTokenContract @entity(immutable: false) {
   educationHubAddress: Bytes
   createdAt: BigInt!
   createdAtBlock: BigInt!
-  memberHats: [ParticipationTokenMemberHat!]! @derivedFrom(field: "participationToken")
-  approverHats: [ParticipationTokenApproverHat!]! @derivedFrom(field: "participationToken")
   tokenRequests: [TokenRequest!]! @derivedFrom(field: "participationToken")
   balances: [TokenBalance!]! @derivedFrom(field: "participationToken")
-}
-
-type ParticipationTokenMemberHat @entity(immutable: false) {
-  id: String! # participationToken-hatId
-  participationToken: ParticipationTokenContract!
-  hatId: BigInt!
-  allowed: Boolean!
-  setAt: BigInt!
-  setAtBlock: BigInt!
-  transactionHash: Bytes!
-}
-
-type ParticipationTokenApproverHat @entity(immutable: false) {
-  id: String! # participationToken-hatId
-  participationToken: ParticipationTokenContract!
-  hatId: BigInt!
-  allowed: Boolean!
-  setAt: BigInt!
-  setAtBlock: BigInt!
-  transactionHash: Bytes!
 }
 
 enum TokenRequestStatus {
@@ -688,19 +658,7 @@ type QuickJoinContract @entity(immutable: false) {
   masterDeployAddress: Bytes!
   createdAt: BigInt!
   createdAtBlock: BigInt!
-  memberHats: [QuickJoinMemberHat!]! @derivedFrom(field: "quickJoin")
   joinEvents: [QuickJoinEvent!]! @derivedFrom(field: "quickJoin")
-  executorChanges: [QuickJoinExecutorChange!]! @derivedFrom(field: "quickJoin")
-}
-
-type QuickJoinMemberHat @entity(immutable: false) {
-  id: String! # quickJoin-hatId
-  quickJoin: QuickJoinContract!
-  hatId: BigInt!
-  allowed: Boolean!
-  setAt: BigInt!
-  setAtBlock: BigInt!
-  transactionHash: Bytes!
 }
 
 type QuickJoinEvent @entity(immutable: true) {
@@ -716,15 +674,6 @@ type QuickJoinEvent @entity(immutable: true) {
   isMasterDeployJoin: Boolean! # true if joined by master, false if self-join
   joinedAt: BigInt!
   joinedAtBlock: BigInt!
-  transactionHash: Bytes!
-}
-
-type QuickJoinExecutorChange @entity(immutable: true) {
-  id: Bytes! # txHash-logIndex
-  quickJoin: QuickJoinContract!
-  newExecutor: Bytes!
-  changedAt: BigInt!
-  changedAtBlock: BigInt!
   transactionHash: Bytes!
 }
 
@@ -755,12 +704,8 @@ type EducationHubContract @entity(immutable: false) {
   createdAtBlock: BigInt!
   modules: [EducationModule!]! @derivedFrom(field: "educationHub")
   completions: [ModuleCompletion!]! @derivedFrom(field: "educationHub")
-  creatorHats: [EducationHubCreatorHat!]! @derivedFrom(field: "educationHub")
-  memberHats: [EducationHubMemberHat!]! @derivedFrom(field: "educationHub")
-  executorChanges: [EducationHubExecutorChange!]! @derivedFrom(field: "educationHub")
   tokenChanges: [EducationHubTokenChange!]! @derivedFrom(field: "educationHub")
   hatsChanges: [EducationHubHatsChange!]! @derivedFrom(field: "educationHub")
-  pauseEvents: [EducationHubPauseEvent!]! @derivedFrom(field: "educationHub")
 }
 
 enum ModuleStatus {
@@ -772,8 +717,9 @@ type EducationModule @entity(immutable: false) {
   id: String! # educationHub-moduleId
   educationHub: EducationHubContract!
   moduleId: BigInt!
+  title: Bytes! # module title
+  contentHash: Bytes! # content hash for the module materials
   payout: BigInt!
-  metadata: Bytes!
   status: ModuleStatus!
   createdAt: BigInt!
   createdAtBlock: BigInt!
@@ -802,39 +748,11 @@ type ModuleUpdate @entity(immutable: true) {
   id: Bytes! # txHash-logIndex
   module: EducationModule!
   moduleId: BigInt!
+  title: Bytes!
+  contentHash: Bytes!
   payout: BigInt!
-  metadata: Bytes!
   updatedAt: BigInt!
   updatedAtBlock: BigInt!
-  transactionHash: Bytes!
-}
-
-type EducationHubCreatorHat @entity(immutable: false) {
-  id: String! # educationHub-hatId
-  educationHub: EducationHubContract!
-  hatId: BigInt!
-  enabled: Boolean!
-  setAt: BigInt!
-  setAtBlock: BigInt!
-  transactionHash: Bytes!
-}
-
-type EducationHubMemberHat @entity(immutable: false) {
-  id: String! # educationHub-hatId
-  educationHub: EducationHubContract!
-  hatId: BigInt!
-  enabled: Boolean!
-  setAt: BigInt!
-  setAtBlock: BigInt!
-  transactionHash: Bytes!
-}
-
-type EducationHubExecutorChange @entity(immutable: true) {
-  id: Bytes! # txHash-logIndex
-  educationHub: EducationHubContract!
-  newExecutor: Bytes!
-  changedAt: BigInt!
-  changedAtBlock: BigInt!
   transactionHash: Bytes!
 }
 
@@ -853,16 +771,6 @@ type EducationHubHatsChange @entity(immutable: true) {
   newHats: Bytes!
   changedAt: BigInt!
   changedAtBlock: BigInt!
-  transactionHash: Bytes!
-}
-
-type EducationHubPauseEvent @entity(immutable: true) {
-  id: Bytes! # txHash-logIndex
-  educationHub: EducationHubContract!
-  isPaused: Boolean! # true for Paused, false for Unpaused
-  account: Bytes!
-  eventAt: BigInt!
-  eventAtBlock: BigInt!
   transactionHash: Bytes!
 }
 
@@ -1056,7 +964,6 @@ type ExecutorContract @entity(immutable: false) {
   sweeps: [ExecutorSweep!]! @derivedFrom(field: "executor")
   minterAuthorizations: [HatMinterAuthorization!]! @derivedFrom(field: "executor")
   hatsMintedEvents: [HatsMintedEvent!]! @derivedFrom(field: "executor")
-  pauseEvents: [ExecutorPauseEvent!]! @derivedFrom(field: "executor")
   ownershipTransfers: [ExecutorOwnershipTransfer!]! @derivedFrom(field: "executor")
 }
 
@@ -1129,16 +1036,6 @@ type HatsMintedEvent @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
-type ExecutorPauseEvent @entity(immutable: true) {
-  id: Bytes! # txHash-logIndex
-  executor: ExecutorContract!
-  isPaused: Boolean! # true for Paused, false for Unpaused
-  account: Bytes!
-  eventAt: BigInt!
-  eventAtBlock: BigInt!
-  transactionHash: Bytes!
-}
-
 type ExecutorOwnershipTransfer @entity(immutable: true) {
   id: Bytes! # txHash-logIndex
   executor: ExecutorContract!
@@ -1181,6 +1078,76 @@ type ToggleAdminTransfer @entity(immutable: true) {
   newAdmin: Bytes!
   transferredAt: BigInt!
   transferredAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# ========================================
+# Consolidated Entities (replacing redundant contract-specific entities)
+# ========================================
+
+"""
+Unified hat permission entity tracking all hat-based permissions across contracts.
+Replaces: HybridVotingHatPermission, DirectDemocracyVotingHatPermission,
+DirectDemocracyVotingCreatorHatPermission, ParticipationTokenMemberHat,
+ParticipationTokenApproverHat, QuickJoinMemberHat, EducationHubCreatorHat,
+EducationHubMemberHat
+"""
+type HatPermission @entity(immutable: false) {
+  id: String! # contractAddress-hatId-role
+  contractAddress: Bytes!
+  contractType: ContractType!
+  organization: Organization!
+  hatId: BigInt!
+  role: HatPermissionRole!
+  allowed: Boolean!
+  hatType: Int # For HybridVoting/DDV (0=creator, 1+=voter classes)
+  setAt: BigInt!
+  setAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+"""
+Unified executor change event tracking across all contracts that have an executor.
+Replaces: HybridVotingExecutorChange, DirectDemocracyVotingExecutorChange,
+EducationHubExecutorChange, QuickJoinExecutorChange
+"""
+type ExecutorChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  contractAddress: Bytes!
+  contractType: ContractType!
+  organization: Organization!
+  newExecutor: Bytes!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+"""
+Unified pause/unpause event tracking across all pausable contracts.
+Replaces: ExecutorPauseEvent, EducationHubPauseEvent
+"""
+type PauseEvent @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  contractAddress: Bytes!
+  contractType: ContractType!
+  organization: Organization!
+  isPaused: Boolean! # true = paused, false = unpaused
+  account: Bytes!
+  eventAt: BigInt!
+  eventAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+"""
+Tracks hat changes for a user within an organization.
+"""
+type UserHatChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  user: User!
+  hatId: BigInt!
+  added: Boolean! # true = hat added, false = hat removed
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
   transactionHash: Bytes!
 }
 
@@ -1493,7 +1460,8 @@ type RegisteredOrg @entity(immutable: false) {
   id: Bytes! # orgId
   orgRegistry: OrgRegistryContract!
   executor: Bytes! # executor address (can be updated via setOrgExecutor)
-  metaData: Bytes! # current metadata (can be updated)
+  name: Bytes! # organization name (can be updated)
+  metadataHash: Bytes! # IPFS hash or other metadata identifier
   topHatId: BigInt # set via HatsTreeRegistered
   roleHatIds: [BigInt!] # set via HatsTreeRegistered
   contractCount: BigInt! # number of contracts registered
@@ -1509,7 +1477,8 @@ type OrgMetaUpdate @entity(immutable: true) {
   id: Bytes! # txHash-logIndex
   org: RegisteredOrg!
   orgId: Bytes!
-  newMetaData: Bytes!
+  newName: Bytes!
+  newMetadataHash: Bytes!
   updatedAt: BigInt!
   updatedAtBlock: BigInt!
   transactionHash: Bytes!

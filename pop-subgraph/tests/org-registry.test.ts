@@ -40,9 +40,10 @@ describe("OrgRegistry", () => {
         "0x1111111111111111111111111111111111111111111111111111111111111111"
       );
       let executor = Address.fromString("0x0000000000000000000000000000000000000001");
-      let metaData = Bytes.fromHexString("0xabcd");
+      let name = Bytes.fromHexString("0xabcd");
+      let metadataHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
 
-      let event = createOrgRegisteredEvent(orgId, executor, metaData);
+      let event = createOrgRegisteredEvent(orgId, executor, name, metadataHash);
       handleOrgRegistered(event);
 
       // Verify OrgRegistryContract was created
@@ -71,7 +72,7 @@ describe("OrgRegistry", () => {
       assert.fieldEquals(
         "RegisteredOrg",
         orgId.toHexString(),
-        "metaData",
+        "name",
         "0xabcd"
       );
       assert.fieldEquals(
@@ -88,10 +89,10 @@ describe("OrgRegistry", () => {
       );
       let executor1 = Address.fromString("0x0000000000000000000000000000000000000001");
       let executor2 = Address.fromString("0x0000000000000000000000000000000000000002");
-      let metaData = Bytes.fromHexString("0xabcd");
+      let name = Bytes.fromHexString("0xabcd");
 
       // First registration
-      let event1 = createOrgRegisteredEvent(orgId, executor1, metaData);
+      let event1 = createOrgRegisteredEvent(orgId, executor1, name);
       handleOrgRegistered(event1);
 
       // Second registration (executor update)
@@ -124,12 +125,12 @@ describe("OrgRegistry", () => {
         "0x2222222222222222222222222222222222222222222222222222222222222222"
       );
       let executor = Address.fromString("0x0000000000000000000000000000000000000001");
-      let metaData = Bytes.fromHexString("0xabcd");
+      let name = Bytes.fromHexString("0xabcd");
 
-      let event1 = createOrgRegisteredEvent(orgId1, executor, metaData);
+      let event1 = createOrgRegisteredEvent(orgId1, executor, name);
       handleOrgRegistered(event1);
 
-      let event2 = createOrgRegisteredEvent(orgId2, executor, metaData);
+      let event2 = createOrgRegisteredEvent(orgId2, executor, name);
       event2.logIndex = BigInt.fromI32(2);
       handleOrgRegistered(event2);
 
@@ -150,22 +151,23 @@ describe("OrgRegistry", () => {
         "0x1111111111111111111111111111111111111111111111111111111111111111"
       );
       let executor = Address.fromString("0x0000000000000000000000000000000000000001");
-      let metaData = Bytes.fromHexString("0xabcd");
+      let name = Bytes.fromHexString("0xabcd");
 
-      let regEvent = createOrgRegisteredEvent(orgId, executor, metaData);
+      let regEvent = createOrgRegisteredEvent(orgId, executor, name);
       handleOrgRegistered(regEvent);
 
       // Update metadata
-      let newMetaData = Bytes.fromHexString("0xef01");
-      let updateEvent = createMetaUpdatedEvent(orgId, newMetaData);
+      let newName = Bytes.fromHexString("0xef01");
+      let newMetadataHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000005678");
+      let updateEvent = createMetaUpdatedEvent(orgId, newName, newMetadataHash);
       updateEvent.logIndex = BigInt.fromI32(2);
       handleMetaUpdated(updateEvent);
 
-      // Verify org metadata was updated
+      // Verify org name was updated
       assert.fieldEquals(
         "RegisteredOrg",
         orgId.toHexString(),
-        "metaData",
+        "name",
         "0xef01"
       );
 
@@ -177,9 +179,9 @@ describe("OrgRegistry", () => {
       let orgId = Bytes.fromHexString(
         "0x1111111111111111111111111111111111111111111111111111111111111111"
       );
-      let newMetaData = Bytes.fromHexString("0xef01");
+      let newName = Bytes.fromHexString("0xef01");
 
-      let event = createMetaUpdatedEvent(orgId, newMetaData);
+      let event = createMetaUpdatedEvent(orgId, newName);
       handleMetaUpdated(event);
 
       // History record should still be created
@@ -194,9 +196,9 @@ describe("OrgRegistry", () => {
         "0x1111111111111111111111111111111111111111111111111111111111111111"
       );
       let executor = Address.fromString("0x0000000000000000000000000000000000000001");
-      let metaData = Bytes.fromHexString("0xabcd");
+      let name = Bytes.fromHexString("0xabcd");
 
-      let regEvent = createOrgRegisteredEvent(orgId, executor, metaData);
+      let regEvent = createOrgRegisteredEvent(orgId, executor, name);
       handleOrgRegistered(regEvent);
 
       // Register a contract
@@ -260,9 +262,9 @@ describe("OrgRegistry", () => {
         "0x1111111111111111111111111111111111111111111111111111111111111111"
       );
       let executor = Address.fromString("0x0000000000000000000000000000000000000001");
-      let metaData = Bytes.fromHexString("0xabcd");
+      let name = Bytes.fromHexString("0xabcd");
 
-      let regEvent = createOrgRegisteredEvent(orgId, executor, metaData);
+      let regEvent = createOrgRegisteredEvent(orgId, executor, name);
       handleOrgRegistered(regEvent);
 
       // Register first contract
@@ -332,9 +334,9 @@ describe("OrgRegistry", () => {
         "0x1111111111111111111111111111111111111111111111111111111111111111"
       );
       let executor = Address.fromString("0x0000000000000000000000000000000000000001");
-      let metaData = Bytes.fromHexString("0xabcd");
+      let name = Bytes.fromHexString("0xabcd");
 
-      let regEvent = createOrgRegisteredEvent(orgId, executor, metaData);
+      let regEvent = createOrgRegisteredEvent(orgId, executor, name);
       handleOrgRegistered(regEvent);
 
       let contractId = Bytes.fromHexString(
@@ -396,9 +398,9 @@ describe("OrgRegistry", () => {
         "0x1111111111111111111111111111111111111111111111111111111111111111"
       );
       let executor = Address.fromString("0x0000000000000000000000000000000000000001");
-      let metaData = Bytes.fromHexString("0xabcd");
+      let name = Bytes.fromHexString("0xabcd");
 
-      let regEvent = createOrgRegisteredEvent(orgId, executor, metaData);
+      let regEvent = createOrgRegisteredEvent(orgId, executor, name);
       handleOrgRegistered(regEvent);
 
       // Register hats tree
@@ -445,9 +447,9 @@ describe("OrgRegistry", () => {
         "0x1111111111111111111111111111111111111111111111111111111111111111"
       );
       let executor = Address.fromString("0x0000000000000000000000000000000000000001");
-      let metaData = Bytes.fromHexString("0xabcd");
+      let name = Bytes.fromHexString("0xabcd");
 
-      let regEvent = createOrgRegisteredEvent(orgId, executor, metaData);
+      let regEvent = createOrgRegisteredEvent(orgId, executor, name);
       handleOrgRegistered(regEvent);
 
       // 2. Register hats tree
@@ -482,8 +484,8 @@ describe("OrgRegistry", () => {
       handleContractRegistered(contractEvent);
 
       // 4. Update metadata
-      let newMetaData = Bytes.fromHexString("0xef01");
-      let metaEvent = createMetaUpdatedEvent(orgId, newMetaData);
+      let newName = Bytes.fromHexString("0xef01");
+      let metaEvent = createMetaUpdatedEvent(orgId, newName);
       metaEvent.logIndex = BigInt.fromI32(4);
       handleMetaUpdated(metaEvent);
 
@@ -514,7 +516,7 @@ describe("OrgRegistry", () => {
       assert.fieldEquals(
         "RegisteredOrg",
         orgId.toHexString(),
-        "metaData",
+        "name",
         "0xef01"
       );
       assert.fieldEquals(

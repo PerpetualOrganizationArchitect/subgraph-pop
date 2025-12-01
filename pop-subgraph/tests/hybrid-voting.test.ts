@@ -209,7 +209,7 @@ describe("HybridVoting", () => {
   });
 
   describe("ExecutorUpdated", () => {
-    test("Executor updated and historical record created", () => {
+    test("Executor updated and consolidated ExecutorChange created", () => {
       let newExecutor = Address.fromString(
         "0x0000000000000000000000000000000000000001"
       );
@@ -230,8 +230,8 @@ describe("HybridVoting", () => {
         "0x0000000000000000000000000000000000000001"
       );
 
-      // Verify historical record was created
-      assert.entityCount("HybridVotingExecutorChange", 1);
+      // Verify consolidated ExecutorChange entity was created
+      assert.entityCount("ExecutorChange", 1);
     });
 
     test("Executor update skips if contract doesn't exist", () => {
@@ -243,7 +243,7 @@ describe("HybridVoting", () => {
 
       // Verify contract was NOT created (edge case handling)
       assert.entityCount("HybridVotingContract", 0);
-      assert.entityCount("HybridVotingExecutorChange", 0);
+      assert.entityCount("ExecutorChange", 0);
     });
 
     test("Multiple executor updates tracked historically", () => {
@@ -267,8 +267,8 @@ describe("HybridVoting", () => {
       event2.logIndex = BigInt.fromI32(2);
       handleExecutorUpdated(event2);
 
-      // Verify both changes are tracked
-      assert.entityCount("HybridVotingExecutorChange", 2);
+      // Verify both consolidated ExecutorChange entities are tracked
+      assert.entityCount("ExecutorChange", 2);
 
       // Verify current executor is the latest
       let contractId = event1.address.toHexString();
@@ -278,6 +278,20 @@ describe("HybridVoting", () => {
         "executor",
         "0x0000000000000000000000000000000000000002"
       );
+    });
+
+    test("ExecutorChange has correct contract type for HybridVoting", () => {
+      let newExecutor = Address.fromString(
+        "0x0000000000000000000000000000000000000001"
+      );
+      let event = createExecutorUpdatedEvent(newExecutor);
+      setupHybridVotingContract(event.address);
+      handleExecutorUpdated(event);
+
+      // ExecutorChange uses txHash-logIndex as ID
+      let changeId = event.transaction.hash.concatI32(event.logIndex.toI32()).toHexString();
+      assert.fieldEquals("ExecutorChange", changeId, "contractType", "HybridVoting");
+      assert.fieldEquals("ExecutorChange", changeId, "newExecutor", "0x0000000000000000000000000000000000000001");
     });
   });
 
@@ -325,93 +339,192 @@ describe("HybridVoting", () => {
   });
 
   describe("HatSet", () => {
-    test("Hat permission created with type", () => {
+    test("Consolidated HatPermission created with Creator role for hatType 0", () => {
+      // hatType 0 = Creator role, hatType 1+ = Voter role
       let event = createHatSetEvent(0, BigInt.fromI32(1), true);
+
+      // Setup contract first (handler requires HybridVotingContract to exist)
+      setupHybridVotingContract(event.address);
+
       handleHatSet(event);
 
-      assert.entityCount("HybridVotingHatPermission", 1);
+      // Verify consolidated HatPermission entity was created
+      assert.entityCount("HatPermission", 1);
 
-      let permissionId = event.address.toHexString() + "-1";
+      // HatPermission ID format: contractAddress-hatId-role
+      let permissionId = event.address.toHexString() + "-1-Creator";
       assert.fieldEquals(
-        "HybridVotingHatPermission",
+        "HatPermission",
         permissionId,
         "hatId",
         "1"
       );
       assert.fieldEquals(
-        "HybridVotingHatPermission",
+        "HatPermission",
         permissionId,
         "allowed",
         "true"
       );
       assert.fieldEquals(
-        "HybridVotingHatPermission",
+        "HatPermission",
         permissionId,
         "hatType",
         "0"
       );
-    });
-
-    test("Hat permission can be updated", () => {
-      // Create permission
-      let event1 = createHatSetEvent(0, BigInt.fromI32(1), true);
-      handleHatSet(event1);
-
-      // Update permission
-      let event2 = createHatSetEvent(1, BigInt.fromI32(1), false);
-      handleHatSet(event2);
-
-      // Should still be only 1 entity
-      assert.entityCount("HybridVotingHatPermission", 1);
-
-      let permissionId = event1.address.toHexString() + "-1";
       assert.fieldEquals(
-        "HybridVotingHatPermission",
+        "HatPermission",
         permissionId,
-        "allowed",
-        "false"
+        "role",
+        "Creator"
       );
       assert.fieldEquals(
-        "HybridVotingHatPermission",
+        "HatPermission",
+        permissionId,
+        "contractType",
+        "HybridVoting"
+      );
+    });
+
+    test("Consolidated HatPermission created with Voter role for hatType 1+", () => {
+      // hatType 1+ = Voter role
+      let event = createHatSetEvent(1, BigInt.fromI32(1), true);
+
+      // Setup contract first (handler requires HybridVotingContract to exist)
+      setupHybridVotingContract(event.address);
+
+      handleHatSet(event);
+
+      // Verify consolidated HatPermission entity was created
+      assert.entityCount("HatPermission", 1);
+
+      // HatPermission ID format: contractAddress-hatId-role
+      let permissionId = event.address.toHexString() + "-1-Voter";
+      assert.fieldEquals(
+        "HatPermission",
+        permissionId,
+        "hatId",
+        "1"
+      );
+      assert.fieldEquals(
+        "HatPermission",
+        permissionId,
+        "role",
+        "Voter"
+      );
+      assert.fieldEquals(
+        "HatPermission",
         permissionId,
         "hatType",
         "1"
       );
     });
+
+    test("Different hatTypes create separate permissions for same hatId", () => {
+      // Setup contract first (handler requires HybridVotingContract to exist)
+      let event1 = createHatSetEvent(0, BigInt.fromI32(1), true);
+      setupHybridVotingContract(event1.address);
+
+      // Create Creator permission (hatType 0)
+      handleHatSet(event1);
+
+      // Create Voter permission (hatType 1) for same hatId - should create a new entity
+      let event2 = createHatSetEvent(1, BigInt.fromI32(1), false);
+      handleHatSet(event2);
+
+      // Should have 2 entities (different roles)
+      assert.entityCount("HatPermission", 2);
+
+      // Verify Creator permission
+      let creatorPermissionId = event1.address.toHexString() + "-1-Creator";
+      assert.fieldEquals(
+        "HatPermission",
+        creatorPermissionId,
+        "allowed",
+        "true"
+      );
+
+      // Verify Voter permission
+      let voterPermissionId = event1.address.toHexString() + "-1-Voter";
+      assert.fieldEquals(
+        "HatPermission",
+        voterPermissionId,
+        "allowed",
+        "false"
+      );
+      assert.fieldEquals(
+        "HatPermission",
+        voterPermissionId,
+        "hatType",
+        "1"
+      );
+    });
+
+    test("HatSet skips if contract doesn't exist", () => {
+      let event = createHatSetEvent(0, BigInt.fromI32(1), true);
+      // Don't setup contract
+      handleHatSet(event);
+
+      // Verify no entity was created
+      assert.entityCount("HatPermission", 0);
+    });
   });
 
   describe("HatToggled", () => {
-    test("Hat permission created without type", () => {
+    test("Consolidated HatPermission created via toggle", () => {
       let event = createHatToggledEvent(BigInt.fromI32(1), true);
+
+      // Setup contract first (handler requires HybridVotingContract to exist)
+      setupHybridVotingContract(event.address);
+
       handleHatToggled(event);
 
-      assert.entityCount("HybridVotingHatPermission", 1);
+      // Verify consolidated HatPermission entity was created
+      assert.entityCount("HatPermission", 1);
 
-      let permissionId = event.address.toHexString() + "-1";
+      let permissionId = event.address.toHexString() + "-1-Voter";
       assert.fieldEquals(
-        "HybridVotingHatPermission",
+        "HatPermission",
         permissionId,
         "allowed",
         "true"
       );
+      assert.fieldEquals(
+        "HatPermission",
+        permissionId,
+        "contractType",
+        "HybridVoting"
+      );
     });
 
-    test("Hat permission can be toggled", () => {
+    test("HatPermission can be toggled", () => {
       let event1 = createHatToggledEvent(BigInt.fromI32(1), true);
+
+      // Setup contract first (handler requires HybridVotingContract to exist)
+      setupHybridVotingContract(event1.address);
+
       handleHatToggled(event1);
 
       let event2 = createHatToggledEvent(BigInt.fromI32(1), false);
       handleHatToggled(event2);
 
-      assert.entityCount("HybridVotingHatPermission", 1);
+      assert.entityCount("HatPermission", 1);
 
-      let permissionId = event1.address.toHexString() + "-1";
+      let permissionId = event1.address.toHexString() + "-1-Voter";
       assert.fieldEquals(
-        "HybridVotingHatPermission",
+        "HatPermission",
         permissionId,
         "allowed",
         "false"
       );
+    });
+
+    test("HatToggled skips if contract doesn't exist", () => {
+      let event = createHatToggledEvent(BigInt.fromI32(1), true);
+      // Don't setup contract
+      handleHatToggled(event);
+
+      // Verify no entity was created
+      assert.entityCount("HatPermission", 0);
     });
   });
 
@@ -481,20 +594,19 @@ describe("HybridVoting", () => {
   describe("Proposals", () => {
     test("NewProposal creates unrestricted proposal", () => {
       let proposalId = BigInt.fromI32(1);
-      let creator = Address.fromString("0x0000000000000000000000000000000000000001");
-      let metadata = Bytes.fromHexString("0xabcd");
+      let title = Bytes.fromHexString("0xabcd");
+      let descriptionHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
       let numOptions = 3;
       let endTs = 1700000000 as i64;
       let created = 1699900000 as i64;
 
       let event = createNewProposalEvent(
         proposalId,
-        creator,
-        metadata,
+        title,
+        descriptionHash,
         numOptions,
         endTs,
-        created,
-        true
+        created
       );
 
       handleNewProposal(event);
@@ -503,18 +615,16 @@ describe("HybridVoting", () => {
 
       let proposalEntityId = event.address.toHexString() + "-" + proposalId.toString();
       assert.fieldEquals("Proposal", proposalEntityId, "proposalId", "1");
-      assert.fieldEquals("Proposal", proposalEntityId, "creator", creator.toHexString());
       assert.fieldEquals("Proposal", proposalEntityId, "numOptions", "3");
       assert.fieldEquals("Proposal", proposalEntityId, "isHatRestricted", "false");
-      assert.fieldEquals("Proposal", proposalEntityId, "hasExecutionBatches", "true");
       assert.fieldEquals("Proposal", proposalEntityId, "status", "Active");
       assert.fieldEquals("Proposal", proposalEntityId, "wasExecuted", "false");
     });
 
     test("NewHatProposal creates hat-restricted proposal", () => {
       let proposalId = BigInt.fromI32(2);
-      let creator = Address.fromString("0x0000000000000000000000000000000000000002");
-      let metadata = Bytes.fromHexString("0x1234");
+      let title = Bytes.fromHexString("0x1234");
+      let descriptionHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000005678");
       let numOptions = 2;
       let endTs = 1700000000 as i64;
       let created = 1699900000 as i64;
@@ -522,13 +632,12 @@ describe("HybridVoting", () => {
 
       let event = createNewHatProposalEvent(
         proposalId,
-        creator,
-        metadata,
+        title,
+        descriptionHash,
         numOptions,
         endTs,
         created,
-        hatIds,
-        false
+        hatIds
       );
 
       handleNewHatProposal(event);
@@ -537,24 +646,22 @@ describe("HybridVoting", () => {
 
       let proposalEntityId = event.address.toHexString() + "-" + proposalId.toString();
       assert.fieldEquals("Proposal", proposalEntityId, "isHatRestricted", "true");
-      assert.fieldEquals("Proposal", proposalEntityId, "hasExecutionBatches", "false");
       assert.fieldEquals("Proposal", proposalEntityId, "numOptions", "2");
     });
 
     test("VoteCast records a vote on proposal", () => {
       // First create a proposal
       let proposalId = BigInt.fromI32(1);
-      let creator = Address.fromString("0x0000000000000000000000000000000000000001");
-      let metadata = Bytes.fromHexString("0xabcd");
+      let title = Bytes.fromHexString("0xabcd");
+      let descriptionHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
 
       let proposalEvent = createNewProposalEvent(
         proposalId,
-        creator,
-        metadata,
+        title,
+        descriptionHash,
         3,
         1700000000 as i64,
-        1699900000 as i64,
-        true
+        1699900000 as i64
       );
       handleNewProposal(proposalEvent);
 
@@ -585,16 +692,16 @@ describe("HybridVoting", () => {
     test("Winner event updates proposal status to Ended", () => {
       // Create proposal
       let proposalId = BigInt.fromI32(1);
-      let creator = Address.fromString("0x0000000000000000000000000000000000000001");
+      let title = Bytes.fromHexString("0xabcd");
+      let descriptionHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
 
       let proposalEvent = createNewProposalEvent(
         proposalId,
-        creator,
-        Bytes.fromHexString("0xabcd"),
+        title,
+        descriptionHash,
         3,
         1700000000 as i64,
-        1699900000 as i64,
-        true
+        1699900000 as i64
       );
       handleNewProposal(proposalEvent);
 
@@ -620,16 +727,16 @@ describe("HybridVoting", () => {
     test("Winner event with executed=true updates status to Executed", () => {
       // Create proposal
       let proposalId = BigInt.fromI32(1);
-      let creator = Address.fromString("0x0000000000000000000000000000000000000001");
+      let title = Bytes.fromHexString("0xabcd");
+      let descriptionHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
 
       let proposalEvent = createNewProposalEvent(
         proposalId,
-        creator,
-        Bytes.fromHexString("0xabcd"),
+        title,
+        descriptionHash,
         3,
         1700000000 as i64,
-        1699900000 as i64,
-        true
+        1699900000 as i64
       );
       handleNewProposal(proposalEvent);
 
@@ -653,16 +760,16 @@ describe("HybridVoting", () => {
     test("ProposalExecuted marks proposal as executed", () => {
       // Create proposal
       let proposalId = BigInt.fromI32(1);
-      let creator = Address.fromString("0x0000000000000000000000000000000000000001");
+      let title = Bytes.fromHexString("0xabcd");
+      let descriptionHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
 
       let proposalEvent = createNewProposalEvent(
         proposalId,
-        creator,
-        Bytes.fromHexString("0xabcd"),
+        title,
+        descriptionHash,
         3,
         1700000000 as i64,
-        1699900000 as i64,
-        true
+        1699900000 as i64
       );
       handleNewProposal(proposalEvent);
 
@@ -685,19 +792,19 @@ describe("HybridVoting", () => {
 
     test("Full proposal lifecycle", () => {
       let proposalId = BigInt.fromI32(1);
-      let creator = Address.fromString("0x0000000000000000000000000000000000000001");
+      let title = Bytes.fromHexString("0xabcd");
+      let descriptionHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
       let voter1 = Address.fromString("0x0000000000000000000000000000000000000002");
       let voter2 = Address.fromString("0x0000000000000000000000000000000000000003");
 
       // 1. Create proposal
       let proposalEvent = createNewProposalEvent(
         proposalId,
-        creator,
-        Bytes.fromHexString("0xabcd"),
+        title,
+        descriptionHash,
         3,
         1700000000 as i64,
-        1699900000 as i64,
-        true
+        1699900000 as i64
       );
       handleNewProposal(proposalEvent);
 

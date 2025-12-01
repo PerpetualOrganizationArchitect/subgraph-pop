@@ -14,14 +14,13 @@ import {
 } from "../generated/templates/HybridVoting/HybridVoting";
 import {
   HybridVotingContract,
-  HybridVotingHatPermission,
   HybridVotingTargetPermission,
   HybridVotingQuorumChange,
-  HybridVotingExecutorChange,
+  HatPermission,
   Proposal,
   Vote
 } from "../generated/schema";
-import { getUsernameForAddress, getOrCreateUser } from "./utils";
+import { getUsernameForAddress, getOrCreateUser, createHatPermission, createExecutorChange } from "./utils";
 
 /**
  * Handler for Initialized event
@@ -59,17 +58,14 @@ export function handleExecutorUpdated(event: ExecutorUpdated): void {
   contract.executor = event.params.newExec;
   contract.save();
 
-  // Create historical record
-  let changeId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let change = new HybridVotingExecutorChange(changeId);
-
-  change.hybridVoting = event.address;
-  change.newExecutor = event.params.newExec;
-  change.changedAt = event.block.timestamp;
-  change.changedAtBlock = event.block.number;
-  change.transactionHash = event.transaction.hash;
-
-  change.save();
+  // Create historical record using consolidated ExecutorChange entity
+  createExecutorChange(
+    event.address,
+    "HybridVoting",
+    contract.organization,
+    event.params.newExec,
+    event
+  );
 }
 
 /**
@@ -107,16 +103,30 @@ export function handleQuorumSet(event: QuorumSet): void {
  * Creates or updates hat permissions with type information
  */
 export function handleHatSet(event: HatSet): void {
-  let contractAddress = event.address.toHexString();
-  let hatId = event.params.hat.toString();
-  let permissionId = contractAddress + "-" + hatId;
+  let contract = HybridVotingContract.load(event.address);
+  if (!contract) {
+    return;
+  }
 
-  let permission = HybridVotingHatPermission.load(permissionId);
+  // Determine role based on hatType: 0 = Creator, 1+ = Voter classes
+  let role = event.params.hatType == 0 ? "Creator" : "Voter";
 
+  // Create or update consolidated HatPermission entity
+  let permissionId =
+    event.address.toHexString() +
+    "-" +
+    event.params.hat.toString() +
+    "-" +
+    role;
+
+  let permission = HatPermission.load(permissionId);
   if (!permission) {
-    permission = new HybridVotingHatPermission(permissionId);
-    permission.hybridVoting = event.address;
+    permission = new HatPermission(permissionId);
+    permission.contractAddress = event.address;
+    permission.contractType = "HybridVoting";
+    permission.organization = contract.organization;
     permission.hatId = event.params.hat;
+    permission.role = role;
   }
 
   permission.allowed = event.params.allowed;
@@ -124,7 +134,6 @@ export function handleHatSet(event: HatSet): void {
   permission.setAt = event.block.timestamp;
   permission.setAtBlock = event.block.number;
   permission.transactionHash = event.transaction.hash;
-
   permission.save();
 }
 
@@ -133,24 +142,36 @@ export function handleHatSet(event: HatSet): void {
  * Creates or updates hat permissions (without type information)
  */
 export function handleHatToggled(event: HatToggled): void {
-  let contractAddress = event.address.toHexString();
-  let hatId = event.params.hatId.toString();
-  let permissionId = contractAddress + "-" + hatId;
+  let contract = HybridVotingContract.load(event.address);
+  if (!contract) {
+    return;
+  }
 
-  let permission = HybridVotingHatPermission.load(permissionId);
+  // HatToggled doesn't have hatType, default to Voter role
+  let role = "Voter";
 
+  // Create or update consolidated HatPermission entity
+  let permissionId =
+    event.address.toHexString() +
+    "-" +
+    event.params.hatId.toString() +
+    "-" +
+    role;
+
+  let permission = HatPermission.load(permissionId);
   if (!permission) {
-    permission = new HybridVotingHatPermission(permissionId);
-    permission.hybridVoting = event.address;
+    permission = new HatPermission(permissionId);
+    permission.contractAddress = event.address;
+    permission.contractType = "HybridVoting";
+    permission.organization = contract.organization;
     permission.hatId = event.params.hatId;
-    // hatType is not set in HatToggled event - it remains null
+    permission.role = role;
   }
 
   permission.allowed = event.params.allowed;
   permission.setAt = event.block.timestamp;
   permission.setAtBlock = event.block.number;
   permission.transactionHash = event.transaction.hash;
-
   permission.save();
 }
 
@@ -195,26 +216,27 @@ export function handleNewProposal(event: NewProposal): void {
 
   proposal.proposalId = event.params.id;
   proposal.hybridVoting = event.address;
-  proposal.creator = event.params.creator;
-  proposal.creatorUsername = getUsernameForAddress(event.params.creator);
+  // Creator is no longer in event, use transaction.from
+  proposal.creator = event.transaction.from;
+  proposal.creatorUsername = getUsernameForAddress(event.transaction.from);
 
   // Link to User entity
   let votingContract = HybridVotingContract.load(event.address);
   if (votingContract) {
     let user = getOrCreateUser(
       votingContract.organization,
-      event.params.creator,
+      event.transaction.from,
       event.block.timestamp,
       event.block.number
     );
     proposal.creatorUser = user.id;
   }
 
-  proposal.metadata = event.params.metadata;
+  proposal.title = event.params.title;
+  proposal.descriptionHash = event.params.descriptionHash;
   proposal.numOptions = event.params.numOptions;
+  proposal.startTimestamp = event.params.created;
   proposal.endTimestamp = event.params.endTs;
-  proposal.createdTimestamp = event.params.created;
-  proposal.hasExecutionBatches = event.params.hasExecutionBatches;
   proposal.isHatRestricted = false;
   proposal.restrictedHatIds = [];
   proposal.status = "Active";
@@ -237,26 +259,27 @@ export function handleNewHatProposal(event: NewHatProposal): void {
 
   proposal.proposalId = event.params.id;
   proposal.hybridVoting = event.address;
-  proposal.creator = event.params.creator;
-  proposal.creatorUsername = getUsernameForAddress(event.params.creator);
+  // Creator is no longer in event, use transaction.from
+  proposal.creator = event.transaction.from;
+  proposal.creatorUsername = getUsernameForAddress(event.transaction.from);
 
   // Link to User entity
   let votingContract = HybridVotingContract.load(event.address);
   if (votingContract) {
     let user = getOrCreateUser(
       votingContract.organization,
-      event.params.creator,
+      event.transaction.from,
       event.block.timestamp,
       event.block.number
     );
     proposal.creatorUser = user.id;
   }
 
-  proposal.metadata = event.params.metadata;
+  proposal.title = event.params.title;
+  proposal.descriptionHash = event.params.descriptionHash;
   proposal.numOptions = event.params.numOptions;
+  proposal.startTimestamp = event.params.created;
   proposal.endTimestamp = event.params.endTs;
-  proposal.createdTimestamp = event.params.created;
-  proposal.hasExecutionBatches = event.params.hasExecutionBatches;
   proposal.isHatRestricted = true;
   proposal.restrictedHatIds = event.params.hatIds;
   proposal.status = "Active";

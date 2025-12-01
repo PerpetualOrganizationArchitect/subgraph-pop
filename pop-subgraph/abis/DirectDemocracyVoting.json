@@ -98,9 +98,14 @@
     "name": "createProposal",
     "inputs": [
       {
-        "name": "metadata",
+        "name": "title",
         "type": "bytes",
         "internalType": "bytes"
+      },
+      {
+        "name": "descriptionHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
       },
       {
         "name": "minutesDuration",
@@ -515,10 +520,16 @@
         "internalType": "uint256"
       },
       {
-        "name": "metadata",
+        "name": "title",
         "type": "bytes",
         "indexed": false,
         "internalType": "bytes"
+      },
+      {
+        "name": "descriptionHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
       },
       {
         "name": "numOptions",
@@ -558,10 +569,16 @@
         "internalType": "uint256"
       },
       {
-        "name": "metadata",
+        "name": "title",
         "type": "bytes",
         "indexed": false,
         "internalType": "bytes"
+      },
+      {
+        "name": "descriptionHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
       },
       {
         "name": "numOptions",
@@ -708,17 +725,17 @@
   },
   {
     "type": "error",
+    "name": "EmptyTitle",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InvalidIndex",
     "inputs": []
   },
   {
     "type": "error",
     "name": "InvalidInitialization",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InvalidMetadata",
     "inputs": []
   },
   {
@@ -764,6 +781,11 @@
   {
     "type": "error",
     "name": "TargetSelf",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TitleTooLong",
     "inputs": []
   },
   {

@@ -15,15 +15,13 @@ import {
 } from "../generated/templates/DirectDemocracyVoting/DirectDemocracyVoting";
 import {
   DirectDemocracyVotingContract,
-  DirectDemocracyVotingHatPermission,
-  DirectDemocracyVotingCreatorHatPermission,
   DirectDemocracyVotingTargetPermission,
   DirectDemocracyVotingQuorumChange,
-  DirectDemocracyVotingExecutorChange,
+  HatPermission,
   DDVProposal,
   DDVVote
 } from "../generated/schema";
-import { getUsernameForAddress, getOrCreateUser } from "./utils";
+import { getUsernameForAddress, getOrCreateUser, createExecutorChange } from "./utils";
 
 /**
  * Handler for Initialized event
@@ -61,17 +59,14 @@ export function handleExecutorUpdated(event: ExecutorUpdated): void {
   contract.executor = event.params.newExecutor;
   contract.save();
 
-  // Create historical record
-  let changeId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let change = new DirectDemocracyVotingExecutorChange(changeId);
-
-  change.directDemocracyVoting = event.address;
-  change.newExecutor = event.params.newExecutor;
-  change.changedAt = event.block.timestamp;
-  change.changedAtBlock = event.block.number;
-  change.transactionHash = event.transaction.hash;
-
-  change.save();
+  // Create historical record using consolidated ExecutorChange entity
+  createExecutorChange(
+    event.address,
+    "DirectDemocracyVoting",
+    contract.organization,
+    event.params.newExecutor,
+    event
+  );
 }
 
 /**
@@ -109,16 +104,26 @@ export function handleQuorumPercentageSet(event: QuorumPercentageSet): void {
  * Creates or updates hat permissions (voting hats) with type information
  */
 export function handleHatSet(event: HatSet): void {
-  let contractAddress = event.address.toHexString();
-  let hatId = event.params.hat.toString();
-  let permissionId = contractAddress + "-" + hatId + "-votingHat";
+  let contract = DirectDemocracyVotingContract.load(event.address);
+  if (!contract) {
+    return;
+  }
 
-  let permission = DirectDemocracyVotingHatPermission.load(permissionId);
+  // Create or update consolidated HatPermission entity with Voter role
+  let permissionId =
+    event.address.toHexString() +
+    "-" +
+    event.params.hat.toString() +
+    "-Voter";
 
+  let permission = HatPermission.load(permissionId);
   if (!permission) {
-    permission = new DirectDemocracyVotingHatPermission(permissionId);
-    permission.directDemocracyVoting = event.address;
+    permission = new HatPermission(permissionId);
+    permission.contractAddress = event.address;
+    permission.contractType = "DirectDemocracyVoting";
+    permission.organization = contract.organization;
     permission.hatId = event.params.hat;
+    permission.role = "Voter";
   }
 
   permission.allowed = event.params.allowed;
@@ -126,7 +131,6 @@ export function handleHatSet(event: HatSet): void {
   permission.setAt = event.block.timestamp;
   permission.setAtBlock = event.block.number;
   permission.transactionHash = event.transaction.hash;
-
   permission.save();
 }
 
@@ -135,24 +139,32 @@ export function handleHatSet(event: HatSet): void {
  * Creates or updates hat permissions (voting hats) without type information
  */
 export function handleHatToggled(event: HatToggled): void {
-  let contractAddress = event.address.toHexString();
-  let hatId = event.params.hatId.toString();
-  let permissionId = contractAddress + "-" + hatId + "-votingHat";
+  let contract = DirectDemocracyVotingContract.load(event.address);
+  if (!contract) {
+    return;
+  }
 
-  let permission = DirectDemocracyVotingHatPermission.load(permissionId);
+  // Create or update consolidated HatPermission entity with Voter role
+  let permissionId =
+    event.address.toHexString() +
+    "-" +
+    event.params.hatId.toString() +
+    "-Voter";
 
+  let permission = HatPermission.load(permissionId);
   if (!permission) {
-    permission = new DirectDemocracyVotingHatPermission(permissionId);
-    permission.directDemocracyVoting = event.address;
+    permission = new HatPermission(permissionId);
+    permission.contractAddress = event.address;
+    permission.contractType = "DirectDemocracyVoting";
+    permission.organization = contract.organization;
     permission.hatId = event.params.hatId;
-    // hatType is not set in HatToggled event - it remains null
+    permission.role = "Voter";
   }
 
   permission.allowed = event.params.allowed;
   permission.setAt = event.block.timestamp;
   permission.setAtBlock = event.block.number;
   permission.transactionHash = event.transaction.hash;
-
   permission.save();
 }
 
@@ -161,23 +173,32 @@ export function handleHatToggled(event: HatToggled): void {
  * Creates or updates creator hat permissions
  */
 export function handleCreatorHatSet(event: CreatorHatSet): void {
-  let contractAddress = event.address.toHexString();
-  let hatId = event.params.hat.toString();
-  let permissionId = contractAddress + "-" + hatId + "-creatorHat";
+  let contract = DirectDemocracyVotingContract.load(event.address);
+  if (!contract) {
+    return;
+  }
 
-  let permission = DirectDemocracyVotingCreatorHatPermission.load(permissionId);
+  // Create or update consolidated HatPermission entity with Creator role
+  let permissionId =
+    event.address.toHexString() +
+    "-" +
+    event.params.hat.toString() +
+    "-Creator";
 
+  let permission = HatPermission.load(permissionId);
   if (!permission) {
-    permission = new DirectDemocracyVotingCreatorHatPermission(permissionId);
-    permission.directDemocracyVoting = event.address;
+    permission = new HatPermission(permissionId);
+    permission.contractAddress = event.address;
+    permission.contractType = "DirectDemocracyVoting";
+    permission.organization = contract.organization;
     permission.hatId = event.params.hat;
+    permission.role = "Creator";
   }
 
   permission.allowed = event.params.allowed;
   permission.setAt = event.block.timestamp;
   permission.setAtBlock = event.block.number;
   permission.transactionHash = event.transaction.hash;
-
   permission.save();
 }
 
@@ -222,10 +243,11 @@ export function handleNewProposal(event: NewProposal): void {
 
   proposal.proposalId = event.params.id;
   proposal.directDemocracyVoting = event.address;
-  proposal.metadata = event.params.metadata;
+  proposal.title = event.params.title;
+  proposal.descriptionHash = event.params.descriptionHash;
   proposal.numOptions = event.params.numOptions;
+  proposal.startTimestamp = event.params.created;
   proposal.endTimestamp = event.params.endTs;
-  proposal.createdTimestamp = event.params.created;
   proposal.isHatRestricted = false;
   proposal.restrictedHatIds = [];
   proposal.status = "Active";
@@ -247,10 +269,11 @@ export function handleNewHatProposal(event: NewHatProposal): void {
 
   proposal.proposalId = event.params.id;
   proposal.directDemocracyVoting = event.address;
-  proposal.metadata = event.params.metadata;
+  proposal.title = event.params.title;
+  proposal.descriptionHash = event.params.descriptionHash;
   proposal.numOptions = event.params.numOptions;
+  proposal.startTimestamp = event.params.created;
   proposal.endTimestamp = event.params.endTs;
-  proposal.createdTimestamp = event.params.created;
   proposal.isHatRestricted = true;
   proposal.restrictedHatIds = event.params.hatIds;
   proposal.status = "Active";

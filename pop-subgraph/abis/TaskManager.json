@@ -115,9 +115,14 @@
         "internalType": "uint256"
       },
       {
-        "name": "meta",
+        "name": "title",
         "type": "bytes",
         "internalType": "bytes"
+      },
+      {
+        "name": "metadataHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
       },
       {
         "name": "pid",
@@ -159,9 +164,14 @@
     "name": "createProject",
     "inputs": [
       {
-        "name": "metadata",
+        "name": "title",
         "type": "bytes",
         "internalType": "bytes"
+      },
+      {
+        "name": "metadataHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
       },
       {
         "name": "cap",
@@ -213,9 +223,14 @@
         "internalType": "uint256"
       },
       {
-        "name": "meta",
+        "name": "title",
         "type": "bytes",
         "internalType": "bytes"
+      },
+      {
+        "name": "metadataHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
       },
       {
         "name": "pid",
@@ -249,11 +264,6 @@
         "name": "pid",
         "type": "bytes32",
         "internalType": "bytes32"
-      },
-      {
-        "name": "metadata",
-        "type": "bytes",
-        "internalType": "bytes"
       }
     ],
     "outputs": [],
@@ -362,9 +372,9 @@
         "internalType": "uint256"
       },
       {
-        "name": "metadata",
-        "type": "bytes",
-        "internalType": "bytes"
+        "name": "submissionHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "outputs": [],
@@ -385,9 +395,14 @@
         "internalType": "uint256"
       },
       {
-        "name": "newMetadata",
+        "name": "newTitle",
         "type": "bytes",
         "internalType": "bytes"
+      },
+      {
+        "name": "newMetadataHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
       },
       {
         "name": "newBountyToken",
@@ -540,10 +555,16 @@
         "internalType": "bytes32"
       },
       {
-        "name": "metadata",
+        "name": "title",
         "type": "bytes",
         "indexed": false,
         "internalType": "bytes"
+      },
+      {
+        "name": "metadataHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
       },
       {
         "name": "cap",
@@ -563,12 +584,6 @@
         "type": "bytes32",
         "indexed": true,
         "internalType": "bytes32"
-      },
-      {
-        "name": "metadata",
-        "type": "bytes",
-        "indexed": false,
-        "internalType": "bytes"
       }
     ],
     "anonymous": false
@@ -796,10 +811,16 @@
         "internalType": "bool"
       },
       {
-        "name": "metadata",
+        "name": "title",
         "type": "bytes",
         "indexed": false,
         "internalType": "bytes"
+      },
+      {
+        "name": "metadataHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
       }
     ],
     "anonymous": false
@@ -815,10 +836,10 @@
         "internalType": "uint256"
       },
       {
-        "name": "metadata",
-        "type": "bytes",
+        "name": "submissionHash",
+        "type": "bytes32",
         "indexed": false,
-        "internalType": "bytes"
+        "internalType": "bytes32"
       }
     ],
     "anonymous": false
@@ -852,10 +873,16 @@
         "internalType": "uint256"
       },
       {
-        "name": "metadata",
+        "name": "title",
         "type": "bytes",
         "indexed": false,
         "internalType": "bytes"
+      },
+      {
+        "name": "metadataHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
       }
     ],
     "anonymous": false
@@ -878,6 +905,11 @@
   {
     "type": "error",
     "name": "CapBelowCommitted",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "EmptyTitle",
     "inputs": []
   },
   {
@@ -954,6 +986,11 @@
   {
     "type": "error",
     "name": "SpentUnderflow",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TitleTooLong",
     "inputs": []
   },
   {

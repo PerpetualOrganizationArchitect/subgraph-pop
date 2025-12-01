@@ -11,7 +11,8 @@ import {
 export function createOrgRegisteredEvent(
   orgId: Bytes,
   executor: Address,
-  metaData: Bytes
+  name: Bytes,
+  metadataHash: Bytes = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000")
 ): OrgRegistered {
   let event = changetype<OrgRegistered>(newMockEvent());
 
@@ -23,7 +24,10 @@ export function createOrgRegisteredEvent(
     new ethereum.EventParam("executor", ethereum.Value.fromAddress(executor))
   );
   event.parameters.push(
-    new ethereum.EventParam("metaData", ethereum.Value.fromBytes(metaData))
+    new ethereum.EventParam("name", ethereum.Value.fromBytes(name))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("metadataHash", ethereum.Value.fromFixedBytes(metadataHash))
   );
 
   return event;
@@ -31,7 +35,8 @@ export function createOrgRegisteredEvent(
 
 export function createMetaUpdatedEvent(
   orgId: Bytes,
-  newMetaData: Bytes
+  name: Bytes,
+  metadataHash: Bytes = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000")
 ): MetaUpdated {
   let event = changetype<MetaUpdated>(newMockEvent());
 
@@ -40,7 +45,10 @@ export function createMetaUpdatedEvent(
     new ethereum.EventParam("orgId", ethereum.Value.fromFixedBytes(orgId))
   );
   event.parameters.push(
-    new ethereum.EventParam("newMetaData", ethereum.Value.fromBytes(newMetaData))
+    new ethereum.EventParam("name", ethereum.Value.fromBytes(name))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("metadataHash", ethereum.Value.fromFixedBytes(metadataHash))
   );
 
   return event;

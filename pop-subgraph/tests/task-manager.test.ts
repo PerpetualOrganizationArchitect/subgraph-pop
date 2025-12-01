@@ -188,10 +188,11 @@ describe("TaskManager", () => {
     let projectId = Bytes.fromHexString(
       "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
     );
-    let metadata = Bytes.fromHexString("0xabcd");
+    let title = Bytes.fromHexString("0xabcd");
+    let metadataHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
     let cap = BigInt.fromI32(1000);
 
-    let event = createProjectCreatedEvent(projectId, metadata, cap);
+    let event = createProjectCreatedEvent(projectId, title, metadataHash, cap);
     handleProjectCreated(event);
 
     assert.entityCount("Project", 1);
@@ -224,9 +225,10 @@ describe("TaskManager", () => {
     let projectId = Bytes.fromHexString(
       "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
     );
-    let projectMetadata = Bytes.fromHexString("0xabcd");
+    let projectTitle = Bytes.fromHexString("0xabcd");
+    let projectMetadataHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
     let cap = BigInt.fromI32(1000);
-    let projectEvent = createProjectCreatedEvent(projectId, projectMetadata, cap);
+    let projectEvent = createProjectCreatedEvent(projectId, projectTitle, projectMetadataHash, cap);
     handleProjectCreated(projectEvent);
 
     // Now create a task
@@ -234,7 +236,7 @@ describe("TaskManager", () => {
     let payout = BigInt.fromI32(100);
     let bountyToken = Address.fromString("0x0000000000000000000000000000000000000001");
     let bountyPayout = BigInt.fromI32(50);
-    let metadata = Bytes.fromHexString("0x1234");
+    let title = Bytes.fromHexString("0x1234");
 
     let event = createTaskCreatedEvent(
       taskId,
@@ -243,7 +245,7 @@ describe("TaskManager", () => {
       bountyToken,
       bountyPayout,
       true,
-      metadata
+      title
     );
     handleTaskCreated(event);
 
@@ -264,16 +266,17 @@ describe("TaskManager", () => {
     let projectId = Bytes.fromHexString(
       "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
     );
-    let projectMetadata = Bytes.fromHexString("0xabcd");
+    let projectTitle = Bytes.fromHexString("0xabcd");
+    let projectMetadataHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
     let cap = BigInt.fromI32(1000);
-    let projectEvent = createProjectCreatedEvent(projectId, projectMetadata, cap);
+    let projectEvent = createProjectCreatedEvent(projectId, projectTitle, projectMetadataHash, cap);
     handleProjectCreated(projectEvent);
 
     let taskId = BigInt.fromI32(1);
     let payout = BigInt.fromI32(100);
     let bountyToken = Address.fromString("0x0000000000000000000000000000000000000001");
     let bountyPayout = BigInt.fromI32(50);
-    let metadata = Bytes.fromHexString("0x1234");
+    let title = Bytes.fromHexString("0x1234");
 
     let createEvent = createTaskCreatedEvent(
       taskId,
@@ -282,7 +285,7 @@ describe("TaskManager", () => {
       bountyToken,
       bountyPayout,
       false,
-      metadata
+      title
     );
     handleTaskCreated(createEvent);
 
@@ -310,16 +313,17 @@ describe("TaskManager", () => {
     let projectId = Bytes.fromHexString(
       "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
     );
-    let projectMetadata = Bytes.fromHexString("0xabcd");
+    let projectTitle = Bytes.fromHexString("0xabcd");
+    let projectMetadataHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
     let cap = BigInt.fromI32(1000);
-    let projectEvent = createProjectCreatedEvent(projectId, projectMetadata, cap);
+    let projectEvent = createProjectCreatedEvent(projectId, projectTitle, projectMetadataHash, cap);
     handleProjectCreated(projectEvent);
 
     let taskId = BigInt.fromI32(1);
     let payout = BigInt.fromI32(100);
     let bountyToken = Address.fromString("0x0000000000000000000000000000000000000001");
     let bountyPayout = BigInt.fromI32(50);
-    let metadata = Bytes.fromHexString("0x1234");
+    let title = Bytes.fromHexString("0x1234");
 
     let createEvent = createTaskCreatedEvent(
       taskId,
@@ -328,7 +332,7 @@ describe("TaskManager", () => {
       bountyToken,
       bountyPayout,
       false,
-      metadata
+      title
     );
     handleTaskCreated(createEvent);
 
@@ -352,9 +356,10 @@ describe("TaskManager", () => {
     let projectId = Bytes.fromHexString(
       "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
     );
-    let metadata = Bytes.fromHexString("0xabcd");
+    let title = Bytes.fromHexString("0xabcd");
+    let metadataHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
     let initialCap = BigInt.fromI32(1000);
-    let projectEvent = createProjectCreatedEvent(projectId, metadata, initialCap);
+    let projectEvent = createProjectCreatedEvent(projectId, title, metadataHash, initialCap);
     handleProjectCreated(projectEvent);
 
     // Update the cap
@@ -402,9 +407,10 @@ describe("TaskManager", () => {
     let projectId = Bytes.fromHexString(
       "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
     );
-    let metadata = Bytes.fromHexString("0xabcd");
+    let title = Bytes.fromHexString("0xabcd");
+    let metadataHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
     let cap = BigInt.fromI32(1000);
-    let projectEvent = createProjectCreatedEvent(projectId, metadata, cap);
+    let projectEvent = createProjectCreatedEvent(projectId, title, metadataHash, cap);
     handleProjectCreated(projectEvent);
 
     // Add a manager
@@ -431,9 +437,10 @@ describe("TaskManager", () => {
     let projectId = Bytes.fromHexString(
       "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
     );
-    let metadata = Bytes.fromHexString("0xabcd");
+    let title = Bytes.fromHexString("0xabcd");
+    let metadataHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
     let cap = BigInt.fromI32(1000);
-    let projectEvent = createProjectCreatedEvent(projectId, metadata, cap);
+    let projectEvent = createProjectCreatedEvent(projectId, title, metadataHash, cap);
     handleProjectCreated(projectEvent);
 
     // Add a manager
@@ -461,9 +468,10 @@ describe("TaskManager", () => {
     let projectId = Bytes.fromHexString(
       "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
     );
-    let metadata = Bytes.fromHexString("0xabcd");
+    let title = Bytes.fromHexString("0xabcd");
+    let metadataHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
     let cap = BigInt.fromI32(1000);
-    let projectEvent = createProjectCreatedEvent(projectId, metadata, cap);
+    let projectEvent = createProjectCreatedEvent(projectId, title, metadataHash, cap);
     handleProjectCreated(projectEvent);
 
     // Set permissions with mask=15 (all permissions)
@@ -489,9 +497,10 @@ describe("TaskManager", () => {
     let projectId = Bytes.fromHexString(
       "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
     );
-    let metadata = Bytes.fromHexString("0xabcd");
+    let title = Bytes.fromHexString("0xabcd");
+    let metadataHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
     let cap = BigInt.fromI32(1000);
-    let projectEvent = createProjectCreatedEvent(projectId, metadata, cap);
+    let projectEvent = createProjectCreatedEvent(projectId, title, metadataHash, cap);
     handleProjectCreated(projectEvent);
 
     // Set permissions with mask=0 (no permissions)
@@ -516,9 +525,10 @@ describe("TaskManager", () => {
     let projectId = Bytes.fromHexString(
       "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
     );
-    let metadata = Bytes.fromHexString("0xabcd");
+    let title = Bytes.fromHexString("0xabcd");
+    let metadataHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
     let cap = BigInt.fromI32(1000);
-    let projectEvent = createProjectCreatedEvent(projectId, metadata, cap);
+    let projectEvent = createProjectCreatedEvent(projectId, title, metadataHash, cap);
     handleProjectCreated(projectEvent);
 
     // Set permissions with mask=5 (canCreate=true, canReview=true)
@@ -543,9 +553,10 @@ describe("TaskManager", () => {
     let projectId = Bytes.fromHexString(
       "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
     );
-    let metadata = Bytes.fromHexString("0xabcd");
+    let title = Bytes.fromHexString("0xabcd");
+    let metadataHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
     let cap = BigInt.fromI32(1000);
-    let projectEvent = createProjectCreatedEvent(projectId, metadata, cap);
+    let projectEvent = createProjectCreatedEvent(projectId, title, metadataHash, cap);
     handleProjectCreated(projectEvent);
 
     let hatId = BigInt.fromI32(1004);
@@ -579,9 +590,10 @@ describe("TaskManager", () => {
     let projectId = Bytes.fromHexString(
       "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
     );
-    let metadata = Bytes.fromHexString("0xabcd");
+    let title = Bytes.fromHexString("0xabcd");
+    let metadataHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
     let cap = BigInt.fromI32(1000);
-    let projectEvent = createProjectCreatedEvent(projectId, metadata, cap);
+    let projectEvent = createProjectCreatedEvent(projectId, title, metadataHash, cap);
     handleProjectCreated(projectEvent);
 
     // Set bounty cap
@@ -613,9 +625,10 @@ describe("TaskManager", () => {
     let projectId = Bytes.fromHexString(
       "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
     );
-    let metadata = Bytes.fromHexString("0xabcd");
+    let title = Bytes.fromHexString("0xabcd");
+    let metadataHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
     let cap = BigInt.fromI32(1000);
-    let projectEvent = createProjectCreatedEvent(projectId, metadata, cap);
+    let projectEvent = createProjectCreatedEvent(projectId, title, metadataHash, cap);
     handleProjectCreated(projectEvent);
 
     // Set bounty cap for token 1
@@ -655,9 +668,10 @@ describe("TaskManager", () => {
     let projectId = Bytes.fromHexString(
       "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
     );
-    let metadata = Bytes.fromHexString("0xabcd");
+    let title = Bytes.fromHexString("0xabcd");
+    let metadataHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
     let cap = BigInt.fromI32(1000);
-    let projectEvent = createProjectCreatedEvent(projectId, metadata, cap);
+    let projectEvent = createProjectCreatedEvent(projectId, title, metadataHash, cap);
     handleProjectCreated(projectEvent);
 
     let token = Address.fromString("0x0000000000000000000000000000000000000088");

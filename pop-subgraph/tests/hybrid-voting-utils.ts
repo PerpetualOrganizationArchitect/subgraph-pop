@@ -122,15 +122,15 @@ export function createTargetAllowedEvent(
 
 /**
  * Creates a mock NewProposal event
+ * New signature: NewProposal(uint256 id, bytes title, bytes32 descriptionHash, uint8 numOptions, uint64 endTs, uint64 created)
  */
 export function createNewProposalEvent(
   id: BigInt,
-  creator: Address,
-  metadata: Bytes,
+  title: Bytes,
+  descriptionHash: Bytes,
   numOptions: i32,
   endTs: i64,
-  created: i64,
-  hasExecutionBatches: boolean
+  created: i64
 ): NewProposal {
   let event = changetype<NewProposal>(newMockEvent());
 
@@ -139,10 +139,10 @@ export function createNewProposalEvent(
     new ethereum.EventParam("id", ethereum.Value.fromUnsignedBigInt(id))
   );
   event.parameters.push(
-    new ethereum.EventParam("creator", ethereum.Value.fromAddress(creator))
+    new ethereum.EventParam("title", ethereum.Value.fromBytes(title))
   );
   event.parameters.push(
-    new ethereum.EventParam("metadata", ethereum.Value.fromBytes(metadata))
+    new ethereum.EventParam("descriptionHash", ethereum.Value.fromFixedBytes(descriptionHash))
   );
   event.parameters.push(
     new ethereum.EventParam("numOptions", ethereum.Value.fromI32(numOptions))
@@ -153,25 +153,22 @@ export function createNewProposalEvent(
   event.parameters.push(
     new ethereum.EventParam("created", ethereum.Value.fromI32(created as i32))
   );
-  event.parameters.push(
-    new ethereum.EventParam("hasExecutionBatches", ethereum.Value.fromBoolean(hasExecutionBatches))
-  );
 
   return event;
 }
 
 /**
  * Creates a mock NewHatProposal event
+ * New signature: NewHatProposal(uint256 id, bytes title, bytes32 descriptionHash, uint8 numOptions, uint64 endTs, uint64 created, uint256[] hatIds)
  */
 export function createNewHatProposalEvent(
   id: BigInt,
-  creator: Address,
-  metadata: Bytes,
+  title: Bytes,
+  descriptionHash: Bytes,
   numOptions: i32,
   endTs: i64,
   created: i64,
-  hatIds: BigInt[],
-  hasExecutionBatches: boolean
+  hatIds: BigInt[]
 ): NewHatProposal {
   let event = changetype<NewHatProposal>(newMockEvent());
 
@@ -180,10 +177,10 @@ export function createNewHatProposalEvent(
     new ethereum.EventParam("id", ethereum.Value.fromUnsignedBigInt(id))
   );
   event.parameters.push(
-    new ethereum.EventParam("creator", ethereum.Value.fromAddress(creator))
+    new ethereum.EventParam("title", ethereum.Value.fromBytes(title))
   );
   event.parameters.push(
-    new ethereum.EventParam("metadata", ethereum.Value.fromBytes(metadata))
+    new ethereum.EventParam("descriptionHash", ethereum.Value.fromFixedBytes(descriptionHash))
   );
   event.parameters.push(
     new ethereum.EventParam("numOptions", ethereum.Value.fromI32(numOptions))
@@ -196,9 +193,6 @@ export function createNewHatProposalEvent(
   );
   event.parameters.push(
     new ethereum.EventParam("hatIds", ethereum.Value.fromUnsignedBigIntArray(hatIds))
-  );
-  event.parameters.push(
-    new ethereum.EventParam("hasExecutionBatches", ethereum.Value.fromBoolean(hasExecutionBatches))
   );
 
   return event;

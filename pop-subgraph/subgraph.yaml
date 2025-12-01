@@ -4,21 +4,25 @@ indexerHints:
 schema:
   file: ./schema.graphql
 # Contract Addresses:
-# PoaManager: 0xF8a26534f53fA89Ed89fA5814d167BFFc7645769
-# ImplementationRegistry: 0x0D102FD80DF9368b735C7914dec90823F7F60938
-# OrgRegistry: 0x7eFF3962d71a83C4d8C5fba4aF65D54E5513F0A4
-# GovernanceFactory: 0x7138B8f5C02E75ebA4C557410dd84d5da2DcF643
-# GlobalAccountRegistry: 0x6441247BCc1eDFf6213314D6910651401F99BbAE
-# PaymasterHub: 0x15C8539Bee81dA1e3fC81f283F70f234a41fA690
-# OrgDeployer: 0x35df5Fd21cEE486E130e0321D43EF2a916aEA758
+# OrgDeployer: 0x888daCE32d8BCdDD95BA9D490643663C25810ded
+# GlobalAccountRegistry: 0xDdB1DA30020861d92c27aE981ac0f4Fe8BA536F2
+# PaymasterHub: 0xbe2c8713F762871b14dc2273B389a210974dB755
+# PoaManager: 0x868680dc2689fa49A8389b0313da15408C8BE340
+# OrgRegistry: 0xBBf72057901d7d0F557D6f7Aa1Afc56F4F3d6072
+# ImplementationRegistry: 0xe848C652e1Aa56BeC38f504259f5D2b98b585aed
+# HatsProtocol: 0x3bc1A0Ad72417f2d411118085256fC53CBdDd137
+# GovernanceFactory: 0x2e3BCa0b6902285b7e8D747A14f118EbB8DB997D
+# AccessFactory: 0x05Db5Cf1540683A888E7aC656d7373aa03864a8c
+# ModulesFactory: 0x0b5b1410E6e8FeE4eCd07C69CdDCf860eCc44981
+# HatsTreeSetup: 0xdc7C14AB68fcCf9bcD255f5be684EbDc892Da13a
 dataSources:
   - kind: ethereum
     name: OrgDeployer
     network: hoodi
     source:
-      address: "0x35df5Fd21cEE486E130e0321D43EF2a916aEA758"
+      address: "0x888daCE32d8BCdDD95BA9D490643663C25810ded"
       abi: OrgDeployer
-      startBlock: 1470950
+      startBlock: 1737100
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -56,9 +60,9 @@ dataSources:
     name: GovernanceFactory
     network: hoodi
     source:
-      address: "0x7138B8f5C02E75ebA4C557410dd84d5da2DcF643"
+      address: "0x2e3BCa0b6902285b7e8D747A14f118EbB8DB997D"
       abi: GovernanceFactory
-      startBlock: 1470950
+      startBlock: 1737100
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -76,9 +80,9 @@ dataSources:
     name: UniversalAccountRegistry
     network: hoodi
     source:
-      address: "0x6441247BCc1eDFf6213314D6910651401F99BbAE"
+      address: "0xDdB1DA30020861d92c27aE981ac0f4Fe8BA536F2"
       abi: UniversalAccountRegistry
-      startBlock: 1470950
+      startBlock: 1737100
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -111,9 +115,9 @@ dataSources:
     name: PaymasterHub
     network: hoodi
     source:
-      address: "0x15C8539Bee81dA1e3fC81f283F70f234a41fA690"
+      address: "0xbe2c8713F762871b14dc2273B389a210974dB755"
       abi: PaymasterHub
-      startBlock: 1470950
+      startBlock: 1737100
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -188,9 +192,9 @@ dataSources:
     name: OrgRegistry
     network: hoodi
     source:
-      address: "0x7eFF3962d71a83C4d8C5fba4aF65D54E5513F0A4"
+      address: "0xBBf72057901d7d0F557D6f7Aa1Afc56F4F3d6072"
       abi: OrgRegistry
-      startBlock: 1470950
+      startBlock: 1737100
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -205,9 +209,9 @@ dataSources:
         - name: OrgRegistry
           file: ./abis/OrgRegistry.json
       eventHandlers:
-        - event: OrgRegistered(indexed bytes32,indexed address,bytes)
+        - event: OrgRegistered(indexed bytes32,indexed address,bytes,bytes32)
           handler: handleOrgRegistered
-        - event: MetaUpdated(indexed bytes32,bytes)
+        - event: MetaUpdated(indexed bytes32,bytes,bytes32)
           handler: handleMetaUpdated
         - event: ContractRegistered(indexed bytes32,indexed bytes32,indexed bytes32,address,address,bool,address)
           handler: handleContractRegistered
@@ -220,9 +224,9 @@ dataSources:
     name: PoaManager
     network: hoodi
     source:
-      address: "0xF8a26534f53fA89Ed89fA5814d167BFFc7645769"
+      address: "0x868680dc2689fa49A8389b0313da15408C8BE340"
       abi: PoaManager
-      startBlock: 1470950
+      startBlock: 1737100
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -266,9 +270,9 @@ templates:
         - name: TaskManager
           file: ./abis/TaskManager.json
       eventHandlers:
-        - event: ProjectCreated(indexed bytes32,bytes,uint256)
+        - event: ProjectCreated(indexed bytes32,bytes,bytes32,uint256)
           handler: handleProjectCreated
-        - event: ProjectDeleted(indexed bytes32,bytes)
+        - event: ProjectDeleted(indexed bytes32)
           handler: handleProjectDeleted
         - event: ProjectCapUpdated(indexed bytes32,uint256,uint256)
           handler: handleProjectCapUpdated
@@ -278,19 +282,19 @@ templates:
           handler: handleProjectRolePermSet
         - event: BountyCapSet(indexed bytes32,indexed address,uint256,uint256)
           handler: handleBountyCapSet
-        - event: TaskCreated(indexed uint256,indexed bytes32,uint256,address,uint256,bool,bytes)
+        - event: TaskCreated(indexed uint256,indexed bytes32,uint256,address,uint256,bool,bytes,bytes32)
           handler: handleTaskCreated
         - event: TaskAssigned(indexed uint256,indexed address,indexed address)
           handler: handleTaskAssigned
         - event: TaskClaimed(indexed uint256,indexed address)
           handler: handleTaskClaimed
-        - event: TaskSubmitted(indexed uint256,bytes)
+        - event: TaskSubmitted(indexed uint256,bytes32)
           handler: handleTaskSubmitted
         - event: TaskCompleted(indexed uint256,indexed address)
           handler: handleTaskCompleted
         - event: TaskCancelled(indexed uint256,indexed address)
           handler: handleTaskCancelled
-        - event: TaskUpdated(indexed uint256,uint256,address,uint256,bytes)
+        - event: TaskUpdated(indexed uint256,uint256,address,uint256,bytes,bytes32)
           handler: handleTaskUpdated
         - event: TaskApplicationSubmitted(indexed uint256,indexed address,bytes32)
           handler: handleTaskApplicationSubmitted
@@ -330,9 +334,9 @@ templates:
           handler: handleHatToggled
         - event: TargetAllowed(address,bool)
           handler: handleTargetAllowed
-        - event: NewProposal(indexed uint256,indexed address,bytes,uint8,uint64,uint64,bool)
+        - event: NewProposal(uint256,bytes,bytes32,uint8,uint64,uint64)
           handler: handleNewProposal
-        - event: NewHatProposal(indexed uint256,indexed address,bytes,uint8,uint64,uint64,uint256[],bool)
+        - event: NewHatProposal(uint256,bytes,bytes32,uint8,uint64,uint64,uint256[])
           handler: handleNewHatProposal
         - event: VoteCast(indexed uint256,indexed address,uint8[],uint8[],uint256[],uint64)
           handler: handleVoteCast
@@ -377,9 +381,9 @@ templates:
           handler: handleCreatorHatSet
         - event: TargetAllowed(address,bool)
           handler: handleTargetAllowed
-        - event: NewProposal(uint256,bytes,uint8,uint64,uint64)
+        - event: NewProposal(uint256,bytes,bytes32,uint8,uint64,uint64)
           handler: handleNewProposal
-        - event: NewHatProposal(uint256,bytes,uint8,uint64,uint64,uint256[])
+        - event: NewHatProposal(uint256,bytes,bytes32,uint8,uint64,uint64,uint256[])
           handler: handleNewHatProposal
         - event: VoteCast(uint256,address,uint8[],uint8[])
           handler: handleVoteCast
@@ -443,8 +447,6 @@ templates:
           handler: handleVouchingRateLimitExceeded
         - event: NewUserVouchingRestrictedEvent(indexed address)
           handler: handleNewUserVouchingRestricted
-        - event: HatAutoMinted(indexed address,indexed uint256,uint32)
-          handler: handleHatAutoMinted
       file: ./src/eligibility-module.ts
   - kind: ethereum
     name: ParticipationToken
@@ -544,11 +546,11 @@ templates:
       eventHandlers:
         - event: Initialized(uint64)
           handler: handleInitialized
-        - event: ModuleCreated(indexed uint256,uint256,bytes)
+        - event: ModuleCreated(indexed uint256,bytes,bytes32,uint256)
           handler: handleModuleCreated
         - event: ModuleCompleted(indexed uint256,indexed address)
           handler: handleModuleCompleted
-        - event: ModuleUpdated(indexed uint256,uint256,bytes)
+        - event: ModuleUpdated(indexed uint256,bytes,bytes32,uint256)
           handler: handleModuleUpdated
         - event: ModuleRemoved(indexed uint256)
           handler: handleModuleRemoved
