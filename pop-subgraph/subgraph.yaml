@@ -4,21 +4,25 @@ indexerHints:
 schema:
   file: ./schema.graphql
 # Contract Addresses:
-# OrgDeployer: 0x319eB88f6dEB44C7a454E5A25d0382A1613d432D
-# GlobalAccountRegistry: 0x7125bc7f6c3e758C8fcc91052027cd99050626E9
-# PaymasterHub: 0x09d4e643072a3Ee69310aed7bA0c845B05CeAf6A
-# PoaManager: 0x50f4ED048fd2BA8Abf337A0e5EE9758812EA54d8
-# OrgRegistry: 0x31c0199106A68a46a98E68FD656e2bEadF5542F2
-# ImplementationRegistry: 0xBa087F21916e885CbA174Cacd8ff98E66Ebb185E
+# OrgDeployer: 0x888daCE32d8BCdDD95BA9D490643663C25810ded
+# GlobalAccountRegistry: 0xDdB1DA30020861d92c27aE981ac0f4Fe8BA536F2
+# PaymasterHub: 0xbe2c8713F762871b14dc2273B389a210974dB755
+# PoaManager: 0x868680dc2689fa49A8389b0313da15408C8BE340
+# OrgRegistry: 0xBBf72057901d7d0F557D6f7Aa1Afc56F4F3d6072
+# ImplementationRegistry: 0xe848C652e1Aa56BeC38f504259f5D2b98b585aed
 # HatsProtocol: 0x3bc1A0Ad72417f2d411118085256fC53CBdDd137
+# GovernanceFactory: 0x2e3BCa0b6902285b7e8D747A14f118EbB8DB997D
+# AccessFactory: 0x05Db5Cf1540683A888E7aC656d7373aa03864a8c
+# ModulesFactory: 0x0b5b1410E6e8FeE4eCd07C69CdDCf860eCc44981
+# HatsTreeSetup: 0xdc7C14AB68fcCf9bcD255f5be684EbDc892Da13a
 dataSources:
   - kind: ethereum
     name: OrgDeployer
     network: hoodi
     source:
-      address: "0x319eB88f6dEB44C7a454E5A25d0382A1613d432D"
+      address: "0x888daCE32d8BCdDD95BA9D490643663C25810ded"
       abi: OrgDeployer
-      startBlock: 1736600
+      startBlock: 1737100
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -52,34 +56,33 @@ dataSources:
   #       - event: Upgraded(indexed address)
   #         handler: handleUpgraded
   #     file: ./src/beacon.ts
-  # GovernanceFactory - commented out (no address provided in latest deployment)
-  # - kind: ethereum
-  #   name: GovernanceFactory
-  #   network: hoodi
-  #   source:
-  #     address: "0x7138B8f5C02E75ebA4C557410dd84d5da2DcF643"
-  #     abi: GovernanceFactory
-  #     startBlock: 1736600
-  #   mapping:
-  #     kind: ethereum/events
-  #     apiVersion: 0.0.9
-  #     language: wasm/assemblyscript
-  #     entities:
-  #       - GovernanceModule
-  #     abis:
-  #       - name: GovernanceFactory
-  #         file: ./abis/GovernanceFactory.json
-  #     eventHandlers:
-  #       - event: ModuleDeployed(indexed bytes32,indexed bytes32,address,address,bool,address)
-  #         handler: handleModuleDeployed
-  #     file: ./src/governance-factory.ts
+  - kind: ethereum
+    name: GovernanceFactory
+    network: hoodi
+    source:
+      address: "0x2e3BCa0b6902285b7e8D747A14f118EbB8DB997D"
+      abi: GovernanceFactory
+      startBlock: 1737100
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - GovernanceModule
+      abis:
+        - name: GovernanceFactory
+          file: ./abis/GovernanceFactory.json
+      eventHandlers:
+        - event: ModuleDeployed(indexed bytes32,indexed bytes32,address,address,bool,address)
+          handler: handleModuleDeployed
+      file: ./src/governance-factory.ts
   - kind: ethereum
     name: UniversalAccountRegistry
     network: hoodi
     source:
-      address: "0x7125bc7f6c3e758C8fcc91052027cd99050626E9"
+      address: "0xDdB1DA30020861d92c27aE981ac0f4Fe8BA536F2"
       abi: UniversalAccountRegistry
-      startBlock: 1736600
+      startBlock: 1737100
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -112,9 +115,9 @@ dataSources:
     name: PaymasterHub
     network: hoodi
     source:
-      address: "0x09d4e643072a3Ee69310aed7bA0c845B05CeAf6A"
+      address: "0xbe2c8713F762871b14dc2273B389a210974dB755"
       abi: PaymasterHub
-      startBlock: 1736600
+      startBlock: 1737100
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -189,9 +192,9 @@ dataSources:
     name: OrgRegistry
     network: hoodi
     source:
-      address: "0x31c0199106A68a46a98E68FD656e2bEadF5542F2"
+      address: "0xBBf72057901d7d0F557D6f7Aa1Afc56F4F3d6072"
       abi: OrgRegistry
-      startBlock: 1736600
+      startBlock: 1737100
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -221,9 +224,9 @@ dataSources:
     name: PoaManager
     network: hoodi
     source:
-      address: "0x50f4ED048fd2BA8Abf337A0e5EE9758812EA54d8"
+      address: "0x868680dc2689fa49A8389b0313da15408C8BE340"
       abi: PoaManager
-      startBlock: 1736600
+      startBlock: 1737100
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
