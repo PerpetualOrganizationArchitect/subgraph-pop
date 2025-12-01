@@ -116,13 +116,13 @@ type GovernanceModule @entity(immutable: true) {
 type Project @entity(immutable: false) {
   id: Bytes! # projectId
   taskManager: TaskManager! # Relationship to TaskManager entity
-  metadata: Bytes!
+  title: Bytes! # project title
+  metadataHash: Bytes! # project metadata hash
   cap: BigInt!
   createdAt: BigInt!
   createdAtBlock: BigInt!
   deleted: Boolean!
   deletedAt: BigInt
-  deletedMetadata: Bytes
   tasks: [Task!]! @derivedFrom(field: "project")
   # Project permissions and caps
   managers: [ProjectManager!]! @derivedFrom(field: "project")
@@ -243,7 +243,8 @@ type Task @entity(immutable: false) {
   bountyToken: Bytes!
   bountyPayout: BigInt!
   requiresApplication: Boolean!
-  metadata: Bytes!
+  title: Bytes! # task title
+  metadataHash: Bytes! # task metadata hash
   assignee: Bytes
   assigneeUsername: String
   assigneeUser: User
@@ -325,14 +326,14 @@ type Proposal @entity(immutable: false) {
   id: String! # hybridVoting-proposalId
   proposalId: BigInt!
   hybridVoting: HybridVotingContract!
-  creator: Bytes!
+  creator: Bytes! # from transaction.from
   creatorUsername: String
   creatorUser: User
-  metadata: Bytes!
+  title: Bytes! # proposal title
+  descriptionHash: Bytes! # hash of proposal description
   numOptions: Int!
+  startTimestamp: BigInt!
   endTimestamp: BigInt!
-  createdTimestamp: BigInt!
-  hasExecutionBatches: Boolean!
   isHatRestricted: Boolean! # true for NewHatProposal, false for NewProposal
   restrictedHatIds: [BigInt!] # only for hat-restricted proposals
   status: ProposalStatus!
@@ -407,10 +408,11 @@ type DDVProposal @entity(immutable: false) {
   id: String! # directDemocracyVoting-proposalId
   proposalId: BigInt!
   directDemocracyVoting: DirectDemocracyVotingContract!
-  metadata: Bytes!
+  title: Bytes! # proposal title
+  descriptionHash: Bytes! # hash of proposal description
   numOptions: Int!
+  startTimestamp: BigInt!
   endTimestamp: BigInt!
-  createdTimestamp: BigInt!
   isHatRestricted: Boolean! # true for NewHatProposal, false for NewProposal
   restrictedHatIds: [BigInt!] # only for hat-restricted proposals
   status: DDVProposalStatus!
@@ -715,8 +717,9 @@ type EducationModule @entity(immutable: false) {
   id: String! # educationHub-moduleId
   educationHub: EducationHubContract!
   moduleId: BigInt!
+  title: Bytes! # module title
+  contentHash: Bytes! # content hash for the module materials
   payout: BigInt!
-  metadata: Bytes!
   status: ModuleStatus!
   createdAt: BigInt!
   createdAtBlock: BigInt!
@@ -745,8 +748,9 @@ type ModuleUpdate @entity(immutable: true) {
   id: Bytes! # txHash-logIndex
   module: EducationModule!
   moduleId: BigInt!
+  title: Bytes!
+  contentHash: Bytes!
   payout: BigInt!
-  metadata: Bytes!
   updatedAt: BigInt!
   updatedAtBlock: BigInt!
   transactionHash: Bytes!
@@ -1456,7 +1460,8 @@ type RegisteredOrg @entity(immutable: false) {
   id: Bytes! # orgId
   orgRegistry: OrgRegistryContract!
   executor: Bytes! # executor address (can be updated via setOrgExecutor)
-  metaData: Bytes! # current metadata (can be updated)
+  name: Bytes! # organization name (can be updated)
+  metadataHash: Bytes! # IPFS hash or other metadata identifier
   topHatId: BigInt # set via HatsTreeRegistered
   roleHatIds: [BigInt!] # set via HatsTreeRegistered
   contractCount: BigInt! # number of contracts registered
@@ -1472,7 +1477,8 @@ type OrgMetaUpdate @entity(immutable: true) {
   id: Bytes! # txHash-logIndex
   org: RegisteredOrg!
   orgId: Bytes!
-  newMetaData: Bytes!
+  newName: Bytes!
+  newMetadataHash: Bytes!
   updatedAt: BigInt!
   updatedAtBlock: BigInt!
   transactionHash: Bytes!

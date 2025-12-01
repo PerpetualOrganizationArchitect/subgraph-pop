@@ -98,9 +98,14 @@
         "internalType": "bytes32"
       },
       {
-        "name": "metaData",
+        "name": "name",
         "type": "bytes",
         "internalType": "bytes"
+      },
+      {
+        "name": "metadataHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "outputs": [],
@@ -378,9 +383,14 @@
         "internalType": "address"
       },
       {
-        "name": "metaData",
+        "name": "name",
         "type": "bytes",
         "internalType": "bytes"
+      },
+      {
+        "name": "metadataHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "outputs": [],
@@ -513,9 +523,14 @@
         "internalType": "bytes32"
       },
       {
-        "name": "newMetaData",
+        "name": "newName",
         "type": "bytes",
         "internalType": "bytes"
+      },
+      {
+        "name": "newMetadataHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
       }
     ],
     "outputs": [],
@@ -638,10 +653,16 @@
         "internalType": "bytes32"
       },
       {
-        "name": "newMetaData",
+        "name": "newName",
         "type": "bytes",
         "indexed": false,
         "internalType": "bytes"
+      },
+      {
+        "name": "newMetadataHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
       }
     ],
     "anonymous": false
@@ -663,10 +684,16 @@
         "internalType": "address"
       },
       {
-        "name": "metaData",
+        "name": "name",
         "type": "bytes",
         "indexed": false,
         "internalType": "bytes"
+      },
+      {
+        "name": "metadataHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
       }
     ],
     "anonymous": false
@@ -698,6 +725,11 @@
   {
     "type": "error",
     "name": "ContractUnknown",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "EmptyTitle",
     "inputs": []
   },
   {
@@ -755,6 +787,11 @@
   {
     "type": "error",
     "name": "OwnerOnlyDuringBootstrap",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TitleTooLong",
     "inputs": []
   },
   {

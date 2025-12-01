@@ -38,7 +38,8 @@ export function handleOrgRegistered(event: OrgRegisteredEvent): void {
   let contractAddress = event.address;
   let orgId = event.params.orgId;
   let executor = event.params.executor;
-  let metaData = event.params.metaData;
+  let name = event.params.name;
+  let metadataHash = event.params.metadataHash;
 
   // Get or create registry
   let registry = getOrCreateOrgRegistry(
@@ -54,7 +55,8 @@ export function handleOrgRegistered(event: OrgRegisteredEvent): void {
     org = new RegisteredOrg(orgId);
     org.orgRegistry = contractAddress;
     org.executor = executor;
-    org.metaData = metaData;
+    org.name = name;
+    org.metadataHash = metadataHash;
     org.contractCount = BigInt.fromI32(0);
     org.registeredAt = event.block.timestamp;
     org.registeredAtBlock = event.block.number;
@@ -79,12 +81,14 @@ export function handleOrgRegistered(event: OrgRegisteredEvent): void {
  */
 export function handleMetaUpdated(event: MetaUpdatedEvent): void {
   let orgId = event.params.orgId;
-  let newMetaData = event.params.newMetaData;
+  let newName = event.params.newName;
+  let newMetadataHash = event.params.newMetadataHash;
 
   // Load org
   let org = RegisteredOrg.load(orgId);
   if (org) {
-    org.metaData = newMetaData;
+    org.name = newName;
+    org.metadataHash = newMetadataHash;
     org.lastUpdatedAt = event.block.timestamp;
     org.save();
   }
@@ -95,7 +99,8 @@ export function handleMetaUpdated(event: MetaUpdatedEvent): void {
 
   update.org = orgId;
   update.orgId = orgId;
-  update.newMetaData = newMetaData;
+  update.newName = newName;
+  update.newMetadataHash = newMetadataHash;
   update.updatedAt = event.block.timestamp;
   update.updatedAtBlock = event.block.number;
   update.transactionHash = event.transaction.hash;

@@ -14,7 +14,8 @@ import {
 
 export function createProjectCreatedEvent(
   id: Bytes,
-  metadata: Bytes,
+  title: Bytes,
+  metadataHash: Bytes,
   cap: BigInt
 ): ProjectCreated {
   let event = changetype<ProjectCreated>(newMockEvent());
@@ -24,7 +25,10 @@ export function createProjectCreatedEvent(
     new ethereum.EventParam("id", ethereum.Value.fromFixedBytes(id))
   );
   event.parameters.push(
-    new ethereum.EventParam("metadata", ethereum.Value.fromBytes(metadata))
+    new ethereum.EventParam("title", ethereum.Value.fromBytes(title))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("metadataHash", ethereum.Value.fromFixedBytes(metadataHash))
   );
   event.parameters.push(
     new ethereum.EventParam("cap", ethereum.Value.fromUnsignedBigInt(cap))
@@ -40,7 +44,8 @@ export function createTaskCreatedEvent(
   bountyToken: Address,
   bountyPayout: BigInt,
   requiresApplication: boolean,
-  metadata: Bytes
+  title: Bytes,
+  metadataHash: Bytes = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000")
 ): TaskCreated {
   let event = changetype<TaskCreated>(newMockEvent());
 
@@ -64,7 +69,10 @@ export function createTaskCreatedEvent(
     new ethereum.EventParam("requiresApplication", ethereum.Value.fromBoolean(requiresApplication))
   );
   event.parameters.push(
-    new ethereum.EventParam("metadata", ethereum.Value.fromBytes(metadata))
+    new ethereum.EventParam("title", ethereum.Value.fromBytes(title))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("metadataHash", ethereum.Value.fromFixedBytes(metadataHash))
   );
 
   return event;

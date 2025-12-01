@@ -594,20 +594,19 @@ describe("HybridVoting", () => {
   describe("Proposals", () => {
     test("NewProposal creates unrestricted proposal", () => {
       let proposalId = BigInt.fromI32(1);
-      let creator = Address.fromString("0x0000000000000000000000000000000000000001");
-      let metadata = Bytes.fromHexString("0xabcd");
+      let title = Bytes.fromHexString("0xabcd");
+      let descriptionHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
       let numOptions = 3;
       let endTs = 1700000000 as i64;
       let created = 1699900000 as i64;
 
       let event = createNewProposalEvent(
         proposalId,
-        creator,
-        metadata,
+        title,
+        descriptionHash,
         numOptions,
         endTs,
-        created,
-        true
+        created
       );
 
       handleNewProposal(event);
@@ -616,18 +615,16 @@ describe("HybridVoting", () => {
 
       let proposalEntityId = event.address.toHexString() + "-" + proposalId.toString();
       assert.fieldEquals("Proposal", proposalEntityId, "proposalId", "1");
-      assert.fieldEquals("Proposal", proposalEntityId, "creator", creator.toHexString());
       assert.fieldEquals("Proposal", proposalEntityId, "numOptions", "3");
       assert.fieldEquals("Proposal", proposalEntityId, "isHatRestricted", "false");
-      assert.fieldEquals("Proposal", proposalEntityId, "hasExecutionBatches", "true");
       assert.fieldEquals("Proposal", proposalEntityId, "status", "Active");
       assert.fieldEquals("Proposal", proposalEntityId, "wasExecuted", "false");
     });
 
     test("NewHatProposal creates hat-restricted proposal", () => {
       let proposalId = BigInt.fromI32(2);
-      let creator = Address.fromString("0x0000000000000000000000000000000000000002");
-      let metadata = Bytes.fromHexString("0x1234");
+      let title = Bytes.fromHexString("0x1234");
+      let descriptionHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000005678");
       let numOptions = 2;
       let endTs = 1700000000 as i64;
       let created = 1699900000 as i64;
@@ -635,13 +632,12 @@ describe("HybridVoting", () => {
 
       let event = createNewHatProposalEvent(
         proposalId,
-        creator,
-        metadata,
+        title,
+        descriptionHash,
         numOptions,
         endTs,
         created,
-        hatIds,
-        false
+        hatIds
       );
 
       handleNewHatProposal(event);
@@ -650,24 +646,22 @@ describe("HybridVoting", () => {
 
       let proposalEntityId = event.address.toHexString() + "-" + proposalId.toString();
       assert.fieldEquals("Proposal", proposalEntityId, "isHatRestricted", "true");
-      assert.fieldEquals("Proposal", proposalEntityId, "hasExecutionBatches", "false");
       assert.fieldEquals("Proposal", proposalEntityId, "numOptions", "2");
     });
 
     test("VoteCast records a vote on proposal", () => {
       // First create a proposal
       let proposalId = BigInt.fromI32(1);
-      let creator = Address.fromString("0x0000000000000000000000000000000000000001");
-      let metadata = Bytes.fromHexString("0xabcd");
+      let title = Bytes.fromHexString("0xabcd");
+      let descriptionHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
 
       let proposalEvent = createNewProposalEvent(
         proposalId,
-        creator,
-        metadata,
+        title,
+        descriptionHash,
         3,
         1700000000 as i64,
-        1699900000 as i64,
-        true
+        1699900000 as i64
       );
       handleNewProposal(proposalEvent);
 
@@ -698,16 +692,16 @@ describe("HybridVoting", () => {
     test("Winner event updates proposal status to Ended", () => {
       // Create proposal
       let proposalId = BigInt.fromI32(1);
-      let creator = Address.fromString("0x0000000000000000000000000000000000000001");
+      let title = Bytes.fromHexString("0xabcd");
+      let descriptionHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
 
       let proposalEvent = createNewProposalEvent(
         proposalId,
-        creator,
-        Bytes.fromHexString("0xabcd"),
+        title,
+        descriptionHash,
         3,
         1700000000 as i64,
-        1699900000 as i64,
-        true
+        1699900000 as i64
       );
       handleNewProposal(proposalEvent);
 
@@ -733,16 +727,16 @@ describe("HybridVoting", () => {
     test("Winner event with executed=true updates status to Executed", () => {
       // Create proposal
       let proposalId = BigInt.fromI32(1);
-      let creator = Address.fromString("0x0000000000000000000000000000000000000001");
+      let title = Bytes.fromHexString("0xabcd");
+      let descriptionHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
 
       let proposalEvent = createNewProposalEvent(
         proposalId,
-        creator,
-        Bytes.fromHexString("0xabcd"),
+        title,
+        descriptionHash,
         3,
         1700000000 as i64,
-        1699900000 as i64,
-        true
+        1699900000 as i64
       );
       handleNewProposal(proposalEvent);
 
@@ -766,16 +760,16 @@ describe("HybridVoting", () => {
     test("ProposalExecuted marks proposal as executed", () => {
       // Create proposal
       let proposalId = BigInt.fromI32(1);
-      let creator = Address.fromString("0x0000000000000000000000000000000000000001");
+      let title = Bytes.fromHexString("0xabcd");
+      let descriptionHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
 
       let proposalEvent = createNewProposalEvent(
         proposalId,
-        creator,
-        Bytes.fromHexString("0xabcd"),
+        title,
+        descriptionHash,
         3,
         1700000000 as i64,
-        1699900000 as i64,
-        true
+        1699900000 as i64
       );
       handleNewProposal(proposalEvent);
 
@@ -798,19 +792,19 @@ describe("HybridVoting", () => {
 
     test("Full proposal lifecycle", () => {
       let proposalId = BigInt.fromI32(1);
-      let creator = Address.fromString("0x0000000000000000000000000000000000000001");
+      let title = Bytes.fromHexString("0xabcd");
+      let descriptionHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
       let voter1 = Address.fromString("0x0000000000000000000000000000000000000002");
       let voter2 = Address.fromString("0x0000000000000000000000000000000000000003");
 
       // 1. Create proposal
       let proposalEvent = createNewProposalEvent(
         proposalId,
-        creator,
-        Bytes.fromHexString("0xabcd"),
+        title,
+        descriptionHash,
         3,
         1700000000 as i64,
-        1699900000 as i64,
-        true
+        1699900000 as i64
       );
       handleNewProposal(proposalEvent);
 

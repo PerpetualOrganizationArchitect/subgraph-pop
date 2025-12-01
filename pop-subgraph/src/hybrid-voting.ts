@@ -216,26 +216,27 @@ export function handleNewProposal(event: NewProposal): void {
 
   proposal.proposalId = event.params.id;
   proposal.hybridVoting = event.address;
-  proposal.creator = event.params.creator;
-  proposal.creatorUsername = getUsernameForAddress(event.params.creator);
+  // Creator is no longer in event, use transaction.from
+  proposal.creator = event.transaction.from;
+  proposal.creatorUsername = getUsernameForAddress(event.transaction.from);
 
   // Link to User entity
   let votingContract = HybridVotingContract.load(event.address);
   if (votingContract) {
     let user = getOrCreateUser(
       votingContract.organization,
-      event.params.creator,
+      event.transaction.from,
       event.block.timestamp,
       event.block.number
     );
     proposal.creatorUser = user.id;
   }
 
-  proposal.metadata = event.params.metadata;
+  proposal.title = event.params.title;
+  proposal.descriptionHash = event.params.descriptionHash;
   proposal.numOptions = event.params.numOptions;
+  proposal.startTimestamp = event.params.created;
   proposal.endTimestamp = event.params.endTs;
-  proposal.createdTimestamp = event.params.created;
-  proposal.hasExecutionBatches = event.params.hasExecutionBatches;
   proposal.isHatRestricted = false;
   proposal.restrictedHatIds = [];
   proposal.status = "Active";
@@ -258,26 +259,27 @@ export function handleNewHatProposal(event: NewHatProposal): void {
 
   proposal.proposalId = event.params.id;
   proposal.hybridVoting = event.address;
-  proposal.creator = event.params.creator;
-  proposal.creatorUsername = getUsernameForAddress(event.params.creator);
+  // Creator is no longer in event, use transaction.from
+  proposal.creator = event.transaction.from;
+  proposal.creatorUsername = getUsernameForAddress(event.transaction.from);
 
   // Link to User entity
   let votingContract = HybridVotingContract.load(event.address);
   if (votingContract) {
     let user = getOrCreateUser(
       votingContract.organization,
-      event.params.creator,
+      event.transaction.from,
       event.block.timestamp,
       event.block.number
     );
     proposal.creatorUser = user.id;
   }
 
-  proposal.metadata = event.params.metadata;
+  proposal.title = event.params.title;
+  proposal.descriptionHash = event.params.descriptionHash;
   proposal.numOptions = event.params.numOptions;
+  proposal.startTimestamp = event.params.created;
   proposal.endTimestamp = event.params.endTs;
-  proposal.createdTimestamp = event.params.created;
-  proposal.hasExecutionBatches = event.params.hasExecutionBatches;
   proposal.isHatRestricted = true;
   proposal.restrictedHatIds = event.params.hatIds;
   proposal.status = "Active";

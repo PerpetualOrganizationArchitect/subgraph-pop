@@ -1,4 +1,4 @@
-import { BigInt, Bytes, log } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes, log } from "@graphprotocol/graph-ts";
 import {
   EligibilityModuleInitialized as EligibilityModuleInitializedEvent,
   HatCreatedWithEligibility as HatCreatedWithEligibilityEvent,
@@ -15,8 +15,7 @@ import {
   Paused as PausedEvent,
   Unpaused as UnpausedEvent,
   VouchingRateLimitExceededEvent as VouchingRateLimitExceededEventEvent,
-  NewUserVouchingRestrictedEvent as NewUserVouchingRestrictedEventEvent,
-  HatAutoMinted as HatAutoMintedEvent
+  NewUserVouchingRestrictedEvent as NewUserVouchingRestrictedEventEvent
 } from "../generated/templates/EligibilityModule/EligibilityModule";
 import {
   EligibilityModuleContract,
@@ -210,13 +209,45 @@ export function handleDefaultEligibilityUpdated(
 
   let hat = Hat.load(hatEntityId);
   if (hat == null) {
-    log.warning("Hat not found for hatId {} at contract {}", [
+    // Hat doesn't exist yet - this happens when hats are created via HatsTreeSetup
+    // (which creates hats directly on Hats Protocol, not via createHatWithEligibility)
+    // Create the Hat entity with available information from the event
+    hat = new Hat(hatEntityId);
+    hat.hatId = hatId;
+    hat.parentHatId = BigInt.fromI32(0); // Unknown - HatsTreeSetup doesn't emit parent info
+    hat.level = 0; // Unknown - will be 0 for top-level hats
+    hat.eligibilityModule = contractAddress;
+    hat.creator = event.params.admin; // Use admin as creator
+    hat.creatorUsername = getUsernameForAddress(event.params.admin);
+
+    // Link to User entity if EligibilityModuleContract exists
+    let eligibilityModule = EligibilityModuleContract.load(contractAddress);
+    if (eligibilityModule) {
+      let user = getOrCreateUser(
+        eligibilityModule.organization,
+        event.params.admin,
+        event.block.timestamp,
+        event.block.number
+      );
+      hat.creatorUser = user.id;
+    }
+
+    hat.defaultEligible = event.params.eligible;
+    hat.defaultStanding = event.params.standing;
+    hat.mintedCount = BigInt.fromI32(0); // Unknown - will be updated if minting events occur
+    hat.createdAt = event.block.timestamp;
+    hat.createdAtBlock = event.block.number;
+    hat.transactionHash = event.transaction.hash;
+    hat.save();
+
+    log.info("Created Hat entity from DefaultEligibilityUpdated for hatId {} at contract {}", [
       hatId.toString(),
       contractAddress.toHexString()
     ]);
     return;
   }
 
+  // Hat exists - just update the eligibility fields
   hat.defaultEligible = event.params.eligible;
   hat.defaultStanding = event.params.standing;
   hat.save();
@@ -481,36 +512,4 @@ export function handleNewUserVouchingRestricted(
   }
 
   restriction.save();
-}
-
-export function handleHatAutoMinted(event: HatAutoMintedEvent): void {
-  let id = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let autoMint = new HatAutoMintEvent(id);
-
-  let contractAddress = event.address;
-  let hatId = event.params.hatId;
-
-  autoMint.eligibilityModule = contractAddress;
-  autoMint.wearer = event.params.wearer;
-  autoMint.wearerUsername = getUsernameForAddress(event.params.wearer);
-  autoMint.hatId = hatId;
-  autoMint.hat = contractAddress.toHexString() + "-" + hatId.toString();
-  autoMint.vouchCount = event.params.vouchCount.toI32();
-  autoMint.mintedAt = event.block.timestamp;
-  autoMint.mintedAtBlock = event.block.number;
-  autoMint.transactionHash = event.transaction.hash;
-
-  // Link to User entity
-  let eligibilityModule = EligibilityModuleContract.load(contractAddress);
-  if (eligibilityModule) {
-    let user = getOrCreateUser(
-      eligibilityModule.organization,
-      event.params.wearer,
-      event.block.timestamp,
-      event.block.number
-    );
-    autoMint.wearerUser = user.id;
-  }
-
-  autoMint.save();
 }

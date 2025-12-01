@@ -39,8 +39,9 @@ export function handleModuleCreated(event: ModuleCreatedEvent): void {
 
   module.educationHub = contractAddress;
   module.moduleId = moduleId;
+  module.title = event.params.title;
+  module.contentHash = event.params.contentHash;
   module.payout = event.params.payout;
-  module.metadata = event.params.metadata;
   module.status = "Active";
   module.createdAt = event.block.timestamp;
   module.createdAtBlock = event.block.number;
@@ -104,8 +105,9 @@ export function handleModuleUpdated(event: ModuleUpdatedEvent): void {
   let module = EducationModule.load(moduleEntityId);
 
   if (module) {
+    module.title = event.params.title;
+    module.contentHash = event.params.contentHash;
     module.payout = event.params.payout;
-    module.metadata = event.params.metadata;
     module.updatedAt = event.block.timestamp;
     module.updatedAtBlock = event.block.number;
     module.save();
@@ -117,8 +119,9 @@ export function handleModuleUpdated(event: ModuleUpdatedEvent): void {
 
   update.module = moduleEntityId;
   update.moduleId = moduleId;
+  update.title = event.params.title;
+  update.contentHash = event.params.contentHash;
   update.payout = event.params.payout;
-  update.metadata = event.params.metadata;
   update.updatedAt = event.block.timestamp;
   update.updatedAtBlock = event.block.number;
   update.transactionHash = event.transaction.hash;

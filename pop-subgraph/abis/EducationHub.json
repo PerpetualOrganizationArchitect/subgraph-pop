@@ -35,9 +35,14 @@
     "name": "createModule",
     "inputs": [
       {
-        "name": "metadata",
+        "name": "title",
         "type": "bytes",
         "internalType": "bytes"
+      },
+      {
+        "name": "contentHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
       },
       {
         "name": "payout",
@@ -401,9 +406,14 @@
         "internalType": "uint256"
       },
       {
-        "name": "newMetadata",
+        "name": "newTitle",
         "type": "bytes",
         "internalType": "bytes"
+      },
+      {
+        "name": "newContentHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
       },
       {
         "name": "newPayout",
@@ -540,16 +550,22 @@
         "internalType": "uint256"
       },
       {
+        "name": "title",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
+      },
+      {
+        "name": "contentHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
         "name": "payout",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
-      },
-      {
-        "name": "metadata",
-        "type": "bytes",
-        "indexed": false,
-        "internalType": "bytes"
       }
     ],
     "anonymous": false
@@ -578,16 +594,22 @@
         "internalType": "uint256"
       },
       {
+        "name": "title",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
+      },
+      {
+        "name": "contentHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
         "name": "payout",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
-      },
-      {
-        "name": "metadata",
-        "type": "bytes",
-        "indexed": false,
-        "internalType": "bytes"
       }
     ],
     "anonymous": false
@@ -638,6 +660,11 @@
   },
   {
     "type": "error",
+    "name": "EmptyTitle",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "EnforcedPause",
     "inputs": []
   },
@@ -649,11 +676,6 @@
   {
     "type": "error",
     "name": "InvalidAnswer",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InvalidBytes",
     "inputs": []
   },
   {
@@ -699,6 +721,11 @@
   {
     "type": "error",
     "name": "ReentrancyGuardReentrantCall",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TitleTooLong",
     "inputs": []
   },
   {

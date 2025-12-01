@@ -243,10 +243,11 @@ export function handleNewProposal(event: NewProposal): void {
 
   proposal.proposalId = event.params.id;
   proposal.directDemocracyVoting = event.address;
-  proposal.metadata = event.params.metadata;
+  proposal.title = event.params.title;
+  proposal.descriptionHash = event.params.descriptionHash;
   proposal.numOptions = event.params.numOptions;
+  proposal.startTimestamp = event.params.created;
   proposal.endTimestamp = event.params.endTs;
-  proposal.createdTimestamp = event.params.created;
   proposal.isHatRestricted = false;
   proposal.restrictedHatIds = [];
   proposal.status = "Active";
@@ -268,10 +269,11 @@ export function handleNewHatProposal(event: NewHatProposal): void {
 
   proposal.proposalId = event.params.id;
   proposal.directDemocracyVoting = event.address;
-  proposal.metadata = event.params.metadata;
+  proposal.title = event.params.title;
+  proposal.descriptionHash = event.params.descriptionHash;
   proposal.numOptions = event.params.numOptions;
+  proposal.startTimestamp = event.params.created;
   proposal.endTimestamp = event.params.endTs;
-  proposal.createdTimestamp = event.params.created;
   proposal.isHatRestricted = true;
   proposal.restrictedHatIds = event.params.hatIds;
   proposal.status = "Active";

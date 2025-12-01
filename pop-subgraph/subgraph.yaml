@@ -205,9 +205,9 @@ dataSources:
         - name: OrgRegistry
           file: ./abis/OrgRegistry.json
       eventHandlers:
-        - event: OrgRegistered(indexed bytes32,indexed address,bytes)
+        - event: OrgRegistered(indexed bytes32,indexed address,bytes,bytes32)
           handler: handleOrgRegistered
-        - event: MetaUpdated(indexed bytes32,bytes)
+        - event: MetaUpdated(indexed bytes32,bytes,bytes32)
           handler: handleMetaUpdated
         - event: ContractRegistered(indexed bytes32,indexed bytes32,indexed bytes32,address,address,bool,address)
           handler: handleContractRegistered
@@ -266,9 +266,9 @@ templates:
         - name: TaskManager
           file: ./abis/TaskManager.json
       eventHandlers:
-        - event: ProjectCreated(indexed bytes32,bytes,uint256)
+        - event: ProjectCreated(indexed bytes32,bytes,bytes32,uint256)
           handler: handleProjectCreated
-        - event: ProjectDeleted(indexed bytes32,bytes)
+        - event: ProjectDeleted(indexed bytes32)
           handler: handleProjectDeleted
         - event: ProjectCapUpdated(indexed bytes32,uint256,uint256)
           handler: handleProjectCapUpdated
@@ -278,19 +278,19 @@ templates:
           handler: handleProjectRolePermSet
         - event: BountyCapSet(indexed bytes32,indexed address,uint256,uint256)
           handler: handleBountyCapSet
-        - event: TaskCreated(indexed uint256,indexed bytes32,uint256,address,uint256,bool,bytes)
+        - event: TaskCreated(indexed uint256,indexed bytes32,uint256,address,uint256,bool,bytes,bytes32)
           handler: handleTaskCreated
         - event: TaskAssigned(indexed uint256,indexed address,indexed address)
           handler: handleTaskAssigned
         - event: TaskClaimed(indexed uint256,indexed address)
           handler: handleTaskClaimed
-        - event: TaskSubmitted(indexed uint256,bytes)
+        - event: TaskSubmitted(indexed uint256,bytes32)
           handler: handleTaskSubmitted
         - event: TaskCompleted(indexed uint256,indexed address)
           handler: handleTaskCompleted
         - event: TaskCancelled(indexed uint256,indexed address)
           handler: handleTaskCancelled
-        - event: TaskUpdated(indexed uint256,uint256,address,uint256,bytes)
+        - event: TaskUpdated(indexed uint256,uint256,address,uint256,bytes,bytes32)
           handler: handleTaskUpdated
         - event: TaskApplicationSubmitted(indexed uint256,indexed address,bytes32)
           handler: handleTaskApplicationSubmitted
@@ -330,9 +330,9 @@ templates:
           handler: handleHatToggled
         - event: TargetAllowed(address,bool)
           handler: handleTargetAllowed
-        - event: NewProposal(indexed uint256,indexed address,bytes,uint8,uint64,uint64,bool)
+        - event: NewProposal(uint256,bytes,bytes32,uint8,uint64,uint64)
           handler: handleNewProposal
-        - event: NewHatProposal(indexed uint256,indexed address,bytes,uint8,uint64,uint64,uint256[],bool)
+        - event: NewHatProposal(uint256,bytes,bytes32,uint8,uint64,uint64,uint256[])
           handler: handleNewHatProposal
         - event: VoteCast(indexed uint256,indexed address,uint8[],uint8[],uint256[],uint64)
           handler: handleVoteCast
@@ -377,9 +377,9 @@ templates:
           handler: handleCreatorHatSet
         - event: TargetAllowed(address,bool)
           handler: handleTargetAllowed
-        - event: NewProposal(uint256,bytes,uint8,uint64,uint64)
+        - event: NewProposal(uint256,bytes,bytes32,uint8,uint64,uint64)
           handler: handleNewProposal
-        - event: NewHatProposal(uint256,bytes,uint8,uint64,uint64,uint256[])
+        - event: NewHatProposal(uint256,bytes,bytes32,uint8,uint64,uint64,uint256[])
           handler: handleNewHatProposal
         - event: VoteCast(uint256,address,uint8[],uint8[])
           handler: handleVoteCast
@@ -443,8 +443,6 @@ templates:
           handler: handleVouchingRateLimitExceeded
         - event: NewUserVouchingRestrictedEvent(indexed address)
           handler: handleNewUserVouchingRestricted
-        - event: HatAutoMinted(indexed address,indexed uint256,uint32)
-          handler: handleHatAutoMinted
       file: ./src/eligibility-module.ts
   - kind: ethereum
     name: ParticipationToken
@@ -544,11 +542,11 @@ templates:
       eventHandlers:
         - event: Initialized(uint64)
           handler: handleInitialized
-        - event: ModuleCreated(indexed uint256,uint256,bytes)
+        - event: ModuleCreated(indexed uint256,bytes,bytes32,uint256)
           handler: handleModuleCreated
         - event: ModuleCompleted(indexed uint256,indexed address)
           handler: handleModuleCompleted
-        - event: ModuleUpdated(indexed uint256,uint256,bytes)
+        - event: ModuleUpdated(indexed uint256,bytes,bytes32,uint256)
           handler: handleModuleUpdated
         - event: ModuleRemoved(indexed uint256)
           handler: handleModuleRemoved
