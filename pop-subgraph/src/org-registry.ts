@@ -51,15 +51,15 @@ export function handleOrgRegistered(event: OrgRegisteredEvent): void {
   registry.totalOrgs = registry.totalOrgs.plus(BigInt.fromI32(1));
   registry.save();
 
-  // Load Organization (should exist from OrgDeployed event)
+  // Load or create Organization (OrgRegistered may fire before OrgDeployed)
   let org = Organization.load(orgId);
-  if (org) {
-    // Update org with registry data
-    org.name = name;
-    org.metadataHash = metadataHash;
-    org.lastUpdatedAt = event.block.timestamp;
-    org.save();
+  if (!org) {
+    org = new Organization(orgId);
   }
+  org.name = name;
+  org.metadataHash = metadataHash;
+  org.lastUpdatedAt = event.block.timestamp;
+  org.save();
 }
 
 /**

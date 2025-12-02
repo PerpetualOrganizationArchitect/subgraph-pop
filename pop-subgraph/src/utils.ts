@@ -212,7 +212,7 @@ export function recordUserHatChange(
 export function getOrgIdFromContract(contractAddress: Address): Bytes | null {
   let org = Organization.load(contractAddress);
   if (org) {
-    return org.orgId;
+    return org.id;
   }
   return null;
 }
