@@ -8,7 +8,7 @@ import {
 } from "../generated/OrgRegistry/OrgRegistry";
 import {
   OrgRegistryContract,
-  RegisteredOrg,
+  Organization,
   OrgMetaUpdate,
   RegisteredContract,
   AutoUpgradeChange
@@ -32,12 +32,11 @@ function getOrCreateOrgRegistry(contractAddress: Bytes, timestamp: BigInt, block
 
 /**
  * Handles OrgRegistered event
- * Creates a new RegisteredOrg entity and updates the registry
+ * Updates the Organization entity with name and metadata from OrgRegistry
  */
 export function handleOrgRegistered(event: OrgRegisteredEvent): void {
   let contractAddress = event.address;
   let orgId = event.params.orgId;
-  let executor = event.params.executor;
   let name = event.params.name;
   let metadataHash = event.params.metadataHash;
 
@@ -48,31 +47,19 @@ export function handleOrgRegistered(event: OrgRegisteredEvent): void {
     event.block.number
   );
 
-  // Check if org already exists (could be an update from setOrgExecutor)
-  let org = RegisteredOrg.load(orgId);
-  if (!org) {
-    // New org registration
-    org = new RegisteredOrg(orgId);
-    org.orgRegistry = contractAddress;
-    org.executor = executor;
+  // Increment total orgs for this registration
+  registry.totalOrgs = registry.totalOrgs.plus(BigInt.fromI32(1));
+  registry.save();
+
+  // Load Organization (should exist from OrgDeployed event)
+  let org = Organization.load(orgId);
+  if (org) {
+    // Update org with registry data
     org.name = name;
     org.metadataHash = metadataHash;
-    org.contractCount = BigInt.fromI32(0);
-    org.registeredAt = event.block.timestamp;
-    org.registeredAtBlock = event.block.number;
     org.lastUpdatedAt = event.block.timestamp;
-    org.transactionHash = event.transaction.hash;
-
-    // Increment total orgs
-    registry.totalOrgs = registry.totalOrgs.plus(BigInt.fromI32(1));
-    registry.save();
-  } else {
-    // Update executor (from setOrgExecutor)
-    org.executor = executor;
-    org.lastUpdatedAt = event.block.timestamp;
+    org.save();
   }
-
-  org.save();
 }
 
 /**
@@ -84,28 +71,28 @@ export function handleMetaUpdated(event: MetaUpdatedEvent): void {
   let newName = event.params.newName;
   let newMetadataHash = event.params.newMetadataHash;
 
-  // Load org
-  let org = RegisteredOrg.load(orgId);
+  // Load Organization
+  let org = Organization.load(orgId);
   if (org) {
     org.name = newName;
     org.metadataHash = newMetadataHash;
     org.lastUpdatedAt = event.block.timestamp;
     org.save();
+
+    // Create history record
+    let updateId = event.transaction.hash.concatI32(event.logIndex.toI32());
+    let update = new OrgMetaUpdate(updateId);
+
+    update.organization = orgId;
+    update.orgId = orgId;
+    update.newName = newName;
+    update.newMetadataHash = newMetadataHash;
+    update.updatedAt = event.block.timestamp;
+    update.updatedAtBlock = event.block.number;
+    update.transactionHash = event.transaction.hash;
+
+    update.save();
   }
-
-  // Create history record
-  let updateId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let update = new OrgMetaUpdate(updateId);
-
-  update.org = orgId;
-  update.orgId = orgId;
-  update.newName = newName;
-  update.newMetadataHash = newMetadataHash;
-  update.updatedAt = event.block.timestamp;
-  update.updatedAtBlock = event.block.number;
-  update.transactionHash = event.transaction.hash;
-
-  update.save();
 }
 
 /**
@@ -132,7 +119,7 @@ export function handleContractRegistered(event: ContractRegisteredEvent): void {
   // Create registered contract entity
   let registeredContract = new RegisteredContract(contractId);
   registeredContract.orgRegistry = contractAddress;
-  registeredContract.org = orgId;
+  registeredContract.organization = orgId;
   registeredContract.orgId = orgId;
   registeredContract.typeId = typeId;
   registeredContract.proxy = proxy;
@@ -148,14 +135,6 @@ export function handleContractRegistered(event: ContractRegisteredEvent): void {
   // Update registry total contracts
   registry.totalContracts = registry.totalContracts.plus(BigInt.fromI32(1));
   registry.save();
-
-  // Update org contract count
-  let org = RegisteredOrg.load(orgId);
-  if (org) {
-    org.contractCount = org.contractCount.plus(BigInt.fromI32(1));
-    org.lastUpdatedAt = event.block.timestamp;
-    org.save();
-  }
 }
 
 /**
@@ -192,15 +171,17 @@ export function handleAutoUpgradeSet(event: AutoUpgradeSetEvent): void {
 
 /**
  * Handles HatsTreeRegistered event
- * Updates the org with topHatId and roleHatIds
+ * Updates the Organization with topHatId and roleHatIds
+ * Note: Organization already has topHatId/roleHatIds from OrgDeployed,
+ * but this event can update them if the hats tree is modified
  */
 export function handleHatsTreeRegistered(event: HatsTreeRegisteredEvent): void {
   let orgId = event.params.orgId;
   let topHatId = event.params.topHatId;
   let roleHatIds = event.params.roleHatIds;
 
-  // Load and update org
-  let org = RegisteredOrg.load(orgId);
+  // Load and update Organization
+  let org = Organization.load(orgId);
   if (org) {
     org.topHatId = topHatId;
     org.roleHatIds = roleHatIds;

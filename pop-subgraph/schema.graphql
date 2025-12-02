@@ -21,6 +21,12 @@ type Organization @entity(immutable: false) {
   hatPermissions: [HatPermission!]! @derivedFrom(field: "organization")
   executorChanges: [ExecutorChange!]! @derivedFrom(field: "organization")
   pauseEvents: [PauseEvent!]! @derivedFrom(field: "organization")
+  # From OrgRegistry - org name and metadata
+  name: Bytes
+  metadataHash: Bytes
+  lastUpdatedAt: BigInt
+  metaUpdates: [OrgMetaUpdate!]! @derivedFrom(field: "organization")
+  registeredContracts: [RegisteredContract!]! @derivedFrom(field: "organization")
 }
 
 # ========================================
@@ -1452,30 +1458,12 @@ type OrgRegistryContract @entity(immutable: false) {
   totalContracts: BigInt!
   createdAt: BigInt!
   createdAtBlock: BigInt!
-  registeredOrgs: [RegisteredOrg!]! @derivedFrom(field: "orgRegistry")
   registeredContracts: [RegisteredContract!]! @derivedFrom(field: "orgRegistry")
-}
-
-type RegisteredOrg @entity(immutable: false) {
-  id: Bytes! # orgId
-  orgRegistry: OrgRegistryContract!
-  executor: Bytes! # executor address (can be updated via setOrgExecutor)
-  name: Bytes! # organization name (can be updated)
-  metadataHash: Bytes! # IPFS hash or other metadata identifier
-  topHatId: BigInt # set via HatsTreeRegistered
-  roleHatIds: [BigInt!] # set via HatsTreeRegistered
-  contractCount: BigInt! # number of contracts registered
-  registeredAt: BigInt!
-  registeredAtBlock: BigInt!
-  lastUpdatedAt: BigInt!
-  transactionHash: Bytes!
-  contracts: [RegisteredContract!]! @derivedFrom(field: "org")
-  metaUpdates: [OrgMetaUpdate!]! @derivedFrom(field: "org")
 }
 
 type OrgMetaUpdate @entity(immutable: true) {
   id: Bytes! # txHash-logIndex
-  org: RegisteredOrg!
+  organization: Organization!
   orgId: Bytes!
   newName: Bytes!
   newMetadataHash: Bytes!
@@ -1487,7 +1475,7 @@ type OrgMetaUpdate @entity(immutable: true) {
 type RegisteredContract @entity(immutable: false) {
   id: Bytes! # contractId (keccak256(orgId, typeId))
   orgRegistry: OrgRegistryContract!
-  org: RegisteredOrg!
+  organization: Organization!
   orgId: Bytes!
   typeId: Bytes! # module type identifier
   proxy: Bytes! # BeaconProxy address
