@@ -1,21 +1,22 @@
 type Organization @entity(immutable: false) {
   id: Bytes! # orgId
-  orgId: Bytes!
-  executorContract: ExecutorContract! # Relationship to ExecutorContract entity
-  hybridVoting: HybridVotingContract! # Relationship to HybridVotingContract entity
-  directDemocracyVoting: DirectDemocracyVotingContract! # Relationship to DirectDemocracyVotingContract entity
-  quickJoin: QuickJoinContract! # Relationship to QuickJoinContract entity
-  participationToken: ParticipationTokenContract! # Relationship to ParticipationTokenContract entity
-  taskManager: TaskManager! # Relationship to TaskManager entity
-  educationHub: EducationHubContract! # Relationship to EducationHubContract entity
-  paymentManager: PaymentManagerContract! # Relationship to PaymentManagerContract entity
-  eligibilityModule: EligibilityModuleContract! # Relationship to EligibilityModuleContract entity
-  toggleModuleContract: ToggleModuleContract! # Relationship to ToggleModuleContract entity
-  topHatId: BigInt!
-  roleHatIds: [BigInt!]!
-  deployedAt: BigInt!
-  deployedAtBlock: BigInt!
-  transactionHash: Bytes!
+  # Contract relationships - nullable because OrgRegistered creates org before OrgDeployed adds contracts
+  executorContract: ExecutorContract
+  hybridVoting: HybridVotingContract
+  directDemocracyVoting: DirectDemocracyVotingContract
+  quickJoin: QuickJoinContract
+  participationToken: ParticipationTokenContract
+  taskManager: TaskManager
+  educationHub: EducationHubContract
+  paymentManager: PaymentManagerContract
+  eligibilityModule: EligibilityModuleContract
+  toggleModuleContract: ToggleModuleContract
+  # Deployment data - nullable until OrgDeployed event
+  topHatId: BigInt
+  roleHatIds: [BigInt!]
+  deployedAt: BigInt
+  deployedAtBlock: BigInt
+  transactionHash: Bytes
   users: [User!]! @derivedFrom(field: "organization")
   # Consolidated entity references
   hatPermissions: [HatPermission!]! @derivedFrom(field: "organization")

@@ -33,7 +33,6 @@ const REGISTRY_ADDRESS = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a";
 // Helper to create Organization entity (normally created by OrgDeployed)
 function createMockOrganization(orgId: Bytes): void {
   let org = new Organization(orgId);
-  org.orgId = orgId;
   // Required fields - mock addresses
   org.executorContract = Bytes.fromHexString("0x0000000000000000000000000000000000000001");
   org.hybridVoting = Bytes.fromHexString("0x0000000000000000000000000000000000000002");

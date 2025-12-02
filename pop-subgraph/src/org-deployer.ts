@@ -118,9 +118,11 @@ export function handleOrgDeployed(event: OrgDeployed): void {
   toggleModule.createdAt = event.block.timestamp;
   toggleModule.createdAtBlock = event.block.number;
 
-  // Create Organization entity
-  let organization = new Organization(event.params.orgId);
-  organization.orgId = event.params.orgId;
+  // Load existing Organization (created by OrgRegistered) or create new one
+  let organization = Organization.load(event.params.orgId);
+  if (!organization) {
+    organization = new Organization(event.params.orgId);
+  }
   organization.executorContract = executor.id; // Link to ExecutorContract entity
   organization.hybridVoting = hybridVoting.id; // Link to HybridVotingContract entity
   organization.directDemocracyVoting = directDemocracyVoting.id; // Link to DirectDemocracyVotingContract entity
