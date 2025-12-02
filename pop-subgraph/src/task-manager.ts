@@ -38,7 +38,7 @@ export function handleProjectCreated(event: ProjectCreated): void {
 
   // Link to TaskManager entity (event.address is the TaskManager contract address)
   project.taskManager = event.address;
-  project.title = event.params.title;
+  project.title = event.params.title.toString();
   project.metadataHash = event.params.metadataHash;
   project.cap = event.params.cap;
   project.createdAt = event.block.timestamp;
@@ -71,7 +71,7 @@ export function handleTaskCreated(event: TaskCreated): void {
   task.bountyToken = event.params.bountyToken;
   task.bountyPayout = event.params.bountyPayout;
   task.requiresApplication = event.params.requiresApplication;
-  task.title = event.params.title;
+  task.title = event.params.title.toString();
   task.metadataHash = event.params.metadataHash;
   task.status = "Open";
   task.createdAt = event.block.timestamp;
@@ -215,7 +215,7 @@ export function handleTaskUpdated(event: TaskUpdated): void {
     task.payout = event.params.payout;
     task.bountyToken = event.params.bountyToken;
     task.bountyPayout = event.params.bountyPayout;
-    task.title = event.params.title;
+    task.title = event.params.title.toString();
     task.metadataHash = event.params.metadataHash;
     task.updatedAt = event.block.timestamp;
     task.save();

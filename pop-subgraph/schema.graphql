@@ -23,7 +23,7 @@ type Organization @entity(immutable: false) {
   executorChanges: [ExecutorChange!]! @derivedFrom(field: "organization")
   pauseEvents: [PauseEvent!]! @derivedFrom(field: "organization")
   # From OrgRegistry - org name and metadata
-  name: Bytes
+  name: String
   metadataHash: Bytes
   lastUpdatedAt: BigInt
   metaUpdates: [OrgMetaUpdate!]! @derivedFrom(field: "organization")
@@ -123,7 +123,7 @@ type GovernanceModule @entity(immutable: true) {
 type Project @entity(immutable: false) {
   id: Bytes! # projectId
   taskManager: TaskManager! # Relationship to TaskManager entity
-  title: Bytes! # project title
+  title: String! # project title
   metadataHash: Bytes! # project metadata hash
   cap: BigInt!
   createdAt: BigInt!
@@ -250,7 +250,7 @@ type Task @entity(immutable: false) {
   bountyToken: Bytes!
   bountyPayout: BigInt!
   requiresApplication: Boolean!
-  title: Bytes! # task title
+  title: String! # task title
   metadataHash: Bytes! # task metadata hash
   assignee: Bytes
   assigneeUsername: String
@@ -336,7 +336,7 @@ type Proposal @entity(immutable: false) {
   creator: Bytes! # from transaction.from
   creatorUsername: String
   creatorUser: User
-  title: Bytes! # proposal title
+  title: String! # proposal title
   descriptionHash: Bytes! # hash of proposal description
   numOptions: Int!
   startTimestamp: BigInt!
@@ -415,7 +415,7 @@ type DDVProposal @entity(immutable: false) {
   id: String! # directDemocracyVoting-proposalId
   proposalId: BigInt!
   directDemocracyVoting: DirectDemocracyVotingContract!
-  title: Bytes! # proposal title
+  title: String! # proposal title
   descriptionHash: Bytes! # hash of proposal description
   numOptions: Int!
   startTimestamp: BigInt!
@@ -724,7 +724,7 @@ type EducationModule @entity(immutable: false) {
   id: String! # educationHub-moduleId
   educationHub: EducationHubContract!
   moduleId: BigInt!
-  title: Bytes! # module title
+  title: String! # module title
   contentHash: Bytes! # content hash for the module materials
   payout: BigInt!
   status: ModuleStatus!
@@ -755,7 +755,7 @@ type ModuleUpdate @entity(immutable: true) {
   id: Bytes! # txHash-logIndex
   module: EducationModule!
   moduleId: BigInt!
-  title: Bytes!
+  title: String!
   contentHash: Bytes!
   payout: BigInt!
   updatedAt: BigInt!
@@ -1466,7 +1466,7 @@ type OrgMetaUpdate @entity(immutable: true) {
   id: Bytes! # txHash-logIndex
   organization: Organization!
   orgId: Bytes!
-  newName: Bytes!
+  newName: String!
   newMetadataHash: Bytes!
   updatedAt: BigInt!
   updatedAtBlock: BigInt!

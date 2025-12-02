@@ -243,7 +243,7 @@ export function handleNewProposal(event: NewProposal): void {
 
   proposal.proposalId = event.params.id;
   proposal.directDemocracyVoting = event.address;
-  proposal.title = event.params.title;
+  proposal.title = event.params.title.toString();
   proposal.descriptionHash = event.params.descriptionHash;
   proposal.numOptions = event.params.numOptions;
   proposal.startTimestamp = event.params.created;
@@ -269,7 +269,7 @@ export function handleNewHatProposal(event: NewHatProposal): void {
 
   proposal.proposalId = event.params.id;
   proposal.directDemocracyVoting = event.address;
-  proposal.title = event.params.title;
+  proposal.title = event.params.title.toString();
   proposal.descriptionHash = event.params.descriptionHash;
   proposal.numOptions = event.params.numOptions;
   proposal.startTimestamp = event.params.created;

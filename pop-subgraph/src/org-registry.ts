@@ -56,7 +56,7 @@ export function handleOrgRegistered(event: OrgRegisteredEvent): void {
   if (!org) {
     org = new Organization(orgId);
   }
-  org.name = name;
+  org.name = name.toString();
   org.metadataHash = metadataHash;
   org.lastUpdatedAt = event.block.timestamp;
   org.save();
@@ -74,7 +74,7 @@ export function handleMetaUpdated(event: MetaUpdatedEvent): void {
   // Load Organization
   let org = Organization.load(orgId);
   if (org) {
-    org.name = newName;
+    org.name = newName.toString();
     org.metadataHash = newMetadataHash;
     org.lastUpdatedAt = event.block.timestamp;
     org.save();
@@ -85,7 +85,7 @@ export function handleMetaUpdated(event: MetaUpdatedEvent): void {
 
     update.organization = orgId;
     update.orgId = orgId;
-    update.newName = newName;
+    update.newName = newName.toString();
     update.newMetadataHash = newMetadataHash;
     update.updatedAt = event.block.timestamp;
     update.updatedAtBlock = event.block.number;
