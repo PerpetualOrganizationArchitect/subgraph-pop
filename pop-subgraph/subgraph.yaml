@@ -201,7 +201,7 @@ dataSources:
       language: wasm/assemblyscript
       entities:
         - OrgRegistryContract
-        - RegisteredOrg
+        - Organization
         - OrgMetaUpdate
         - RegisteredContract
         - AutoUpgradeChange

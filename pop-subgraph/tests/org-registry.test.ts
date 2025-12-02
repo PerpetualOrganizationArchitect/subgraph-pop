@@ -3,7 +3,8 @@ import {
   describe,
   test,
   clearStore,
-  afterEach
+  afterEach,
+  beforeEach
 } from "matchstick-as/assembly/index";
 import { Address, Bytes, BigInt } from "@graphprotocol/graph-ts";
 import {
@@ -22,12 +23,35 @@ import {
 } from "./org-registry-utils";
 import {
   OrgRegistryContract,
-  RegisteredOrg,
+  Organization,
   RegisteredContract
 } from "../generated/schema";
 
 // Default mock event address from matchstick
 const REGISTRY_ADDRESS = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a";
+
+// Helper to create Organization entity (normally created by OrgDeployed)
+function createMockOrganization(orgId: Bytes): void {
+  let org = new Organization(orgId);
+  org.orgId = orgId;
+  // Required fields - mock addresses
+  org.executorContract = Bytes.fromHexString("0x0000000000000000000000000000000000000001");
+  org.hybridVoting = Bytes.fromHexString("0x0000000000000000000000000000000000000002");
+  org.directDemocracyVoting = Bytes.fromHexString("0x0000000000000000000000000000000000000003");
+  org.quickJoin = Bytes.fromHexString("0x0000000000000000000000000000000000000004");
+  org.participationToken = Bytes.fromHexString("0x0000000000000000000000000000000000000005");
+  org.taskManager = Bytes.fromHexString("0x0000000000000000000000000000000000000006");
+  org.educationHub = Bytes.fromHexString("0x0000000000000000000000000000000000000007");
+  org.paymentManager = Bytes.fromHexString("0x0000000000000000000000000000000000000008");
+  org.eligibilityModule = Bytes.fromHexString("0x0000000000000000000000000000000000000009");
+  org.toggleModuleContract = Bytes.fromHexString("0x000000000000000000000000000000000000000a");
+  org.topHatId = BigInt.fromI32(0);
+  org.roleHatIds = [];
+  org.deployedAt = BigInt.fromI32(1000);
+  org.deployedAtBlock = BigInt.fromI32(100);
+  org.transactionHash = Bytes.fromHexString("0x1234");
+  org.save();
+}
 
 describe("OrgRegistry", () => {
   afterEach(() => {
@@ -35,13 +59,16 @@ describe("OrgRegistry", () => {
   });
 
   describe("handleOrgRegistered", () => {
-    test("creates OrgRegistryContract singleton and RegisteredOrg entity", () => {
+    test("creates OrgRegistryContract singleton and updates Organization with name/metadata", () => {
       let orgId = Bytes.fromHexString(
         "0x1111111111111111111111111111111111111111111111111111111111111111"
       );
       let executor = Address.fromString("0x0000000000000000000000000000000000000001");
       let name = Bytes.fromHexString("0xabcd");
       let metadataHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
+
+      // Create Organization first (normally done by OrgDeployed)
+      createMockOrganization(orgId);
 
       let event = createOrgRegisteredEvent(orgId, executor, name, metadataHash);
       handleOrgRegistered(event);
@@ -61,59 +88,39 @@ describe("OrgRegistry", () => {
         "0"
       );
 
-      // Verify RegisteredOrg was created
-      assert.entityCount("RegisteredOrg", 1);
+      // Verify Organization was updated with name and metadata
+      assert.entityCount("Organization", 1);
       assert.fieldEquals(
-        "RegisteredOrg",
-        orgId.toHexString(),
-        "executor",
-        "0x0000000000000000000000000000000000000001"
-      );
-      assert.fieldEquals(
-        "RegisteredOrg",
+        "Organization",
         orgId.toHexString(),
         "name",
         "0xabcd"
       );
       assert.fieldEquals(
-        "RegisteredOrg",
+        "Organization",
         orgId.toHexString(),
-        "contractCount",
-        "0"
+        "metadataHash",
+        "0x0000000000000000000000000000000000000000000000000000000000001234"
       );
     });
 
-    test("updates executor when called again for same org", () => {
+    test("increments totalOrgs when Organization doesn't exist yet", () => {
       let orgId = Bytes.fromHexString(
         "0x1111111111111111111111111111111111111111111111111111111111111111"
       );
-      let executor1 = Address.fromString("0x0000000000000000000000000000000000000001");
-      let executor2 = Address.fromString("0x0000000000000000000000000000000000000002");
+      let executor = Address.fromString("0x0000000000000000000000000000000000000001");
       let name = Bytes.fromHexString("0xabcd");
 
-      // First registration
-      let event1 = createOrgRegisteredEvent(orgId, executor1, name);
-      handleOrgRegistered(event1);
+      // Don't create Organization - simulating OrgRegistered arriving before OrgDeployed
+      let event = createOrgRegisteredEvent(orgId, executor, name);
+      handleOrgRegistered(event);
 
-      // Second registration (executor update)
-      let event2 = createOrgRegisteredEvent(orgId, executor2, Bytes.empty());
-      event2.logIndex = BigInt.fromI32(2);
-      handleOrgRegistered(event2);
-
-      // Should still be 1 org
+      // Should still increment total orgs
       assert.fieldEquals(
         "OrgRegistryContract",
         REGISTRY_ADDRESS,
         "totalOrgs",
         "1"
-      );
-
-      // Executor should be updated
-      assert.fieldEquals(
-        "RegisteredOrg",
-        orgId.toHexString(),
-        "executor",
-        "0x0000000000000000000000000000000000000002"
       );
     });
 
@@ -127,6 +134,9 @@ describe("OrgRegistry", () => {
       let executor = Address.fromString("0x0000000000000000000000000000000000000001");
       let name = Bytes.fromHexString("0xabcd");
 
+      createMockOrganization(orgId1);
+      createMockOrganization(orgId2);
+
       let event1 = createOrgRegisteredEvent(orgId1, executor, name);
       handleOrgRegistered(event1);
 
@@ -134,7 +144,7 @@ describe("OrgRegistry", () => {
       event2.logIndex = BigInt.fromI32(2);
       handleOrgRegistered(event2);
 
-      assert.entityCount("RegisteredOrg", 2);
+      assert.entityCount("Organization", 2);
       assert.fieldEquals(
         "OrgRegistryContract",
         REGISTRY_ADDRESS,
@@ -146,13 +156,14 @@ describe("OrgRegistry", () => {
 
   describe("handleMetaUpdated", () => {
     test("updates org metadata and creates history record", () => {
-      // First register an org
       let orgId = Bytes.fromHexString(
         "0x1111111111111111111111111111111111111111111111111111111111111111"
       );
       let executor = Address.fromString("0x0000000000000000000000000000000000000001");
       let name = Bytes.fromHexString("0xabcd");
 
+      // Create Organization and register it
+      createMockOrganization(orgId);
       let regEvent = createOrgRegisteredEvent(orgId, executor, name);
       handleOrgRegistered(regEvent);
 
@@ -165,7 +176,7 @@ describe("OrgRegistry", () => {
 
       // Verify org name was updated
       assert.fieldEquals(
-        "RegisteredOrg",
+        "Organization",
         orgId.toHexString(),
         "name",
         "0xef01"
@@ -175,29 +186,31 @@ describe("OrgRegistry", () => {
       assert.entityCount("OrgMetaUpdate", 1);
     });
 
-    test("creates history record even if org not found", () => {
+    test("does not create history record if org not found", () => {
       let orgId = Bytes.fromHexString(
         "0x1111111111111111111111111111111111111111111111111111111111111111"
       );
       let newName = Bytes.fromHexString("0xef01");
 
+      // Don't create Organization
       let event = createMetaUpdatedEvent(orgId, newName);
       handleMetaUpdated(event);
 
-      // History record should still be created
-      assert.entityCount("OrgMetaUpdate", 1);
+      // History record should NOT be created since org doesn't exist
+      assert.entityCount("OrgMetaUpdate", 0);
     });
   });
 
   describe("handleContractRegistered", () => {
     test("creates RegisteredContract and updates counters", () => {
-      // First register an org
       let orgId = Bytes.fromHexString(
         "0x1111111111111111111111111111111111111111111111111111111111111111"
       );
       let executor = Address.fromString("0x0000000000000000000000000000000000000001");
       let name = Bytes.fromHexString("0xabcd");
 
+      // Create Organization
+      createMockOrganization(orgId);
       let regEvent = createOrgRegisteredEvent(orgId, executor, name);
       handleOrgRegistered(regEvent);
 
@@ -246,24 +259,16 @@ describe("OrgRegistry", () => {
         "totalContracts",
         "1"
       );
-
-      // Verify org contract count was updated
-      assert.fieldEquals(
-        "RegisteredOrg",
-        orgId.toHexString(),
-        "contractCount",
-        "1"
-      );
     });
 
     test("registers multiple contracts for same org", () => {
-      // First register an org
       let orgId = Bytes.fromHexString(
         "0x1111111111111111111111111111111111111111111111111111111111111111"
       );
       let executor = Address.fromString("0x0000000000000000000000000000000000000001");
       let name = Bytes.fromHexString("0xabcd");
 
+      createMockOrganization(orgId);
       let regEvent = createOrgRegisteredEvent(orgId, executor, name);
       handleOrgRegistered(regEvent);
 
@@ -318,24 +323,18 @@ describe("OrgRegistry", () => {
         "totalContracts",
         "2"
       );
-      assert.fieldEquals(
-        "RegisteredOrg",
-        orgId.toHexString(),
-        "contractCount",
-        "2"
-      );
     });
   });
 
   describe("handleAutoUpgradeSet", () => {
     test("updates contract autoUpgrade status and creates history", () => {
-      // First register an org and contract
       let orgId = Bytes.fromHexString(
         "0x1111111111111111111111111111111111111111111111111111111111111111"
       );
       let executor = Address.fromString("0x0000000000000000000000000000000000000001");
       let name = Bytes.fromHexString("0xabcd");
 
+      createMockOrganization(orgId);
       let regEvent = createOrgRegisteredEvent(orgId, executor, name);
       handleOrgRegistered(regEvent);
 
@@ -392,14 +391,14 @@ describe("OrgRegistry", () => {
   });
 
   describe("handleHatsTreeRegistered", () => {
-    test("updates org with topHatId and roleHatIds", () => {
-      // First register an org
+    test("updates Organization with topHatId and roleHatIds", () => {
       let orgId = Bytes.fromHexString(
         "0x1111111111111111111111111111111111111111111111111111111111111111"
       );
       let executor = Address.fromString("0x0000000000000000000000000000000000000001");
       let name = Bytes.fromHexString("0xabcd");
 
+      createMockOrganization(orgId);
       let regEvent = createOrgRegisteredEvent(orgId, executor, name);
       handleOrgRegistered(regEvent);
 
@@ -417,7 +416,7 @@ describe("OrgRegistry", () => {
 
       // Verify org was updated with hat IDs
       assert.fieldEquals(
-        "RegisteredOrg",
+        "Organization",
         orgId.toHexString(),
         "topHatId",
         "1000"
@@ -431,24 +430,25 @@ describe("OrgRegistry", () => {
       let topHatId = BigInt.fromI32(1000);
       let roleHatIds: BigInt[] = [BigInt.fromI32(1001)];
 
-      // Should not throw, just do nothing
+      // Don't create Organization - should not throw
       let event = createHatsTreeRegisteredEvent(orgId, topHatId, roleHatIds);
       handleHatsTreeRegistered(event);
 
       // No entities should be created
-      assert.entityCount("RegisteredOrg", 0);
+      assert.entityCount("Organization", 0);
     });
   });
 
   describe("Integration tests", () => {
     test("full lifecycle: register org, add contracts, update settings", () => {
-      // 1. Register org
+      // 1. Create and register org
       let orgId = Bytes.fromHexString(
         "0x1111111111111111111111111111111111111111111111111111111111111111"
       );
       let executor = Address.fromString("0x0000000000000000000000000000000000000001");
       let name = Bytes.fromHexString("0xabcd");
 
+      createMockOrganization(orgId);
       let regEvent = createOrgRegisteredEvent(orgId, executor, name);
       handleOrgRegistered(regEvent);
 
@@ -496,7 +496,7 @@ describe("OrgRegistry", () => {
 
       // Verify final state
       assert.entityCount("OrgRegistryContract", 1);
-      assert.entityCount("RegisteredOrg", 1);
+      assert.entityCount("Organization", 1);
       assert.entityCount("RegisteredContract", 1);
       assert.entityCount("OrgMetaUpdate", 1);
       assert.entityCount("AutoUpgradeChange", 1);
@@ -514,22 +514,16 @@ describe("OrgRegistry", () => {
         "1"
       );
       assert.fieldEquals(
-        "RegisteredOrg",
+        "Organization",
         orgId.toHexString(),
         "name",
         "0xef01"
       );
       assert.fieldEquals(
-        "RegisteredOrg",
+        "Organization",
         orgId.toHexString(),
         "topHatId",
         "1000"
-      );
-      assert.fieldEquals(
-        "RegisteredOrg",
-        orgId.toHexString(),
-        "contractCount",
-        "1"
       );
       assert.fieldEquals(
         "RegisteredContract",
