@@ -28,7 +28,14 @@ import {
   HatAutoMintEvent,
   HatClaimEvent
 } from "../generated/schema";
-import { getUsernameForAddress, getOrCreateUser } from "./utils";
+import {
+  getUsernameForAddress,
+  getOrCreateUser,
+  linkHatToRole,
+  getOrCreateRoleWearer,
+  linkWearerEligibilityToRoleWearer,
+  recordUserHatChange
+} from "./utils";
 
 export function handleEligibilityModuleInitialized(
   event: EligibilityModuleInitializedEvent
@@ -82,6 +89,11 @@ export function handleHatCreatedWithEligibility(
   hat.transactionHash = event.transaction.hash;
 
   hat.save();
+
+  // Link Hat to Role entity
+  if (eligibilityModule) {
+    linkHatToRole(eligibilityModule.organization, hatId, hatEntityId, event);
+  }
 }
 
 export function handleWearerEligibilityUpdated(
@@ -364,7 +376,7 @@ export function handleHatClaimed(event: HatClaimedEvent): void {
   claim.claimedAtBlock = event.block.number;
   claim.transactionHash = event.transaction.hash;
 
-  // Link to User entity
+  // Link to User entity and create RoleWearer
   let eligibilityModule = EligibilityModuleContract.load(contractAddress);
   if (eligibilityModule) {
     let user = getOrCreateUser(
@@ -374,6 +386,23 @@ export function handleHatClaimed(event: HatClaimedEvent): void {
       event.block.number
     );
     claim.wearerUser = user.id;
+
+    // Create RoleWearer entity
+    getOrCreateRoleWearer(
+      eligibilityModule.organization,
+      hatId,
+      event.params.wearer,
+      event
+    );
+
+    // Record the hat change on the user
+    recordUserHatChange(user, hatId, true, event);
+
+    // Update join method if this is their first hat
+    if (user.joinMethod == null) {
+      user.joinMethod = "HatClaim";
+      user.save();
+    }
   }
 
   claim.save();

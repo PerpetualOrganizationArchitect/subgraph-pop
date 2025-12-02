@@ -16,6 +16,7 @@ import {
   TokenRequest,
   TokenBalance
 } from "../generated/schema";
+import { getOrCreateRole } from "./utils";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -117,8 +118,12 @@ export function handleMemberHatSet(event: MemberHatSetEvent): void {
     permission.contractType = "ParticipationToken";
     permission.organization = contract.organization;
     permission.hatId = event.params.hat;
-    permission.role = "Member";
+    permission.permissionRole = "Member";
   }
+
+  // Link to Role entity
+  let role = getOrCreateRole(contract.organization, event.params.hat, event);
+  permission.role = role.id;
 
   permission.allowed = event.params.allowed;
   permission.setAt = event.block.timestamp;
@@ -147,8 +152,12 @@ export function handleApproverHatSet(event: ApproverHatSetEvent): void {
     permission.contractType = "ParticipationToken";
     permission.organization = contract.organization;
     permission.hatId = event.params.hat;
-    permission.role = "Approver";
+    permission.permissionRole = "Approver";
   }
+
+  // Link to Role entity
+  let role = getOrCreateRole(contract.organization, event.params.hat, event);
+  permission.role = role.id;
 
   permission.allowed = event.params.allowed;
   permission.setAt = event.block.timestamp;

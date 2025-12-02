@@ -13,6 +13,7 @@ import {
   ExecutorContract,
   ToggleModuleContract
 } from "../generated/schema";
+import { getOrCreateRole } from "./utils";
 import {
   TaskManager as TaskManagerTemplate,
   HybridVoting as HybridVotingTemplate,
@@ -163,6 +164,15 @@ export function handleOrgDeployed(event: OrgDeployed): void {
   executor.save();
   toggleModule.save();
   organization.save();
+
+  // Create Role entities for topHatId and all roleHatIds
+  // This allows querying roles before Hat entities are created by EligibilityModule
+  getOrCreateRole(event.params.orgId, event.params.topHatId, event);
+
+  let roleHatIds = event.params.roleHatIds;
+  for (let i = 0; i < roleHatIds.length; i++) {
+    getOrCreateRole(event.params.orgId, roleHatIds[i], event);
+  }
 
   // Instantiate data source templates for this organization
   TaskManagerTemplate.create(event.params.taskManager);

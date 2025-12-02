@@ -23,7 +23,7 @@ import {
   EducationHubTokenChange,
   EducationHubHatsChange
 } from "../generated/schema";
-import { getUsernameForAddress, getOrCreateUser, createExecutorChange, createPauseEvent } from "./utils";
+import { getUsernameForAddress, getOrCreateUser, createExecutorChange, createPauseEvent, getOrCreateRole } from "./utils";
 
 export function handleInitialized(event: InitializedEvent): void {
   // Initialization handled in org-deployer.ts
@@ -164,8 +164,12 @@ export function handleCreatorHatSet(event: CreatorHatSetEvent): void {
     permission.contractType = "EducationHub";
     permission.organization = contract.organization;
     permission.hatId = event.params.hatId;
-    permission.role = "Creator";
+    permission.permissionRole = "Creator";
   }
+
+  // Link to Role entity
+  let role = getOrCreateRole(contract.organization, event.params.hatId, event);
+  permission.role = role.id;
 
   permission.allowed = event.params.enabled;
   permission.setAt = event.block.timestamp;
@@ -194,8 +198,12 @@ export function handleMemberHatSet(event: MemberHatSetEvent): void {
     permission.contractType = "EducationHub";
     permission.organization = contract.organization;
     permission.hatId = event.params.hatId;
-    permission.role = "Member";
+    permission.permissionRole = "Member";
   }
+
+  // Link to Role entity
+  let role = getOrCreateRole(contract.organization, event.params.hatId, event);
+  permission.role = role.id;
 
   permission.allowed = event.params.enabled;
   permission.setAt = event.block.timestamp;
@@ -229,8 +237,12 @@ export function handleHatToggled(event: HatToggledEvent): void {
     permission.contractType = "EducationHub";
     permission.organization = contract.organization;
     permission.hatId = event.params.hatId;
-    permission.role = "Member";
+    permission.permissionRole = "Member";
   }
+
+  // Link to Role entity
+  let role = getOrCreateRole(contract.organization, event.params.hatId, event);
+  permission.role = role.id;
 
   permission.allowed = event.params.allowed;
   permission.setAt = event.block.timestamp;

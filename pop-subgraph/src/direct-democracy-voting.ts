@@ -21,7 +21,7 @@ import {
   DDVProposal,
   DDVVote
 } from "../generated/schema";
-import { getUsernameForAddress, getOrCreateUser, createExecutorChange } from "./utils";
+import { getUsernameForAddress, getOrCreateUser, createExecutorChange, getOrCreateRole } from "./utils";
 
 /**
  * Handler for Initialized event
@@ -123,8 +123,12 @@ export function handleHatSet(event: HatSet): void {
     permission.contractType = "DirectDemocracyVoting";
     permission.organization = contract.organization;
     permission.hatId = event.params.hat;
-    permission.role = "Voter";
+    permission.permissionRole = "Voter";
   }
+
+  // Link to Role entity
+  let role = getOrCreateRole(contract.organization, event.params.hat, event);
+  permission.role = role.id;
 
   permission.allowed = event.params.allowed;
   permission.hatType = event.params.hatType;
@@ -158,8 +162,12 @@ export function handleHatToggled(event: HatToggled): void {
     permission.contractType = "DirectDemocracyVoting";
     permission.organization = contract.organization;
     permission.hatId = event.params.hatId;
-    permission.role = "Voter";
+    permission.permissionRole = "Voter";
   }
+
+  // Link to Role entity
+  let role = getOrCreateRole(contract.organization, event.params.hatId, event);
+  permission.role = role.id;
 
   permission.allowed = event.params.allowed;
   permission.setAt = event.block.timestamp;
@@ -192,8 +200,12 @@ export function handleCreatorHatSet(event: CreatorHatSet): void {
     permission.contractType = "DirectDemocracyVoting";
     permission.organization = contract.organization;
     permission.hatId = event.params.hat;
-    permission.role = "Creator";
+    permission.permissionRole = "Creator";
   }
+
+  // Link to Role entity
+  let role = getOrCreateRole(contract.organization, event.params.hat, event);
+  permission.role = role.id;
 
   permission.allowed = event.params.allowed;
   permission.setAt = event.block.timestamp;
