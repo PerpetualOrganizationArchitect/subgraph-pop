@@ -20,7 +20,7 @@ import {
   Proposal,
   Vote
 } from "../generated/schema";
-import { getUsernameForAddress, getOrCreateUser, createHatPermission, createExecutorChange } from "./utils";
+import { getUsernameForAddress, getOrCreateUser, createHatPermission, createExecutorChange, getOrCreateRole } from "./utils";
 
 /**
  * Handler for Initialized event
@@ -109,7 +109,7 @@ export function handleHatSet(event: HatSet): void {
   }
 
   // Determine role based on hatType: 0 = Creator, 1+ = Voter classes
-  let role = event.params.hatType == 0 ? "Creator" : "Voter";
+  let permissionRole = event.params.hatType == 0 ? "Creator" : "Voter";
 
   // Create or update consolidated HatPermission entity
   let permissionId =
@@ -117,7 +117,7 @@ export function handleHatSet(event: HatSet): void {
     "-" +
     event.params.hat.toString() +
     "-" +
-    role;
+    permissionRole;
 
   let permission = HatPermission.load(permissionId);
   if (!permission) {
@@ -126,8 +126,12 @@ export function handleHatSet(event: HatSet): void {
     permission.contractType = "HybridVoting";
     permission.organization = contract.organization;
     permission.hatId = event.params.hat;
-    permission.role = role;
+    permission.permissionRole = permissionRole;
   }
+
+  // Link to Role entity
+  let role = getOrCreateRole(contract.organization, event.params.hat, event);
+  permission.role = role.id;
 
   permission.allowed = event.params.allowed;
   permission.hatType = event.params.hatType;
@@ -148,7 +152,7 @@ export function handleHatToggled(event: HatToggled): void {
   }
 
   // HatToggled doesn't have hatType, default to Voter role
-  let role = "Voter";
+  let permissionRole = "Voter";
 
   // Create or update consolidated HatPermission entity
   let permissionId =
@@ -156,7 +160,7 @@ export function handleHatToggled(event: HatToggled): void {
     "-" +
     event.params.hatId.toString() +
     "-" +
-    role;
+    permissionRole;
 
   let permission = HatPermission.load(permissionId);
   if (!permission) {
@@ -165,8 +169,12 @@ export function handleHatToggled(event: HatToggled): void {
     permission.contractType = "HybridVoting";
     permission.organization = contract.organization;
     permission.hatId = event.params.hatId;
-    permission.role = role;
+    permission.permissionRole = permissionRole;
   }
+
+  // Link to Role entity
+  let role = getOrCreateRole(contract.organization, event.params.hatId, event);
+  permission.role = role.id;
 
   permission.allowed = event.params.allowed;
   permission.setAt = event.block.timestamp;

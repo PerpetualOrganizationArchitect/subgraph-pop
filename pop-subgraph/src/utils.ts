@@ -8,6 +8,9 @@ import {
   PauseEvent,
   UserHatChange,
   Organization,
+  Role,
+  RoleWearer,
+  Hat,
 } from "../generated/schema";
 
 /**
@@ -78,7 +81,7 @@ export function createHatPermission(
   contractType: string,
   orgId: Bytes,
   hatId: BigInt,
-  role: string,
+  permissionRole: string,
   allowed: boolean,
   hatType: i32 | null,
   event: ethereum.Event
@@ -88,13 +91,21 @@ export function createHatPermission(
     "-" +
     hatId.toString() +
     "-" +
-    role;
-  let permission = new HatPermission(id);
-  permission.contractAddress = contractAddress;
-  permission.contractType = contractType;
-  permission.organization = orgId;
-  permission.hatId = hatId;
-  permission.role = role;
+    permissionRole;
+  let permission = HatPermission.load(id);
+  if (permission == null) {
+    permission = new HatPermission(id);
+    permission.contractAddress = contractAddress;
+    permission.contractType = contractType;
+    permission.organization = orgId;
+    permission.hatId = hatId;
+    permission.permissionRole = permissionRole;
+  }
+
+  // Get or create the Role entity and link it
+  let role = getOrCreateRole(orgId, hatId, event);
+  permission.role = role.id;
+
   permission.allowed = allowed;
   if (hatType !== null) {
     permission.hatType = hatType;
@@ -215,4 +226,141 @@ export function getOrgIdFromContract(contractAddress: Address): Bytes | null {
     return org.id;
   }
   return null;
+}
+
+/**
+ * Get or create a Role entity for a given organization and hat ID
+ * Roles aggregate permissions and wearers for a hat within an organization
+ */
+export function getOrCreateRole(
+  orgId: Bytes,
+  hatId: BigInt,
+  event: ethereum.Event
+): Role {
+  let roleId = orgId.toHexString() + "-" + hatId.toString();
+  let role = Role.load(roleId);
+
+  if (role == null) {
+    role = new Role(roleId);
+    role.organization = orgId;
+    role.hatId = hatId;
+    role.createdAt = event.block.timestamp;
+    role.createdAtBlock = event.block.number;
+    role.transactionHash = event.transaction.hash;
+    role.save();
+  }
+
+  return role as Role;
+}
+
+/**
+ * Link a Hat entity to its corresponding Role entity
+ * Called when a Hat is created via HatCreatedWithEligibility
+ */
+export function linkHatToRole(
+  orgId: Bytes,
+  hatId: BigInt,
+  hatEntityId: string,
+  event: ethereum.Event
+): Role {
+  let role = getOrCreateRole(orgId, hatId, event);
+  role.hat = hatEntityId;
+  role.save();
+  return role;
+}
+
+/**
+ * Get or create a RoleWearer entity for a user wearing a role
+ */
+export function getOrCreateRoleWearer(
+  orgId: Bytes,
+  hatId: BigInt,
+  wearerAddress: Address,
+  event: ethereum.Event
+): RoleWearer {
+  let roleWearerId =
+    orgId.toHexString() +
+    "-" +
+    hatId.toString() +
+    "-" +
+    wearerAddress.toHexString();
+  let roleWearer = RoleWearer.load(roleWearerId);
+
+  if (roleWearer == null) {
+    // Ensure Role exists
+    let role = getOrCreateRole(orgId, hatId, event);
+
+    // Ensure User exists
+    let user = getOrCreateUser(
+      orgId,
+      wearerAddress,
+      event.block.timestamp,
+      event.block.number
+    );
+
+    roleWearer = new RoleWearer(roleWearerId);
+    roleWearer.role = role.id;
+    roleWearer.user = user.id;
+    roleWearer.wearer = wearerAddress;
+    roleWearer.wearerUsername = getUsernameForAddress(wearerAddress);
+    roleWearer.addedAt = event.block.timestamp;
+    roleWearer.addedAtBlock = event.block.number;
+    roleWearer.isActive = true;
+    roleWearer.transactionHash = event.transaction.hash;
+    roleWearer.save();
+  }
+
+  return roleWearer as RoleWearer;
+}
+
+/**
+ * Update a RoleWearer's active status (for when hats are removed)
+ */
+export function updateRoleWearerStatus(
+  orgId: Bytes,
+  hatId: BigInt,
+  wearerAddress: Address,
+  isActive: boolean,
+  event: ethereum.Event
+): RoleWearer | null {
+  let roleWearerId =
+    orgId.toHexString() +
+    "-" +
+    hatId.toString() +
+    "-" +
+    wearerAddress.toHexString();
+  let roleWearer = RoleWearer.load(roleWearerId);
+
+  if (roleWearer != null) {
+    roleWearer.isActive = isActive;
+    if (!isActive) {
+      roleWearer.removedAt = event.block.timestamp;
+    }
+    roleWearer.save();
+  }
+
+  return roleWearer;
+}
+
+/**
+ * Link a WearerEligibility entity to its RoleWearer
+ */
+export function linkWearerEligibilityToRoleWearer(
+  orgId: Bytes,
+  hatId: BigInt,
+  wearerAddress: Address,
+  wearerEligibilityId: string
+): void {
+  let roleWearerId =
+    orgId.toHexString() +
+    "-" +
+    hatId.toString() +
+    "-" +
+    wearerAddress.toHexString();
+  let roleWearer = RoleWearer.load(roleWearerId);
+
+  if (roleWearer != null) {
+    roleWearer.wearerEligibility = wearerEligibilityId;
+    roleWearer.save();
+  }
 }

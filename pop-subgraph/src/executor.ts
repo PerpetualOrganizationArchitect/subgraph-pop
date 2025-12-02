@@ -25,7 +25,7 @@ import {
   DDVProposal,
   Account
 } from "../generated/schema";
-import { getUsernameForAddress, getOrCreateUser, createPauseEvent } from "./utils";
+import { getUsernameForAddress, getOrCreateUser, createPauseEvent, getOrCreateRoleWearer, recordUserHatChange } from "./utils";
 
 export function handleInitialized(event: InitializedEvent): void {
   // Initialization handled in org-deployer.ts
@@ -205,6 +205,20 @@ export function handleHatsMinted(event: HatsMintedEvent): void {
       event.block.number
     );
     mint.recipientUser = user.id;
+
+    // Create RoleWearers for each minted hat
+    let hatIds = event.params.hatIds;
+    for (let i = 0; i < hatIds.length; i++) {
+      let hatId = hatIds[i];
+      getOrCreateRoleWearer(
+        executor.organization,
+        hatId,
+        recipient,
+        event
+      );
+      recordUserHatChange(user, hatId, true, event);
+    }
+    user.save();
   }
 
   mint.save();

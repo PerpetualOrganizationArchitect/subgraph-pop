@@ -13,6 +13,7 @@ import {
   RegisteredContract,
   AutoUpgradeChange
 } from "../generated/schema";
+import { getOrCreateRole } from "./utils";
 
 /**
  * Helper function to get or create the OrgRegistryContract singleton
@@ -187,5 +188,12 @@ export function handleHatsTreeRegistered(event: HatsTreeRegisteredEvent): void {
     org.roleHatIds = roleHatIds;
     org.lastUpdatedAt = event.block.timestamp;
     org.save();
+
+    // Create Role entities for topHatId and all roleHatIds
+    getOrCreateRole(orgId, topHatId, event);
+
+    for (let i = 0; i < roleHatIds.length; i++) {
+      getOrCreateRole(orgId, roleHatIds[i], event);
+    }
   }
 }

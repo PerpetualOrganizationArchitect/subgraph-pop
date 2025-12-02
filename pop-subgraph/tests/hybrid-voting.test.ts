@@ -373,7 +373,7 @@ describe("HybridVoting", () => {
       assert.fieldEquals(
         "HatPermission",
         permissionId,
-        "role",
+        "permissionRole",
         "Creator"
       );
       assert.fieldEquals(
@@ -407,7 +407,7 @@ describe("HybridVoting", () => {
       assert.fieldEquals(
         "HatPermission",
         permissionId,
-        "role",
+        "permissionRole",
         "Voter"
       );
       assert.fieldEquals(

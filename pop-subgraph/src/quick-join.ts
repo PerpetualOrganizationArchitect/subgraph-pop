@@ -14,7 +14,7 @@ import {
   QuickJoinEvent,
   QuickJoinAddressUpdate
 } from "../generated/schema";
-import { createExecutorChange } from "./utils";
+import { createExecutorChange, getOrCreateRole, getOrCreateRoleWearer, getOrCreateUser, recordUserHatChange } from "./utils";
 
 export function handleInitialized(event: InitializedEvent): void {
   // Initialization is handled by OrgDeployer when the contract is created.
@@ -47,6 +47,29 @@ export function handleQuickJoined(event: QuickJoinedEvent): void {
   joinEvent.transactionHash = event.transaction.hash;
 
   joinEvent.save();
+
+  // Create RoleWearer entities for each hat
+  let contract = QuickJoinContract.load(contractAddress);
+  if (contract) {
+    let user = getOrCreateUser(
+      contract.organization,
+      event.params.user,
+      event.block.timestamp,
+      event.block.number
+    );
+
+    let hatIds = event.params.hatIds;
+    for (let i = 0; i < hatIds.length; i++) {
+      getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.user, event);
+      recordUserHatChange(user, hatIds[i], true, event);
+    }
+
+    // Update join method
+    if (user.joinMethod == null) {
+      user.joinMethod = "QuickJoin";
+      user.save();
+    }
+  }
 }
 
 export function handleQuickJoinedByMaster(event: QuickJoinedByMasterEvent): void {
@@ -65,6 +88,29 @@ export function handleQuickJoinedByMaster(event: QuickJoinedByMasterEvent): void
   joinEvent.transactionHash = event.transaction.hash;
 
   joinEvent.save();
+
+  // Create RoleWearer entities for each hat
+  let contract = QuickJoinContract.load(contractAddress);
+  if (contract) {
+    let user = getOrCreateUser(
+      contract.organization,
+      event.params.user,
+      event.block.timestamp,
+      event.block.number
+    );
+
+    let hatIds = event.params.hatIds;
+    for (let i = 0; i < hatIds.length; i++) {
+      getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.user, event);
+      recordUserHatChange(user, hatIds[i], true, event);
+    }
+
+    // Update join method
+    if (user.joinMethod == null) {
+      user.joinMethod = "QuickJoin";
+      user.save();
+    }
+  }
 }
 
 export function handleExecutorUpdated(event: ExecutorUpdatedEvent): void {
@@ -109,8 +155,12 @@ export function handleHatToggled(event: HatToggledEvent): void {
     permission.contractType = "QuickJoin";
     permission.organization = contract.organization;
     permission.hatId = event.params.hatId;
-    permission.role = "Member";
+    permission.permissionRole = "Member";
   }
+
+  // Link to Role entity
+  let role = getOrCreateRole(contract.organization, event.params.hatId, event);
+  permission.role = role.id;
 
   permission.allowed = event.params.allowed;
   permission.setAt = event.block.timestamp;
@@ -143,9 +193,13 @@ export function handleMemberHatIdsUpdated(event: MemberHatIdsUpdatedEvent): void
       permission.contractType = "QuickJoin";
       permission.organization = contract.organization;
       permission.hatId = hatId;
-      permission.role = "Member";
+      permission.permissionRole = "Member";
       permission.allowed = true; // Assume allowed if in the list
     }
+
+    // Link to Role entity
+    let role = getOrCreateRole(contract.organization, hatId, event);
+    permission.role = role.id;
 
     permission.setAt = event.block.timestamp;
     permission.setAtBlock = event.block.number;

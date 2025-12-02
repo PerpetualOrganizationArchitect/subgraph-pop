@@ -28,6 +28,7 @@ type Organization @entity(immutable: false) {
   lastUpdatedAt: BigInt
   metaUpdates: [OrgMetaUpdate!]! @derivedFrom(field: "organization")
   registeredContracts: [RegisteredContract!]! @derivedFrom(field: "organization")
+  roles: [Role!]! @derivedFrom(field: "organization")
 }
 
 # ========================================
@@ -487,6 +488,46 @@ type Hat @entity(immutable: false) {
   transactionHash: Bytes!
   wearers: [WearerEligibility!]! @derivedFrom(field: "hat")
   vouchConfig: VouchConfig @derivedFrom(field: "hat")
+  role: Role @derivedFrom(field: "hat")
+}
+
+# ========================================
+# Role - Organization-centric view of hats
+# Aggregates permissions and wearers for a hat within an organization
+# ========================================
+
+type Role @entity(immutable: false) {
+  id: String! # orgId-hatId
+  organization: Organization!
+  hatId: BigInt!
+  hat: Hat # Link to Hat entity (nullable until HatCreatedWithEligibility)
+
+  # Timestamps
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  transactionHash: Bytes!
+
+  # Derived relationships
+  permissions: [HatPermission!]! @derivedFrom(field: "role")
+  wearers: [RoleWearer!]! @derivedFrom(field: "role")
+}
+
+type RoleWearer @entity(immutable: false) {
+  id: String! # orgId-hatId-wearer
+  role: Role!
+  user: User!
+  wearer: Bytes!
+  wearerUsername: String
+
+  # Link to WearerEligibility if available (for eligibility status)
+  wearerEligibility: WearerEligibility
+
+  # Timestamps
+  addedAt: BigInt!
+  addedAtBlock: BigInt!
+  removedAt: BigInt
+  isActive: Boolean!
+  transactionHash: Bytes!
 }
 
 type WearerEligibility @entity(immutable: false) {
@@ -1105,7 +1146,8 @@ type HatPermission @entity(immutable: false) {
   contractType: ContractType!
   organization: Organization!
   hatId: BigInt!
-  role: HatPermissionRole!
+  role: Role # Link back to Role entity
+  permissionRole: HatPermissionRole!
   allowed: Boolean!
   hatType: Int # For HybridVoting/DDV (0=creator, 1+=voter classes)
   setAt: BigInt!
