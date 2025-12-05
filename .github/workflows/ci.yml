@@ -8,73 +8,11 @@ on:
     branches: [main]
     paths: ['pop-subgraph/**']
 
-env:
-  WORKING_DIRECTORY: pop-subgraph
-
 jobs:
-  build-and-test:
-    name: Build and Test
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ env.WORKING_DIRECTORY }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'yarn'
-          cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/yarn.lock
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Generate code from GraphQL schema
-        run: yarn codegen
-
-      - name: Build subgraph
-        run: yarn build
-
-      - name: Run tests
-        run: yarn test
-
-  deploy:
-    name: Deploy to The Graph Studio
-    runs-on: ubuntu-latest
-    needs: build-and-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    defaults:
-      run:
-        working-directory: ${{ env.WORKING_DIRECTORY }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'yarn'
-          cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/yarn.lock
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Generate code from GraphQL schema
-        run: yarn codegen
-
-      - name: Build subgraph
-        run: yarn build
-
-      - name: Authenticate with The Graph Studio
-        run: yarn graph auth ${{ secrets.GRAPH_DEPLOY_KEY }}
-
-      - name: Deploy subgraph
-        run: |
-          VERSION_LABEL=$(echo ${{ github.sha }} | cut -c1-7)
-          yarn graph deploy --version-label $VERSION_LABEL poa-2
+  subgraph:
+    uses: BreadchainCoop/subgraphform/.github/workflows/_subgraph-cicd.yml@main
+    with:
+      subgraph-name: poa-2
+      working-directory: pop-subgraph
+    secrets:
+      GRAPH_DEPLOY_KEY: ${{ secrets.GRAPH_DEPLOY_KEY }}
