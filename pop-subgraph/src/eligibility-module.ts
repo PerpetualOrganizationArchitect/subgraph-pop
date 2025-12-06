@@ -34,7 +34,8 @@ import {
   linkHatToRole,
   getOrCreateRoleWearer,
   linkWearerEligibilityToRoleWearer,
-  recordUserHatChange
+  recordUserHatChange,
+  shouldCreateRoleWearer
 } from "./utils";
 
 export function handleEligibilityModuleInitialized(
@@ -387,21 +388,24 @@ export function handleHatClaimed(event: HatClaimedEvent): void {
     );
     claim.wearerUser = user.id;
 
-    // Create RoleWearer entity
-    getOrCreateRoleWearer(
-      eligibilityModule.organization,
-      hatId,
-      event.params.wearer,
-      event
-    );
+    // Only create RoleWearer for user-facing hats to non-system addresses
+    if (shouldCreateRoleWearer(eligibilityModule.organization, hatId, event.params.wearer)) {
+      // Create RoleWearer entity
+      getOrCreateRoleWearer(
+        eligibilityModule.organization,
+        hatId,
+        event.params.wearer,
+        event
+      );
 
-    // Record the hat change on the user
-    recordUserHatChange(user, hatId, true, event);
+      // Record the hat change on the user
+      recordUserHatChange(user, hatId, true, event);
 
-    // Update join method if this is their first hat
-    if (user.joinMethod == null) {
-      user.joinMethod = "HatClaim";
-      user.save();
+      // Update join method if this is their first hat
+      if (user.joinMethod == null) {
+        user.joinMethod = "HatClaim";
+        user.save();
+      }
     }
   }
 

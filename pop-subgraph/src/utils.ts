@@ -11,6 +11,8 @@ import {
   Role,
   RoleWearer,
   Hat,
+  ExecutorContract,
+  EligibilityModuleContract,
 } from "../generated/schema";
 
 /**
@@ -363,4 +365,82 @@ export function linkWearerEligibilityToRoleWearer(
     roleWearer.wearerEligibility = wearerEligibilityId;
     roleWearer.save();
   }
+}
+
+/**
+ * Check if an address is a system contract for an organization.
+ * System contracts (Executor, EligibilityModule) should not be indexed as RoleWearers.
+ */
+export function isSystemContract(orgId: Bytes, address: Address): boolean {
+  let org = Organization.load(orgId);
+  if (!org) return false;
+
+  // Check if address is the Executor contract
+  let executorContractRef = org.executorContract;
+  if (executorContractRef) {
+    let executor = ExecutorContract.load(executorContractRef);
+    if (executor && executor.id.equals(address)) return true;
+  }
+
+  // Check if address is the EligibilityModule contract
+  let eligibilityModuleRef = org.eligibilityModule;
+  if (eligibilityModuleRef) {
+    let eligibility = EligibilityModuleContract.load(eligibilityModuleRef);
+    if (eligibility && eligibility.id.equals(address)) return true;
+  }
+
+  return false;
+}
+
+/**
+ * Check if a hat ID is a user-facing role hat (not a system hat).
+ * System hats include: Top Hat (worn by Executor), Eligibility Admin Hat (worn by EligibilityModule).
+ * User-facing hats are those in the Organization.roleHatIds array.
+ */
+export function isUserFacingRoleHat(orgId: Bytes, hatId: BigInt): boolean {
+  let org = Organization.load(orgId);
+  if (!org) return false;
+
+  // Top Hat is a system hat - never create RoleWearer for it
+  let topHatId = org.topHatId;
+  if (topHatId && topHatId.equals(hatId)) return false;
+
+  // Check if hat is in roleHatIds (explicitly user-facing)
+  let roleHatIds = org.roleHatIds;
+  if (roleHatIds) {
+    for (let i = 0; i < roleHatIds.length; i++) {
+      if (roleHatIds[i].equals(hatId)) return true;
+    }
+  }
+
+  // Check for eligibility admin hat
+  let eligibilityModuleRef = org.eligibilityModule;
+  if (eligibilityModuleRef) {
+    let eligibility = EligibilityModuleContract.load(eligibilityModuleRef);
+    if (eligibility) {
+      let adminHat = eligibility.eligibilityModuleAdminHat;
+      if (adminHat && adminHat.equals(hatId)) return false;
+    }
+  }
+
+  // For dynamic hats not in roleHatIds, allow them (future expansion)
+  return true;
+}
+
+/**
+ * Combined check for RoleWearer creation eligibility.
+ * Returns true if a RoleWearer should be created for this hat and address combination.
+ */
+export function shouldCreateRoleWearer(
+  orgId: Bytes,
+  hatId: BigInt,
+  wearerAddress: Address
+): boolean {
+  // Skip if recipient is a system contract
+  if (isSystemContract(orgId, wearerAddress)) return false;
+
+  // Skip if hat is not user-facing
+  if (!isUserFacingRoleHat(orgId, hatId)) return false;
+
+  return true;
 }
