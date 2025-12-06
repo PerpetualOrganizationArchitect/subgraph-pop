@@ -1,4 +1,4 @@
-# Schema version: 1.0.1
+# Schema version: 1.1.0
 type Organization @entity(immutable: false) {
   id: Bytes! # orgId
   # Contract relationships - nullable because OrgRegistered creates org before OrgDeployed adds contracts
@@ -26,6 +26,7 @@ type Organization @entity(immutable: false) {
   # From OrgRegistry - org name and metadata
   name: String
   metadataHash: Bytes
+  metadata: OrgMetadata # IPFS-indexed metadata content (may be null if IPFS unavailable)
   lastUpdatedAt: BigInt
   metaUpdates: [OrgMetaUpdate!]! @derivedFrom(field: "organization")
   registeredContracts: [RegisteredContract!]! @derivedFrom(field: "organization")
@@ -1514,6 +1515,29 @@ type OrgMetaUpdate @entity(immutable: true) {
   updatedAt: BigInt!
   updatedAtBlock: BigInt!
   transactionHash: Bytes!
+}
+
+"""
+IPFS-indexed org metadata content.
+This entity is populated by a file data source that fetches from IPFS.
+If IPFS is unavailable or slow, the main Organization entity will still be indexed
+with the metadataHash - this entity will be populated when/if IPFS content becomes available.
+"""
+type OrgMetadata @entity(immutable: false) {
+  id: String! # IPFS hash (CID)
+  organization: Organization
+  description: String
+  template: String
+  links: [OrgMetadataLink!]! @derivedFrom(field: "metadata")
+  indexedAt: BigInt
+}
+
+type OrgMetadataLink @entity(immutable: true) {
+  id: String! # metadataId-index
+  metadata: OrgMetadata!
+  name: String!
+  url: String!
+  index: Int!
 }
 
 type RegisteredContract @entity(immutable: false) {

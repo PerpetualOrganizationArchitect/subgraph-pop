@@ -1,4 +1,4 @@
-import { BigInt, Bytes } from "@graphprotocol/graph-ts";
+import { BigInt, Bytes, DataSourceContext } from "@graphprotocol/graph-ts";
 import {
   OrgRegistered as OrgRegisteredEvent,
   MetaUpdated as MetaUpdatedEvent,
@@ -13,7 +13,37 @@ import {
   RegisteredContract,
   AutoUpgradeChange
 } from "../generated/schema";
+import { OrgMetadata as OrgMetadataTemplate } from "../generated/templates";
 import { getOrCreateRole } from "./utils";
+
+/**
+ * Helper function to create an IPFS file data source for org metadata.
+ * Uses DataSourceContext to pass the orgId to the handler so it can
+ * link the metadata back to the organization.
+ *
+ * This is resilient to IPFS failures - if IPFS is slow or unavailable,
+ * the main chain indexing will continue and the metadata will be
+ * indexed when/if the content becomes available.
+ */
+function createIpfsDataSource(metadataHash: Bytes, orgId: Bytes): void {
+  // Skip if metadataHash is empty (all zeros)
+  if (metadataHash.equals(Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000"))) {
+    return;
+  }
+
+  // Convert the bytes32 hash to a string for use as IPFS hash
+  // The Graph will fetch from IPFS using this as the CID
+  let ipfsHash = metadataHash.toHexString();
+
+  // Create context to pass orgId to the IPFS handler
+  let context = new DataSourceContext();
+  context.setBytes("orgId", orgId);
+
+  // Create the file data source with context
+  // If IPFS is unavailable or slow, this will be retried automatically
+  // and won't block the main chain indexing
+  OrgMetadataTemplate.createWithContext(ipfsHash, context);
+}
 
 /**
  * Helper function to get or create the OrgRegistryContract singleton
@@ -34,6 +64,7 @@ function getOrCreateOrgRegistry(contractAddress: Bytes, timestamp: BigInt, block
 /**
  * Handles OrgRegistered event
  * Updates the Organization entity with name and metadata from OrgRegistry
+ * Also triggers IPFS indexing for the metadata content
  */
 export function handleOrgRegistered(event: OrgRegisteredEvent): void {
   let contractAddress = event.address;
@@ -59,13 +90,24 @@ export function handleOrgRegistered(event: OrgRegisteredEvent): void {
   }
   org.name = name.toString();
   org.metadataHash = metadataHash;
+
+  // Link to metadata entity (will be populated when IPFS content is indexed)
+  // Use hex string as the metadata ID
+  let metadataId = metadataHash.toHexString();
+  org.metadata = metadataId;
+
   org.lastUpdatedAt = event.block.timestamp;
   org.save();
+
+  // Create IPFS file data source to fetch and index the metadata content
+  // This is resilient - if IPFS is slow/unavailable, main indexing continues
+  createIpfsDataSource(metadataHash, orgId);
 }
 
 /**
  * Handles MetaUpdated event
  * Updates the org's metadata and creates a history record
+ * Also triggers IPFS indexing for the new metadata content
  */
 export function handleMetaUpdated(event: MetaUpdatedEvent): void {
   let orgId = event.params.orgId;
@@ -77,6 +119,11 @@ export function handleMetaUpdated(event: MetaUpdatedEvent): void {
   if (org) {
     org.name = newName.toString();
     org.metadataHash = newMetadataHash;
+
+    // Link to new metadata entity (will be populated when IPFS content is indexed)
+    let metadataId = newMetadataHash.toHexString();
+    org.metadata = metadataId;
+
     org.lastUpdatedAt = event.block.timestamp;
     org.save();
 
@@ -93,6 +140,10 @@ export function handleMetaUpdated(event: MetaUpdatedEvent): void {
     update.transactionHash = event.transaction.hash;
 
     update.save();
+
+    // Create IPFS file data source for the new metadata
+    // This is resilient - if IPFS is slow/unavailable, main indexing continues
+    createIpfsDataSource(newMetadataHash, orgId);
   }
 }
 
