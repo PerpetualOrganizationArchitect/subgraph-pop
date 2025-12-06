@@ -14,7 +14,7 @@ import {
   QuickJoinEvent,
   QuickJoinAddressUpdate
 } from "../generated/schema";
-import { createExecutorChange, getOrCreateRole, getOrCreateRoleWearer, getOrCreateUser, recordUserHatChange } from "./utils";
+import { createExecutorChange, getOrCreateRole, getOrCreateRoleWearer, getOrCreateUser, recordUserHatChange, shouldCreateRoleWearer } from "./utils";
 
 export function handleInitialized(event: InitializedEvent): void {
   // Initialization is handled by OrgDeployer when the contract is created.
@@ -48,7 +48,7 @@ export function handleQuickJoined(event: QuickJoinedEvent): void {
 
   joinEvent.save();
 
-  // Create RoleWearer entities for each hat
+  // Create RoleWearer entities for each hat (only for user-facing hats to non-system addresses)
   let contract = QuickJoinContract.load(contractAddress);
   if (contract) {
     let user = getOrCreateUser(
@@ -60,8 +60,11 @@ export function handleQuickJoined(event: QuickJoinedEvent): void {
 
     let hatIds = event.params.hatIds;
     for (let i = 0; i < hatIds.length; i++) {
-      getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.user, event);
-      recordUserHatChange(user, hatIds[i], true, event);
+      // Only create RoleWearer for eligible combinations
+      if (shouldCreateRoleWearer(contract.organization, hatIds[i], event.params.user)) {
+        getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.user, event);
+        recordUserHatChange(user, hatIds[i], true, event);
+      }
     }
 
     // Update join method
@@ -89,7 +92,7 @@ export function handleQuickJoinedByMaster(event: QuickJoinedByMasterEvent): void
 
   joinEvent.save();
 
-  // Create RoleWearer entities for each hat
+  // Create RoleWearer entities for each hat (only for user-facing hats to non-system addresses)
   let contract = QuickJoinContract.load(contractAddress);
   if (contract) {
     let user = getOrCreateUser(
@@ -101,8 +104,11 @@ export function handleQuickJoinedByMaster(event: QuickJoinedByMasterEvent): void
 
     let hatIds = event.params.hatIds;
     for (let i = 0; i < hatIds.length; i++) {
-      getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.user, event);
-      recordUserHatChange(user, hatIds[i], true, event);
+      // Only create RoleWearer for eligible combinations
+      if (shouldCreateRoleWearer(contract.organization, hatIds[i], event.params.user)) {
+        getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.user, event);
+        recordUserHatChange(user, hatIds[i], true, event);
+      }
     }
 
     // Update join method
