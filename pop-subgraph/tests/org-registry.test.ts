@@ -4,7 +4,8 @@ import {
   test,
   clearStore,
   afterEach,
-  beforeEach
+  beforeEach,
+  dataSourceMock
 } from "matchstick-as/assembly/index";
 import { Address, Bytes, BigInt } from "@graphprotocol/graph-ts";
 import {
@@ -24,7 +25,8 @@ import {
 import {
   OrgRegistryContract,
   Organization,
-  RegisteredContract
+  RegisteredContract,
+  OrgMetadata
 } from "../generated/schema";
 
 // Default mock event address from matchstick
@@ -100,6 +102,58 @@ describe("OrgRegistry", () => {
         orgId.toHexString(),
         "metadataHash",
         "0x0000000000000000000000000000000000000000000000000000000000001234"
+      );
+      // Verify metadata link is set to the hex string of the hash
+      assert.fieldEquals(
+        "Organization",
+        orgId.toHexString(),
+        "metadata",
+        metadataHash.toHexString()
+      );
+    });
+
+    test("sets metadata link for non-zero hash", () => {
+      let orgId = Bytes.fromHexString(
+        "0x1111111111111111111111111111111111111111111111111111111111111111"
+      );
+      let executor = Address.fromString("0x0000000000000000000000000000000000000001");
+      let name = Bytes.fromUTF8("Test Org");
+      let metadataHash = Bytes.fromHexString("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890");
+
+      createMockOrganization(orgId);
+
+      let event = createOrgRegisteredEvent(orgId, executor, name, metadataHash);
+      handleOrgRegistered(event);
+
+      // Verify metadata field is set to the hex string of the hash
+      assert.fieldEquals(
+        "Organization",
+        orgId.toHexString(),
+        "metadata",
+        "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+      );
+    });
+
+    test("sets metadata link even for zero hash", () => {
+      let orgId = Bytes.fromHexString(
+        "0x1111111111111111111111111111111111111111111111111111111111111111"
+      );
+      let executor = Address.fromString("0x0000000000000000000000000000000000000001");
+      let name = Bytes.fromUTF8("Test Org");
+      // Use zero hash (empty metadata)
+      let metadataHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000");
+
+      createMockOrganization(orgId);
+
+      let event = createOrgRegisteredEvent(orgId, executor, name, metadataHash);
+      handleOrgRegistered(event);
+
+      // Metadata field should still be set (IPFS data source won't be created for zero hash)
+      assert.fieldEquals(
+        "Organization",
+        orgId.toHexString(),
+        "metadata",
+        "0x0000000000000000000000000000000000000000000000000000000000000000"
       );
     });
 
@@ -181,8 +235,60 @@ describe("OrgRegistry", () => {
         "Updated Org"
       );
 
+      // Verify metadataHash was updated
+      assert.fieldEquals(
+        "Organization",
+        orgId.toHexString(),
+        "metadataHash",
+        "0x0000000000000000000000000000000000000000000000000000000000005678"
+      );
+
+      // Verify metadata link was updated to new hash
+      assert.fieldEquals(
+        "Organization",
+        orgId.toHexString(),
+        "metadata",
+        "0x0000000000000000000000000000000000000000000000000000000000005678"
+      );
+
       // Verify history record was created
       assert.entityCount("OrgMetaUpdate", 1);
+    });
+
+    test("updates metadata link when metadata changes", () => {
+      let orgId = Bytes.fromHexString(
+        "0x1111111111111111111111111111111111111111111111111111111111111111"
+      );
+      let executor = Address.fromString("0x0000000000000000000000000000000000000001");
+      let name = Bytes.fromUTF8("Test Org");
+      let initialHash = Bytes.fromHexString("0xaaaa000000000000000000000000000000000000000000000000000000001111");
+
+      createMockOrganization(orgId);
+      let regEvent = createOrgRegisteredEvent(orgId, executor, name, initialHash);
+      handleOrgRegistered(regEvent);
+
+      // Verify initial metadata link
+      assert.fieldEquals(
+        "Organization",
+        orgId.toHexString(),
+        "metadata",
+        "0xaaaa000000000000000000000000000000000000000000000000000000001111"
+      );
+
+      // Update to new metadata
+      let newName = Bytes.fromUTF8("Updated Org");
+      let newHash = Bytes.fromHexString("0xbbbb000000000000000000000000000000000000000000000000000000002222");
+      let updateEvent = createMetaUpdatedEvent(orgId, newName, newHash);
+      updateEvent.logIndex = BigInt.fromI32(2);
+      handleMetaUpdated(updateEvent);
+
+      // Verify metadata link was updated
+      assert.fieldEquals(
+        "Organization",
+        orgId.toHexString(),
+        "metadata",
+        "0xbbbb000000000000000000000000000000000000000000000000000000002222"
+      );
     });
 
     test("does not create history record if org not found", () => {
