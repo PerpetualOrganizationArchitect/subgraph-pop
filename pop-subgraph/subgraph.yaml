@@ -3,26 +3,30 @@ indexerHints:
   prune: auto
 schema:
   file: ./schema.graphql
-# Contract Addresses:
-# OrgDeployer: 0x888daCE32d8BCdDD95BA9D490643663C25810ded
-# GlobalAccountRegistry: 0xDdB1DA30020861d92c27aE981ac0f4Fe8BA536F2
-# PaymasterHub: 0xbe2c8713F762871b14dc2273B389a210974dB755
-# PoaManager: 0x868680dc2689fa49A8389b0313da15408C8BE340
-# OrgRegistry: 0xBBf72057901d7d0F557D6f7Aa1Afc56F4F3d6072
-# ImplementationRegistry: 0xe848C652e1Aa56BeC38f504259f5D2b98b585aed
-# HatsProtocol: 0x3bc1A0Ad72417f2d411118085256fC53CBdDd137
-# GovernanceFactory: 0x2e3BCa0b6902285b7e8D747A14f118EbB8DB997D
-# AccessFactory: 0x05Db5Cf1540683A888E7aC656d7373aa03864a8c
-# ModulesFactory: 0x0b5b1410E6e8FeE4eCd07C69CdDCf860eCc44981
-# HatsTreeSetup: 0xdc7C14AB68fcCf9bcD255f5be684EbDc892Da13a
+# Beacon Addresses (for subgraph indexing):
+# BEACON_ImplementationRegistry: 0xC74d0e3D6928dbE1bb251C90b96Cd1Df53372E28
+# BEACON_OrgRegistry: 0xf0Fe0a6D815cCae29d2072186F5F90cB2A404b1B
+# BEACON_OrgDeployer: 0x68856c174D4B60334A9c5fa256B56e06fFf59624
+# BEACON_PaymasterHub: 0xC9198A859A1E4211E8f56F8919d02495F17bAf41
+# BEACON_HybridVoting: 0x6ccdc7c16BF466028f5E2a56066a06f60EDe6984
+# BEACON_DirectDemocracyVoting: 0xB5a769A07Ee0C1C22689a11beC1a958D44354B67
+# BEACON_Executor: 0xfde9554eD68a97cb7608856D8E634C2Bf6582B6d
+# BEACON_QuickJoin: 0xF3561C2b6Aa4531C7fd4375F3098a7Dbe5Abc28D
+# BEACON_ParticipationToken: 0x813d271D49b63f8cDE3eA7Ff6577F2E47C06c6D2
+# BEACON_TaskManager: 0x26513C9209d413949b3d14e3b474fA800BEAf418
+# BEACON_EducationHub: 0xA8C4f3D80cF7dcB12729b902c044603F09559F3E
+# BEACON_PaymentManager: 0xDA06902B66663c9Ede2927A6b5991262253B36C8
+# BEACON_UniversalAccountRegistry: 0xEa45D9E9D1A6e07F62e23987Aa4a8Eb88Db85D6c
+# BEACON_EligibilityModule: 0x750461BC70b0482f78859637724C79d7c89b8D46
+# BEACON_ToggleModule: 0x85550cf0e61ee19616AFed1f5caA77F28b35DEc0
 dataSources:
   - kind: ethereum
     name: OrgDeployer
     network: hoodi
     source:
-      address: "0x888daCE32d8BCdDD95BA9D490643663C25810ded"
+      address: "0x68856c174D4B60334A9c5fa256B56e06fFf59624"
       abi: OrgDeployer
-      startBlock: 1737100
+      startBlock: 1772691
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -62,7 +66,7 @@ dataSources:
     source:
       address: "0x2e3BCa0b6902285b7e8D747A14f118EbB8DB997D"
       abi: GovernanceFactory
-      startBlock: 1737100
+      startBlock: 1772691
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -80,9 +84,9 @@ dataSources:
     name: UniversalAccountRegistry
     network: hoodi
     source:
-      address: "0xDdB1DA30020861d92c27aE981ac0f4Fe8BA536F2"
+      address: "0xEa45D9E9D1A6e07F62e23987Aa4a8Eb88Db85D6c"
       abi: UniversalAccountRegistry
-      startBlock: 1737100
+      startBlock: 1772691
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -115,9 +119,9 @@ dataSources:
     name: PaymasterHub
     network: hoodi
     source:
-      address: "0xbe2c8713F762871b14dc2273B389a210974dB755"
+      address: "0xC9198A859A1E4211E8f56F8919d02495F17bAf41"
       abi: PaymasterHub
-      startBlock: 1737100
+      startBlock: 1772691
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -192,9 +196,9 @@ dataSources:
     name: OrgRegistry
     network: hoodi
     source:
-      address: "0xBBf72057901d7d0F557D6f7Aa1Afc56F4F3d6072"
+      address: "0xf0Fe0a6D815cCae29d2072186F5F90cB2A404b1B"
       abi: OrgRegistry
-      startBlock: 1737100
+      startBlock: 1772691
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -226,7 +230,7 @@ dataSources:
     source:
       address: "0x868680dc2689fa49A8389b0313da15408C8BE340"
       abi: PoaManager
-      startBlock: 1737100
+      startBlock: 1772691
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
