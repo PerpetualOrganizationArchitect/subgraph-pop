@@ -19,27 +19,10 @@ schema:
 # BEACON_UniversalAccountRegistry: 0xEa45D9E9D1A6e07F62e23987Aa4a8Eb88Db85D6c
 # BEACON_EligibilityModule: 0x750461BC70b0482f78859637724C79d7c89b8D46
 # BEACON_ToggleModule: 0x85550cf0e61ee19616AFed1f5caA77F28b35DEc0
+# NOTE: Infrastructure contracts (OrgDeployer, OrgRegistry, PaymasterHub, UniversalAccountRegistry)
+# are now dynamically discovered via InfrastructureDeployed event from PoaManager.
+# Only PoaManager and singleton factories need to be hardcoded.
 dataSources:
-  - kind: ethereum
-    name: OrgDeployer
-    network: hoodi
-    source:
-      address: "0x68856c174D4B60334A9c5fa256B56e06fFf59624"
-      abi: OrgDeployer
-      startBlock: 1772691
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.9
-      language: wasm/assemblyscript
-      entities:
-        - Organization
-      abis:
-        - name: OrgDeployer
-          file: ./abis/OrgDeployer.json
-      eventHandlers:
-        - event: OrgDeployed(indexed bytes32,indexed address,address,address,address,address,address,address,address,address,address,uint256,uint256[])
-          handler: handleOrgDeployed
-      file: ./src/org-deployer.ts
   # - kind: ethereum
   #   name: Beacon
   #   network: hoodi
@@ -81,47 +64,89 @@ dataSources:
           handler: handleModuleDeployed
       file: ./src/governance-factory.ts
   - kind: ethereum
-    name: UniversalAccountRegistry
+    name: PoaManager
     network: hoodi
     source:
-      address: "0xEa45D9E9D1A6e07F62e23987Aa4a8Eb88Db85D6c"
-      abi: UniversalAccountRegistry
+      address: "0x868680dc2689fa49A8389b0313da15408C8BE340"
+      abi: PoaManager
       startBlock: 1772691
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
       language: wasm/assemblyscript
       entities:
-        - UniversalAccountRegistry
-        - Account
-        - UsernameChange
-        - AccountDeletion
-        - BatchRegistration
-        - RegistryOwnershipTransfer
+        - PoaManagerContract
+        - Beacon
+        - BeaconUpgradeEvent
+        - RegistryUpdate
       abis:
-        - name: UniversalAccountRegistry
-          file: ./abis/UniversalAccountRegistry.json
+        - name: PoaManager
+          file: ./abis/PoaManager.json
       eventHandlers:
-        - event: Initialized(uint64)
-          handler: handleInitialized
-        - event: UserRegistered(indexed address,string)
-          handler: handleUserRegistered
-        - event: UsernameChanged(indexed address,string)
-          handler: handleUsernameChanged
-        - event: UserDeleted(indexed address,string)
-          handler: handleUserDeleted
-        - event: BatchRegistered(uint256)
-          handler: handleBatchRegistered
-        - event: OwnershipTransferred(indexed address,indexed address)
-          handler: handleOwnershipTransferred
-      file: ./src/universal-account-registry.ts
+        - event: BeaconCreated(indexed bytes32,string,address,address)
+          handler: handleBeaconCreated
+        - event: BeaconUpgraded(indexed bytes32,address,string)
+          handler: handleBeaconUpgraded
+        - event: RegistryUpdated(address,address)
+          handler: handleRegistryUpdated
+        - event: InfrastructureDeployed(address,address,address,address,address)
+          handler: handleInfrastructureDeployed
+      file: ./src/poa-manager.ts
+templates:
+  # Infrastructure templates (dynamically created via InfrastructureDeployed event)
+  - kind: ethereum
+    name: OrgDeployer
+    network: hoodi
+    source:
+      abi: OrgDeployer
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Organization
+      abis:
+        - name: OrgDeployer
+          file: ./abis/OrgDeployer.json
+      eventHandlers:
+        - event: OrgDeployed(indexed bytes32,indexed address,address,address,address,address,address,address,address,address,address,uint256,uint256[])
+          handler: handleOrgDeployed
+      file: ./src/org-deployer.ts
+  - kind: ethereum
+    name: OrgRegistry
+    network: hoodi
+    source:
+      abi: OrgRegistry
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - OrgRegistryContract
+        - Organization
+        - OrgMetaUpdate
+        - RegisteredContract
+        - AutoUpgradeChange
+      abis:
+        - name: OrgRegistry
+          file: ./abis/OrgRegistry.json
+      eventHandlers:
+        - event: OrgRegistered(indexed bytes32,indexed address,bytes,bytes32)
+          handler: handleOrgRegistered
+        - event: MetaUpdated(indexed bytes32,bytes,bytes32)
+          handler: handleMetaUpdated
+        - event: ContractRegistered(indexed bytes32,indexed bytes32,indexed bytes32,address,address,bool,address)
+          handler: handleContractRegistered
+        - event: AutoUpgradeSet(indexed bytes32,bool)
+          handler: handleAutoUpgradeSet
+        - event: HatsTreeRegistered(indexed bytes32,uint256,uint256[])
+          handler: handleHatsTreeRegistered
+      file: ./src/org-registry.ts
   - kind: ethereum
     name: PaymasterHub
     network: hoodi
     source:
-      address: "0xC9198A859A1E4211E8f56F8919d02495F17bAf41"
       abi: PaymasterHub
-      startBlock: 1772691
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -193,65 +218,39 @@ dataSources:
           handler: handleGracePeriodConfigUpdated
       file: ./src/paymaster-hub.ts
   - kind: ethereum
-    name: OrgRegistry
+    name: UniversalAccountRegistry
     network: hoodi
     source:
-      address: "0xf0Fe0a6D815cCae29d2072186F5F90cB2A404b1B"
-      abi: OrgRegistry
-      startBlock: 1772691
+      abi: UniversalAccountRegistry
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
       language: wasm/assemblyscript
       entities:
-        - OrgRegistryContract
-        - Organization
-        - OrgMetaUpdate
-        - RegisteredContract
-        - AutoUpgradeChange
+        - UniversalAccountRegistry
+        - Account
+        - UsernameChange
+        - AccountDeletion
+        - BatchRegistration
+        - RegistryOwnershipTransfer
       abis:
-        - name: OrgRegistry
-          file: ./abis/OrgRegistry.json
+        - name: UniversalAccountRegistry
+          file: ./abis/UniversalAccountRegistry.json
       eventHandlers:
-        - event: OrgRegistered(indexed bytes32,indexed address,bytes,bytes32)
-          handler: handleOrgRegistered
-        - event: MetaUpdated(indexed bytes32,bytes,bytes32)
-          handler: handleMetaUpdated
-        - event: ContractRegistered(indexed bytes32,indexed bytes32,indexed bytes32,address,address,bool,address)
-          handler: handleContractRegistered
-        - event: AutoUpgradeSet(indexed bytes32,bool)
-          handler: handleAutoUpgradeSet
-        - event: HatsTreeRegistered(indexed bytes32,uint256,uint256[])
-          handler: handleHatsTreeRegistered
-      file: ./src/org-registry.ts
-  - kind: ethereum
-    name: PoaManager
-    network: hoodi
-    source:
-      address: "0x868680dc2689fa49A8389b0313da15408C8BE340"
-      abi: PoaManager
-      startBlock: 1772691
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.9
-      language: wasm/assemblyscript
-      entities:
-        - PoaManagerContract
-        - Beacon
-        - BeaconUpgradeEvent
-        - RegistryUpdate
-      abis:
-        - name: PoaManager
-          file: ./abis/PoaManager.json
-      eventHandlers:
-        - event: BeaconCreated(indexed bytes32,string,address,address)
-          handler: handleBeaconCreated
-        - event: BeaconUpgraded(indexed bytes32,address,string)
-          handler: handleBeaconUpgraded
-        - event: RegistryUpdated(address,address)
-          handler: handleRegistryUpdated
-      file: ./src/poa-manager.ts
-templates:
+        - event: Initialized(uint64)
+          handler: handleInitialized
+        - event: UserRegistered(indexed address,string)
+          handler: handleUserRegistered
+        - event: UsernameChanged(indexed address,string)
+          handler: handleUsernameChanged
+        - event: UserDeleted(indexed address,string)
+          handler: handleUserDeleted
+        - event: BatchRegistered(uint256)
+          handler: handleBatchRegistered
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+      file: ./src/universal-account-registry.ts
+  # Org-level contract templates (dynamically created via OrgDeployed event)
   - kind: ethereum
     name: TaskManager
     network: hoodi

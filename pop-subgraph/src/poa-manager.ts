@@ -2,7 +2,8 @@ import { BigInt, Bytes } from "@graphprotocol/graph-ts";
 import {
   BeaconCreated as BeaconCreatedEvent,
   BeaconUpgraded as BeaconUpgradedEvent,
-  RegistryUpdated as RegistryUpdatedEvent
+  RegistryUpdated as RegistryUpdatedEvent,
+  InfrastructureDeployed as InfrastructureDeployedEvent
 } from "../generated/PoaManager/PoaManager";
 import {
   PoaManagerContract,
@@ -10,6 +11,10 @@ import {
   BeaconUpgradeEvent,
   RegistryUpdate
 } from "../generated/schema";
+import { OrgDeployer as OrgDeployerTemplate } from "../generated/templates";
+import { OrgRegistry as OrgRegistryTemplate } from "../generated/templates";
+import { PaymasterHub as PaymasterHubTemplate } from "../generated/templates";
+import { UniversalAccountRegistry as UniversalAccountRegistryTemplate } from "../generated/templates";
 
 function getOrCreatePoaManager(
   address: Bytes,
@@ -107,4 +112,13 @@ export function handleRegistryUpdated(event: RegistryUpdatedEvent): void {
   update.updatedAtBlock = event.block.number;
   update.transactionHash = event.transaction.hash;
   update.save();
+}
+
+export function handleInfrastructureDeployed(event: InfrastructureDeployedEvent): void {
+  // Create data source templates for infrastructure contracts
+  // This enables dynamic discovery of infrastructure proxy addresses
+  OrgDeployerTemplate.create(event.params.orgDeployer);
+  OrgRegistryTemplate.create(event.params.orgRegistry);
+  PaymasterHubTemplate.create(event.params.paymasterHub);
+  UniversalAccountRegistryTemplate.create(event.params.globalAccountRegistry);
 }

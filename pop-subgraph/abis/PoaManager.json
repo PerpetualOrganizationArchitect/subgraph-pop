@@ -294,6 +294,76 @@
     "anonymous": false
   },
   {
+    "type": "event",
+    "name": "InfrastructureDeployed",
+    "inputs": [
+      {
+        "name": "orgDeployer",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "orgRegistry",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "implRegistry",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "paymasterHub",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "globalAccountRegistry",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "function",
+    "name": "registerInfrastructure",
+    "inputs": [
+      {
+        "name": "_orgDeployer",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_orgRegistry",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_implRegistry",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_paymasterHub",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_globalAccountRegistry",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
     "type": "error",
     "name": "ImplZero",
     "inputs": []
