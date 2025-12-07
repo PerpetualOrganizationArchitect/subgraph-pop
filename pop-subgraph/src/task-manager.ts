@@ -1,4 +1,4 @@
-import { Address, BigInt } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import {
   ProjectCreated,
   ProjectDeleted,
@@ -30,12 +30,25 @@ import {
 import { getUsernameForAddress, getOrCreateUser } from "./utils";
 
 /**
+ * Helper function to create a composite Project ID.
+ * This ensures Projects are unique per TaskManager, preventing cross-org data leakage.
+ * Format: taskManagerAddress-projectId
+ */
+function getProjectEntityId(taskManagerAddress: Address, projectId: Bytes): string {
+  return taskManagerAddress.toHexString() + "-" + projectId.toHexString();
+}
+
+/**
  * Handles the ProjectCreated event from a TaskManager contract.
  * Creates a Project entity and links it to the TaskManager.
+ * Uses composite ID (taskManager-projectId) to ensure cross-org isolation.
  */
 export function handleProjectCreated(event: ProjectCreated): void {
-  let project = new Project(event.params.id);
+  let projectEntityId = getProjectEntityId(event.address, event.params.id);
+  let project = new Project(projectEntityId);
 
+  // Store raw project ID for reference
+  project.projectId = event.params.id;
   // Link to TaskManager entity (event.address is the TaskManager contract address)
   project.taskManager = event.address;
   project.title = event.params.title.toString();
@@ -49,7 +62,8 @@ export function handleProjectCreated(event: ProjectCreated): void {
 }
 
 export function handleProjectDeleted(event: ProjectDeleted): void {
-  let project = Project.load(event.params.id);
+  let projectEntityId = getProjectEntityId(event.address, event.params.id);
+  let project = Project.load(projectEntityId);
   if (project) {
     project.deleted = true;
     project.deletedAt = event.block.timestamp;
@@ -66,7 +80,8 @@ export function handleTaskCreated(event: TaskCreated): void {
 
   task.taskId = event.params.id;
   task.taskManager = event.address;
-  task.project = event.params.project;
+  // Use composite Project ID to ensure cross-org isolation
+  task.project = getProjectEntityId(event.address, event.params.project);
   task.payout = event.params.payout;
   task.bountyToken = event.params.bountyToken;
   task.bountyPayout = event.params.bountyPayout;
@@ -288,7 +303,8 @@ export function handleTaskApplicationApproved(event: TaskApplicationApproved): v
  * Updates the Project's participation token cap and creates a historical record.
  */
 export function handleProjectCapUpdated(event: ProjectCapUpdated): void {
-  let project = Project.load(event.params.id);
+  let projectEntityId = getProjectEntityId(event.address, event.params.id);
+  let project = Project.load(projectEntityId);
   if (project) {
     // Update current cap on project
     project.cap = event.params.newCap;
@@ -297,7 +313,7 @@ export function handleProjectCapUpdated(event: ProjectCapUpdated): void {
     // Create historical record
     let changeId = event.transaction.hash.concatI32(event.logIndex.toI32());
     let change = new ProjectCapChange(changeId);
-    change.project = event.params.id;
+    change.project = projectEntityId;
     change.oldCap = event.params.oldCap;
     change.newCap = event.params.newCap;
     change.changedAt = event.block.timestamp;
@@ -316,12 +332,14 @@ export function handleProjectManagerUpdated(event: ProjectManagerUpdated): void 
   let managerAddress = event.params.manager;
   let isManager = event.params.isManager;
 
-  let id = projectId.toHexString() + "-" + managerAddress.toHexString();
+  // Use composite Project ID for cross-org isolation
+  let projectEntityId = getProjectEntityId(event.address, projectId);
+  let id = projectEntityId + "-" + managerAddress.toHexString();
   let manager = ProjectManager.load(id);
 
   if (manager == null) {
     manager = new ProjectManager(id);
-    manager.project = projectId;
+    manager.project = projectEntityId;
     manager.manager = managerAddress;
     manager.addedAt = event.block.timestamp;
     manager.addedAtBlock = event.block.number;
@@ -361,12 +379,14 @@ export function handleProjectRolePermSet(event: ProjectRolePermSet): void {
   let hatId = event.params.hatId;
   let mask = event.params.mask;
 
-  let id = projectId.toHexString() + "-" + hatId.toString();
+  // Use composite Project ID for cross-org isolation
+  let projectEntityId = getProjectEntityId(event.address, projectId);
+  let id = projectEntityId + "-" + hatId.toString();
   let perm = ProjectRolePermission.load(id);
 
   if (perm == null) {
     perm = new ProjectRolePermission(id);
-    perm.project = projectId;
+    perm.project = projectEntityId;
     perm.hatId = hatId;
   }
 
@@ -391,12 +411,14 @@ export function handleBountyCapSet(event: BountyCapSet): void {
   let projectId = event.params.projectId;
   let token = event.params.token;
 
-  let capId = projectId.toHexString() + "-" + token.toHexString();
+  // Use composite Project ID for cross-org isolation
+  let projectEntityId = getProjectEntityId(event.address, projectId);
+  let capId = projectEntityId + "-" + token.toHexString();
   let bountyCap = ProjectBountyCap.load(capId);
 
   if (bountyCap == null) {
     bountyCap = new ProjectBountyCap(capId);
-    bountyCap.project = projectId;
+    bountyCap.project = projectEntityId;
     bountyCap.token = token;
   }
 
@@ -410,7 +432,7 @@ export function handleBountyCapSet(event: BountyCapSet): void {
   let changeId = event.transaction.hash.concatI32(event.logIndex.toI32());
   let change = new BountyCapChange(changeId);
   change.bountyCap = capId;
-  change.project = projectId;
+  change.project = projectEntityId;
   change.token = token;
   change.oldCap = event.params.oldCap;
   change.newCap = event.params.newCap;
