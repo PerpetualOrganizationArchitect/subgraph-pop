@@ -1,5 +1,5 @@
 import { Address, BigInt } from "@graphprotocol/graph-ts";
-import { OrgDeployed } from "../generated/OrgDeployer/OrgDeployer";
+import { OrgDeployed } from "../generated/templates/OrgDeployer/OrgDeployer";
 import {
   Organization,
   TaskManager as TaskManagerEntity,

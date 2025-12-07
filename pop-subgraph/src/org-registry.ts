@@ -5,7 +5,7 @@ import {
   ContractRegistered as ContractRegisteredEvent,
   AutoUpgradeSet as AutoUpgradeSetEvent,
   HatsTreeRegistered as HatsTreeRegisteredEvent
-} from "../generated/OrgRegistry/OrgRegistry";
+} from "../generated/templates/OrgRegistry/OrgRegistry";
 import {
   OrgRegistryContract,
   Organization,

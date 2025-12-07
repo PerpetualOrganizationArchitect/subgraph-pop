@@ -1,6 +1,6 @@
 import { newMockEvent } from "matchstick-as";
 import { ethereum, Address, Bytes, BigInt } from "@graphprotocol/graph-ts";
-import { OrgDeployed } from "../generated/OrgDeployer/OrgDeployer";
+import { OrgDeployed } from "../generated/templates/OrgDeployer/OrgDeployer";
 
 export function createOrgDeployedEvent(
   orgId: Bytes,

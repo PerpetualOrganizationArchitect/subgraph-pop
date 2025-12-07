@@ -6,7 +6,7 @@ import {
   UserDeleted as UserDeletedEvent,
   BatchRegistered as BatchRegisteredEvent,
   OwnershipTransferred as OwnershipTransferredEvent
-} from "../generated/UniversalAccountRegistry/UniversalAccountRegistry";
+} from "../generated/templates/UniversalAccountRegistry/UniversalAccountRegistry";
 import {
   UniversalAccountRegistry,
   Account,

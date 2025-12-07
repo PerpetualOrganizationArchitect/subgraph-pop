@@ -6,7 +6,7 @@ import {
   ContractRegistered,
   AutoUpgradeSet,
   HatsTreeRegistered
-} from "../generated/OrgRegistry/OrgRegistry";
+} from "../generated/templates/OrgRegistry/OrgRegistry";
 
 export function createOrgRegisteredEvent(
   orgId: Bytes,
