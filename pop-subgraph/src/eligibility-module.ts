@@ -380,6 +380,13 @@ export function handleHatClaimed(event: HatClaimedEvent): void {
   // Link to User entity and create RoleWearer
   let eligibilityModule = EligibilityModuleContract.load(contractAddress);
   if (eligibilityModule) {
+    // Skip RoleWearer creation if EligibilityModule is claiming for itself (system contract)
+    // This avoids timing issues with Organization entity not being fully saved yet
+    if (event.params.wearer.equals(contractAddress)) {
+      claim.save();
+      return;
+    }
+
     let user = getOrCreateUser(
       eligibilityModule.organization,
       event.params.wearer,
