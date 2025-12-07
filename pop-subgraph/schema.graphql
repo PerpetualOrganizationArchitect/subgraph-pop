@@ -125,7 +125,8 @@ type GovernanceModule @entity(immutable: true) {
 }
 
 type Project @entity(immutable: false) {
-  id: Bytes! # projectId
+  id: String! # taskManager-projectId (composite key for cross-org isolation)
+  projectId: Bytes! # raw projectId from contract
   taskManager: TaskManager! # Relationship to TaskManager entity
   title: String! # project title
   metadataHash: Bytes! # project metadata hash
@@ -147,7 +148,7 @@ type Project @entity(immutable: false) {
 # ========================================
 
 type ProjectManager @entity(immutable: false) {
-  id: String! # projectId-managerAddress
+  id: String! # taskManager-projectId-managerAddress (composite key)
   project: Project!
   manager: Bytes!
   managerUser: User
@@ -161,7 +162,7 @@ type ProjectManager @entity(immutable: false) {
 }
 
 type ProjectRolePermission @entity(immutable: false) {
-  id: String! # projectId-hatId
+  id: String! # taskManager-projectId-hatId (composite key)
   project: Project!
   hatId: BigInt!
   mask: Int! # Permission bitmask (uint8: create=1, claim=2, review=4, assign=8)
@@ -175,7 +176,7 @@ type ProjectRolePermission @entity(immutable: false) {
 }
 
 type ProjectBountyCap @entity(immutable: false) {
-  id: String! # projectId-tokenAddress
+  id: String! # taskManager-projectId-tokenAddress (composite key)
   project: Project!
   token: Bytes! # ERC-20 token address
   cap: BigInt! # Current cap amount
@@ -249,7 +250,7 @@ type Task @entity(immutable: false) {
   id: String! # taskManager-taskId
   taskId: BigInt!
   taskManager: Bytes!
-  project: Project!
+  project: Project! # References composite Project ID (taskManager-projectId)
   payout: BigInt!
   bountyToken: Bytes!
   bountyPayout: BigInt!

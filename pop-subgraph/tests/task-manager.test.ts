@@ -181,7 +181,7 @@ describe("TaskManager", () => {
     clearStore();
   });
 
-  test("Project created and stored", () => {
+  test("Project created and stored with composite ID", () => {
     // Setup Organization and TaskManager entities first
     setupTaskManagerEntities();
 
@@ -195,29 +195,39 @@ describe("TaskManager", () => {
     let event = createProjectCreatedEvent(projectId, title, metadataHash, cap);
     handleProjectCreated(event);
 
+    // Project ID should be composite: taskManager-projectId
+    let expectedProjectId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
+
     assert.entityCount("Project", 1);
     assert.fieldEquals(
       "Project",
-      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      expectedProjectId,
       "cap",
       "1000"
     );
     assert.fieldEquals(
       "Project",
-      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      expectedProjectId,
       "deleted",
       "false"
     );
     // Verify Project links to TaskManager entity
     assert.fieldEquals(
       "Project",
-      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      expectedProjectId,
       "taskManager",
       "0xa16081f360e3847006db660bae1c6d1b2e17ec2a"
     );
+    // Verify raw projectId is stored
+    assert.fieldEquals(
+      "Project",
+      expectedProjectId,
+      "projectId",
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    );
   });
 
-  test("Task created and stored", () => {
+  test("Task created and stored with composite project reference", () => {
     // Setup Organization and TaskManager entities first
     setupTaskManagerEntities();
 
@@ -251,11 +261,16 @@ describe("TaskManager", () => {
 
     assert.entityCount("Task", 1);
     // Task ID is formatted as taskManager-taskId
-    let expectedId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1";
-    assert.fieldEquals("Task", expectedId, "taskId", "1");
-    assert.fieldEquals("Task", expectedId, "payout", "100");
-    assert.fieldEquals("Task", expectedId, "status", "Open");
-    assert.fieldEquals("Task", expectedId, "requiresApplication", "true");
+    let expectedTaskId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1";
+    // Task.project should reference composite Project ID
+    let expectedProjectId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
+
+    assert.fieldEquals("Task", expectedTaskId, "taskId", "1");
+    assert.fieldEquals("Task", expectedTaskId, "payout", "100");
+    assert.fieldEquals("Task", expectedTaskId, "status", "Open");
+    assert.fieldEquals("Task", expectedTaskId, "requiresApplication", "true");
+    // Verify task links to composite project ID
+    assert.fieldEquals("Task", expectedTaskId, "project", expectedProjectId);
   });
 
   test("Task assigned updates status", () => {
@@ -368,10 +383,13 @@ describe("TaskManager", () => {
     let capUpdateEvent = createProjectCapUpdatedEvent(projectId, oldCap, newCap);
     handleProjectCapUpdated(capUpdateEvent);
 
+    // Composite Project ID
+    let expectedProjectId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
+
     // Verify project cap was updated
     assert.fieldEquals(
       "Project",
-      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+      expectedProjectId,
       "cap",
       "2000"
     );
@@ -418,9 +436,9 @@ describe("TaskManager", () => {
     let addManagerEvent = createProjectManagerUpdatedEvent(projectId, managerAddress, true);
     handleProjectManagerUpdated(addManagerEvent);
 
-    // Verify manager entity was created
+    // Verify manager entity was created with composite ID
     assert.entityCount("ProjectManager", 1);
-    let expectedId = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-0x0000000000000000000000000000000000000099";
+    let expectedId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-0x0000000000000000000000000000000000000099";
     assert.fieldEquals("ProjectManager", expectedId, "isActive", "true");
     assert.fieldEquals(
       "ProjectManager",
@@ -452,8 +470,8 @@ describe("TaskManager", () => {
     let removeManagerEvent = createProjectManagerUpdatedEvent(projectId, managerAddress, false);
     handleProjectManagerUpdated(removeManagerEvent);
 
-    // Verify manager is now inactive
-    let expectedId = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-0x0000000000000000000000000000000000000099";
+    // Verify manager is now inactive (uses composite ID)
+    let expectedId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-0x0000000000000000000000000000000000000099";
     assert.fieldEquals("ProjectManager", expectedId, "isActive", "false");
   });
 
@@ -480,9 +498,9 @@ describe("TaskManager", () => {
     let permEvent = createProjectRolePermSetEvent(projectId, hatId, mask);
     handleProjectRolePermSet(permEvent);
 
-    // Verify permission entity
+    // Verify permission entity with composite ID
     assert.entityCount("ProjectRolePermission", 1);
-    let expectedId = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-1001";
+    let expectedId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-1001";
     assert.fieldEquals("ProjectRolePermission", expectedId, "mask", "15");
     assert.fieldEquals("ProjectRolePermission", expectedId, "canCreate", "true");
     assert.fieldEquals("ProjectRolePermission", expectedId, "canClaim", "true");
@@ -509,8 +527,8 @@ describe("TaskManager", () => {
     let permEvent = createProjectRolePermSetEvent(projectId, hatId, mask);
     handleProjectRolePermSet(permEvent);
 
-    // Verify all permissions are false
-    let expectedId = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-1002";
+    // Verify all permissions are false (using composite ID)
+    let expectedId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-1002";
     assert.fieldEquals("ProjectRolePermission", expectedId, "mask", "0");
     assert.fieldEquals("ProjectRolePermission", expectedId, "canCreate", "false");
     assert.fieldEquals("ProjectRolePermission", expectedId, "canClaim", "false");
@@ -538,7 +556,7 @@ describe("TaskManager", () => {
     let permEvent = createProjectRolePermSetEvent(projectId, hatId, mask);
     handleProjectRolePermSet(permEvent);
 
-    let expectedId = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-1003";
+    let expectedId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-1003";
     assert.fieldEquals("ProjectRolePermission", expectedId, "mask", "5");
     assert.fieldEquals("ProjectRolePermission", expectedId, "canCreate", "true");
     assert.fieldEquals("ProjectRolePermission", expectedId, "canClaim", "false");
@@ -569,9 +587,9 @@ describe("TaskManager", () => {
     let permEvent2 = createProjectRolePermSetEvent(projectId, hatId, 15);
     handleProjectRolePermSet(permEvent2);
 
-    // Should still have only 1 entity, but with updated values
+    // Should still have only 1 entity, but with updated values (using composite ID)
     assert.entityCount("ProjectRolePermission", 1);
-    let expectedId = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-1004";
+    let expectedId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-1004";
     assert.fieldEquals("ProjectRolePermission", expectedId, "mask", "15");
     assert.fieldEquals("ProjectRolePermission", expectedId, "canCreate", "true");
     assert.fieldEquals("ProjectRolePermission", expectedId, "canClaim", "true");
@@ -603,9 +621,9 @@ describe("TaskManager", () => {
     let bountyCapEvent = createBountyCapSetEvent(projectId, token, oldCap, newCap);
     handleBountyCapSet(bountyCapEvent);
 
-    // Verify ProjectBountyCap entity
+    // Verify ProjectBountyCap entity with composite ID
     assert.entityCount("ProjectBountyCap", 1);
-    let expectedCapId = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-0x0000000000000000000000000000000000000088";
+    let expectedCapId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-0x0000000000000000000000000000000000000088";
     assert.fieldEquals("ProjectBountyCap", expectedCapId, "cap", "5000");
     assert.fieldEquals(
       "ProjectBountyCap",
@@ -654,9 +672,9 @@ describe("TaskManager", () => {
     // Should have 2 ProjectBountyCap entities
     assert.entityCount("ProjectBountyCap", 2);
 
-    // Verify each cap
-    let expectedCapId1 = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-0x0000000000000000000000000000000000000088";
-    let expectedCapId2 = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-0x0000000000000000000000000000000000000099";
+    // Verify each cap with composite IDs
+    let expectedCapId1 = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-0x0000000000000000000000000000000000000088";
+    let expectedCapId2 = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-0x0000000000000000000000000000000000000099";
     assert.fieldEquals("ProjectBountyCap", expectedCapId1, "cap", "5000");
     assert.fieldEquals("ProjectBountyCap", expectedCapId2, "cap", "10000");
   });
@@ -696,12 +714,206 @@ describe("TaskManager", () => {
     bountyCapEvent2.transaction.hash = Bytes.fromHexString("0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef");
     handleBountyCapSet(bountyCapEvent2);
 
-    // Should still have 1 ProjectBountyCap entity with updated value
+    // Should still have 1 ProjectBountyCap entity with updated value (using composite ID)
     assert.entityCount("ProjectBountyCap", 1);
-    let expectedCapId = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-0x0000000000000000000000000000000000000088";
+    let expectedCapId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef-0x0000000000000000000000000000000000000088";
     assert.fieldEquals("ProjectBountyCap", expectedCapId, "cap", "7500");
 
     // Should have 2 history records (different tx hashes)
     assert.entityCount("BountyCapChange", 2);
+  });
+
+  // ========================================
+  // Cross-Organization Isolation Tests
+  // ========================================
+
+  test("Projects with same ID from different TaskManagers are stored separately", () => {
+    // Setup first organization with TaskManager 1
+    let orgId1 = Bytes.fromHexString(
+      "0x1111111111111111111111111111111111111111111111111111111111111111"
+    );
+    let taskManager1Address = Address.fromString("0xa16081f360e3847006db660bae1c6d1b2e17ec2a");
+
+    let org1 = new Organization(orgId1);
+    org1.topHatId = BigInt.fromI32(1000);
+    org1.roleHatIds = [BigInt.fromI32(1001)];
+    org1.deployedAt = BigInt.fromI32(1000);
+    org1.deployedAtBlock = BigInt.fromI32(100);
+    org1.transactionHash = Bytes.fromHexString("0xabcd");
+    org1.save();
+
+    let taskManager1 = new TaskManager(taskManager1Address);
+    taskManager1.organization = orgId1;
+    taskManager1.creatorHatIds = [BigInt.fromI32(1001)];
+    taskManager1.createdAt = BigInt.fromI32(1000);
+    taskManager1.createdAtBlock = BigInt.fromI32(100);
+    taskManager1.transactionHash = Bytes.fromHexString("0xabcd");
+    taskManager1.save();
+
+    // Setup second organization with TaskManager 2 (DIFFERENT address)
+    let orgId2 = Bytes.fromHexString(
+      "0x2222222222222222222222222222222222222222222222222222222222222222"
+    );
+    let taskManager2Address = Address.fromString("0xb27182f471e4948107dc771caf2d6c2f28fc3d3b");
+
+    let org2 = new Organization(orgId2);
+    org2.topHatId = BigInt.fromI32(2000);
+    org2.roleHatIds = [BigInt.fromI32(2001)];
+    org2.deployedAt = BigInt.fromI32(2000);
+    org2.deployedAtBlock = BigInt.fromI32(200);
+    org2.transactionHash = Bytes.fromHexString("0xdcba");
+    org2.save();
+
+    let taskManager2 = new TaskManager(taskManager2Address);
+    taskManager2.organization = orgId2;
+    taskManager2.creatorHatIds = [BigInt.fromI32(2001)];
+    taskManager2.createdAt = BigInt.fromI32(2000);
+    taskManager2.createdAtBlock = BigInt.fromI32(200);
+    taskManager2.transactionHash = Bytes.fromHexString("0xdcba");
+    taskManager2.save();
+
+    // Use the SAME project ID for both organizations
+    let sameProjectId = Bytes.fromHexString(
+      "0x0000000000000000000000000000000000000000000000000000000000000001"
+    );
+    let metadataHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
+
+    // Create project in Org 1
+    let projectEvent1 = createProjectCreatedEvent(
+      sameProjectId,
+      Bytes.fromHexString("0x4f726731"), // "Org1"
+      metadataHash,
+      BigInt.fromI32(1000)
+    );
+    // Set event address to TaskManager 1
+    projectEvent1.address = taskManager1Address;
+    handleProjectCreated(projectEvent1);
+
+    // Create project in Org 2 with SAME project ID
+    let projectEvent2 = createProjectCreatedEvent(
+      sameProjectId,
+      Bytes.fromHexString("0x4f726732"), // "Org2"
+      metadataHash,
+      BigInt.fromI32(2000)
+    );
+    // Set event address to TaskManager 2
+    projectEvent2.address = taskManager2Address;
+    handleProjectCreated(projectEvent2);
+
+    // CRITICAL: Should have 2 separate Project entities, NOT 1
+    assert.entityCount("Project", 2);
+
+    // Verify Org 1's project
+    let expectedProjectId1 = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-0x0000000000000000000000000000000000000000000000000000000000000001";
+    assert.fieldEquals("Project", expectedProjectId1, "cap", "1000");
+    assert.fieldEquals("Project", expectedProjectId1, "taskManager", taskManager1Address.toHexString());
+
+    // Verify Org 2's project (should NOT have been overwritten)
+    let expectedProjectId2 = "0xb27182f471e4948107dc771caf2d6c2f28fc3d3b-0x0000000000000000000000000000000000000000000000000000000000000001";
+    assert.fieldEquals("Project", expectedProjectId2, "cap", "2000");
+    assert.fieldEquals("Project", expectedProjectId2, "taskManager", taskManager2Address.toHexString());
+  });
+
+  test("Tasks with same ID from different TaskManagers reference correct org-specific projects", () => {
+    // Setup two organizations with different TaskManagers
+    let orgId1 = Bytes.fromHexString(
+      "0x1111111111111111111111111111111111111111111111111111111111111111"
+    );
+    let taskManager1Address = Address.fromString("0xa16081f360e3847006db660bae1c6d1b2e17ec2a");
+
+    let org1 = new Organization(orgId1);
+    org1.topHatId = BigInt.fromI32(1000);
+    org1.roleHatIds = [BigInt.fromI32(1001)];
+    org1.deployedAt = BigInt.fromI32(1000);
+    org1.deployedAtBlock = BigInt.fromI32(100);
+    org1.transactionHash = Bytes.fromHexString("0xabcd");
+    org1.save();
+
+    let taskManager1 = new TaskManager(taskManager1Address);
+    taskManager1.organization = orgId1;
+    taskManager1.creatorHatIds = [BigInt.fromI32(1001)];
+    taskManager1.createdAt = BigInt.fromI32(1000);
+    taskManager1.createdAtBlock = BigInt.fromI32(100);
+    taskManager1.transactionHash = Bytes.fromHexString("0xabcd");
+    taskManager1.save();
+
+    let orgId2 = Bytes.fromHexString(
+      "0x2222222222222222222222222222222222222222222222222222222222222222"
+    );
+    let taskManager2Address = Address.fromString("0xb27182f471e4948107dc771caf2d6c2f28fc3d3b");
+
+    let org2 = new Organization(orgId2);
+    org2.topHatId = BigInt.fromI32(2000);
+    org2.roleHatIds = [BigInt.fromI32(2001)];
+    org2.deployedAt = BigInt.fromI32(2000);
+    org2.deployedAtBlock = BigInt.fromI32(200);
+    org2.transactionHash = Bytes.fromHexString("0xdcba");
+    org2.save();
+
+    let taskManager2 = new TaskManager(taskManager2Address);
+    taskManager2.organization = orgId2;
+    taskManager2.creatorHatIds = [BigInt.fromI32(2001)];
+    taskManager2.createdAt = BigInt.fromI32(2000);
+    taskManager2.createdAtBlock = BigInt.fromI32(200);
+    taskManager2.transactionHash = Bytes.fromHexString("0xdcba");
+    taskManager2.save();
+
+    // Same project ID in both orgs
+    let sameProjectId = Bytes.fromHexString(
+      "0x0000000000000000000000000000000000000000000000000000000000000001"
+    );
+    let metadataHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
+
+    // Create projects
+    let projectEvent1 = createProjectCreatedEvent(sameProjectId, Bytes.fromHexString("0x4f726731"), metadataHash, BigInt.fromI32(1000));
+    projectEvent1.address = taskManager1Address;
+    handleProjectCreated(projectEvent1);
+
+    let projectEvent2 = createProjectCreatedEvent(sameProjectId, Bytes.fromHexString("0x4f726732"), metadataHash, BigInt.fromI32(2000));
+    projectEvent2.address = taskManager2Address;
+    handleProjectCreated(projectEvent2);
+
+    // Create tasks with same task ID in both projects
+    let sameTaskId = BigInt.fromI32(1);
+    let bountyToken = Address.fromString("0x0000000000000000000000000000000000000001");
+
+    let taskEvent1 = createTaskCreatedEvent(
+      sameTaskId,
+      sameProjectId,
+      BigInt.fromI32(100), // Org 1 payout
+      bountyToken,
+      BigInt.fromI32(50),
+      false,
+      Bytes.fromHexString("0x5461736b31") // "Task1"
+    );
+    taskEvent1.address = taskManager1Address;
+    handleTaskCreated(taskEvent1);
+
+    let taskEvent2 = createTaskCreatedEvent(
+      sameTaskId,
+      sameProjectId,
+      BigInt.fromI32(200), // Org 2 payout (different)
+      bountyToken,
+      BigInt.fromI32(100),
+      true,
+      Bytes.fromHexString("0x5461736b32") // "Task2"
+    );
+    taskEvent2.address = taskManager2Address;
+    handleTaskCreated(taskEvent2);
+
+    // Should have 2 separate Task entities
+    assert.entityCount("Task", 2);
+
+    // Verify Task 1 from Org 1 references Org 1's project
+    let expectedTask1Id = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1";
+    let expectedProject1Id = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-0x0000000000000000000000000000000000000000000000000000000000000001";
+    assert.fieldEquals("Task", expectedTask1Id, "payout", "100");
+    assert.fieldEquals("Task", expectedTask1Id, "project", expectedProject1Id);
+
+    // Verify Task 1 from Org 2 references Org 2's project (NOT Org 1's project!)
+    let expectedTask2Id = "0xb27182f471e4948107dc771caf2d6c2f28fc3d3b-1";
+    let expectedProject2Id = "0xb27182f471e4948107dc771caf2d6c2f28fc3d3b-0x0000000000000000000000000000000000000000000000000000000000000001";
+    assert.fieldEquals("Task", expectedTask2Id, "payout", "200");
+    assert.fieldEquals("Task", expectedTask2Id, "project", expectedProject2Id);
   });
 });
