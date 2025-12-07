@@ -83,6 +83,7 @@ function setupExecutorEntities(): void {
   let taskManagerAddress = Address.fromString("0x0000000000000000000000000000000000000006");
   let taskManager = new TaskManager(taskManagerAddress);
   taskManager.organization = orgId;
+  taskManager.creatorHatIds = [BigInt.fromI32(1002)]; // Non-member roles that can create projects
   taskManager.createdAt = BigInt.fromI32(1000);
   taskManager.createdAtBlock = BigInt.fromI32(100);
   taskManager.transactionHash = Bytes.fromHexString("0xabcd");

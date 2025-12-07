@@ -179,7 +179,7 @@ export function handleOrgDeployed(event: OrgDeployed): void {
   // This allows querying roles before Hat entities are created by EligibilityModule
   getOrCreateRole(event.params.orgId, event.params.topHatId, event);
 
-  let roleHatIds = event.params.roleHatIds;
+  // roleHatIds is already declared above for creatorHatIds derivation
   for (let i = 0; i < roleHatIds.length; i++) {
     getOrCreateRole(event.params.orgId, roleHatIds[i], event);
   }

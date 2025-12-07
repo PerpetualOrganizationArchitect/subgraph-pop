@@ -69,6 +69,7 @@ function setupTaskManagerEntities(): void {
   let taskManagerAddress = Address.fromString("0xa16081f360e3847006db660bae1c6d1b2e17ec2a");
   let taskManager = new TaskManager(taskManagerAddress);
   taskManager.organization = orgId;
+  taskManager.creatorHatIds = [BigInt.fromI32(1002)]; // Non-member roles that can create projects
   taskManager.createdAt = BigInt.fromI32(1000);
   taskManager.createdAtBlock = BigInt.fromI32(100);
   taskManager.transactionHash = Bytes.fromHexString("0xabcd");
