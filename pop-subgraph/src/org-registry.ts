@@ -17,13 +17,37 @@ import { OrgMetadata as OrgMetadataTemplate } from "../generated/templates";
 import { getOrCreateRole } from "./utils";
 
 /**
+ * Helper function to convert bytes32 sha256 digest to IPFS CIDv0.
+ *
+ * CIDv0 = base58( 0x1220 + sha256_digest )
+ * - 0x12 = sha2-256 multicodec
+ * - 0x20 = 32 bytes length
+ * - sha256_digest = 32 bytes (the bytes32 from contract)
+ */
+function bytes32ToCid(hash: Bytes): string {
+  // Create the multihash by prepending 0x1220 header
+  let prefix = Bytes.fromHexString("0x1220");
+
+  // Concatenate prefix + hash (34 bytes total)
+  let multihash = new Bytes(34);
+  for (let i = 0; i < 2; i++) {
+    multihash[i] = prefix[i];
+  }
+  for (let i = 0; i < 32; i++) {
+    multihash[i + 2] = hash[i];
+  }
+
+  // Base58 encode to get CIDv0 (starts with "Qm")
+  return multihash.toBase58();
+}
+
+/**
  * Helper function to create an IPFS file data source for org metadata.
  * Uses DataSourceContext to pass the orgId to the handler so it can
  * link the metadata back to the organization.
  *
- * This is resilient to IPFS failures - if IPFS is slow or unavailable,
- * the main chain indexing will continue and the metadata will be
- * indexed when/if the content becomes available.
+ * The contract stores bytes32 which is the sha256 digest from the IPFS CID.
+ * We convert it back to CIDv0 format for The Graph to fetch.
  */
 function createIpfsDataSource(metadataHash: Bytes, orgId: Bytes): void {
   // Skip if metadataHash is empty (all zeros)
@@ -31,9 +55,8 @@ function createIpfsDataSource(metadataHash: Bytes, orgId: Bytes): void {
     return;
   }
 
-  // Convert the bytes32 hash to a string for use as IPFS hash
-  // The Graph will fetch from IPFS using this as the CID
-  let ipfsHash = metadataHash.toHexString();
+  // Convert bytes32 sha256 digest to IPFS CIDv0 string
+  let ipfsCid = bytes32ToCid(metadataHash);
 
   // Create context to pass orgId to the IPFS handler
   let context = new DataSourceContext();
@@ -42,7 +65,7 @@ function createIpfsDataSource(metadataHash: Bytes, orgId: Bytes): void {
   // Create the file data source with context
   // If IPFS is unavailable or slow, this will be retried automatically
   // and won't block the main chain indexing
-  OrgMetadataTemplate.createWithContext(ipfsHash, context);
+  OrgMetadataTemplate.createWithContext(ipfsCid, context);
 }
 
 /**
