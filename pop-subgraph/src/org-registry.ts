@@ -21,9 +21,14 @@ import { getOrCreateRole } from "./utils";
  * Uses DataSourceContext to pass the orgId to the handler so it can
  * link the metadata back to the organization.
  *
- * This is resilient to IPFS failures - if IPFS is slow or unavailable,
- * the main chain indexing will continue and the metadata will be
- * indexed when/if the content becomes available.
+ * NOTE: Currently disabled because the contract stores bytes32 sha256 digest,
+ * but The Graph needs a proper IPFS CIDv0 string (base58 encoded).
+ * Converting bytes32 → CID requires base58 encoding which is complex in AssemblyScript.
+ *
+ * TODO: Either:
+ * 1. Store full CID string in contract events
+ * 2. Implement base58 encoding in AssemblyScript
+ * 3. Use an off-chain indexer to fetch metadata
  */
 function createIpfsDataSource(metadataHash: Bytes, orgId: Bytes): void {
   // Skip if metadataHash is empty (all zeros)
@@ -31,18 +36,19 @@ function createIpfsDataSource(metadataHash: Bytes, orgId: Bytes): void {
     return;
   }
 
-  // Convert the bytes32 hash to a string for use as IPFS hash
-  // The Graph will fetch from IPFS using this as the CID
-  let ipfsHash = metadataHash.toHexString();
+  // DISABLED: Cannot convert bytes32 to valid IPFS CID without base58 encoding
+  // The hex string is not a valid CID format and will cause indexing errors
+  //
+  // To properly support IPFS metadata:
+  // - Contract should emit the full CID string (e.g., "QmXyz...")
+  // - Or implement base58 encoding: prepend 0x1220 to bytes32, then base58 encode
+  //
+  // For now, metadata must be indexed through other means (e.g., off-chain)
 
-  // Create context to pass orgId to the IPFS handler
-  let context = new DataSourceContext();
-  context.setBytes("orgId", orgId);
-
-  // Create the file data source with context
-  // If IPFS is unavailable or slow, this will be retried automatically
-  // and won't block the main chain indexing
-  OrgMetadataTemplate.createWithContext(ipfsHash, context);
+  // let ipfsHash = metadataHash.toHexString();
+  // let context = new DataSourceContext();
+  // context.setBytes("orgId", orgId);
+  // OrgMetadataTemplate.createWithContext(ipfsHash, context);
 }
 
 /**
