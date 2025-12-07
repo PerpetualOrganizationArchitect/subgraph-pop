@@ -97,6 +97,7 @@ type TaskManager @entity(immutable: false) {
   id: Bytes! # taskManager contract address
   organization: Organization! # Organization this TaskManager belongs to
   projects: [Project!]! @derivedFrom(field: "taskManager")
+  creatorHatIds: [BigInt!]! # Hat IDs that can create projects (derived from org config)
   createdAt: BigInt!
   createdAtBlock: BigInt!
   transactionHash: Bytes!
