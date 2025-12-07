@@ -375,18 +375,21 @@ export function isSystemContract(orgId: Bytes, address: Address): boolean {
   let org = Organization.load(orgId);
   if (!org) return false;
 
+  // Convert incoming address to hex for reliable comparison
+  let addressHex = address.toHexString();
+
   // Check if address is the Executor contract
   let executorContractRef = org.executorContract;
   if (executorContractRef) {
-    let executor = ExecutorContract.load(executorContractRef);
-    if (executor && executor.id.equals(address)) return true;
+    // Direct hex comparison - executorContractRef IS the executor address
+    if (executorContractRef.toHexString() == addressHex) return true;
   }
 
   // Check if address is the EligibilityModule contract
   let eligibilityModuleRef = org.eligibilityModule;
   if (eligibilityModuleRef) {
-    let eligibility = EligibilityModuleContract.load(eligibilityModuleRef);
-    if (eligibility && eligibility.id.equals(address)) return true;
+    // Direct hex comparison - eligibilityModuleRef IS the eligibility module address
+    if (eligibilityModuleRef.toHexString() == addressHex) return true;
   }
 
   return false;
