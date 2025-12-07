@@ -198,6 +198,13 @@ export function handleHatsMinted(event: HatsMintedEvent): void {
   // Link to User entity if we can determine the organization
   let executor = ExecutorContract.load(contractAddress);
   if (executor) {
+    // Skip RoleWearer creation if Executor is minting to itself (system contract)
+    // This avoids timing issues with Organization entity not being fully saved yet
+    if (recipient.equals(contractAddress)) {
+      mint.save();
+      return;
+    }
+
     let user = getOrCreateUser(
       executor.organization,
       recipient,
