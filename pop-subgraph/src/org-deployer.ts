@@ -41,6 +41,16 @@ export function handleOrgDeployed(event: OrgDeployed): void {
   taskManager.createdAtBlock = event.block.number;
   taskManager.transactionHash = event.transaction.hash;
 
+  // Derive creatorHatIds from roleHatIds
+  // Standard config: taskCreatorRoles = 0b110 (executives + admins = all non-member roles)
+  // This means roleHatIds[0] = member, roleHatIds[1:] = creator-eligible roles
+  let roleHatIds = event.params.roleHatIds;
+  let creatorHatIds: BigInt[] = [];
+  for (let i = 1; i < roleHatIds.length; i++) {
+    creatorHatIds.push(roleHatIds[i]);
+  }
+  taskManager.creatorHatIds = creatorHatIds;
+
   // Create HybridVotingContract entity
   let hybridVoting = new HybridVotingContract(event.params.hybridVoting);
   hybridVoting.executor = Address.zero(); // Will be set by Initialized event
@@ -169,7 +179,7 @@ export function handleOrgDeployed(event: OrgDeployed): void {
   // This allows querying roles before Hat entities are created by EligibilityModule
   getOrCreateRole(event.params.orgId, event.params.topHatId, event);
 
-  let roleHatIds = event.params.roleHatIds;
+  // roleHatIds is already declared above for creatorHatIds derivation
   for (let i = 0; i < roleHatIds.length; i++) {
     getOrCreateRole(event.params.orgId, roleHatIds[i], event);
   }
