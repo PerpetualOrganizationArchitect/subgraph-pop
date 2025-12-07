@@ -67,7 +67,7 @@ dataSources:
     name: PoaManager
     network: hoodi
     source:
-      address: "0x868680dc2689fa49A8389b0313da15408C8BE340"
+      address: "0x58e4c0f9C905021eDD320d4a5c7a9b70dD6996Fd"
       abi: PoaManager
       startBlock: 1772691
     mapping:
