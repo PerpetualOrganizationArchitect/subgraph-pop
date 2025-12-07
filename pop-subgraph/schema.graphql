@@ -1582,6 +1582,11 @@ type PoaManagerContract @entity(immutable: false) {
   beacons: [Beacon!]! @derivedFrom(field: "poaManager")
   beaconUpgrades: [BeaconUpgradeEvent!]! @derivedFrom(field: "poaManager")
   registryUpdates: [RegistryUpdate!]! @derivedFrom(field: "poaManager")
+  # Infrastructure proxy addresses (populated via InfrastructureDeployed event)
+  orgDeployerProxy: Bytes # OrgDeployer proxy contract address
+  orgRegistryProxy: Bytes # OrgRegistry proxy contract address
+  paymasterHubProxy: Bytes # PaymasterHub proxy contract address
+  globalAccountRegistryProxy: Bytes # UniversalAccountRegistry proxy contract address
 }
 
 type Beacon @entity(immutable: false) {

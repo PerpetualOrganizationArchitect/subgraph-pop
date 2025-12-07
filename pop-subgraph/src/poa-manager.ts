@@ -115,6 +115,20 @@ export function handleRegistryUpdated(event: RegistryUpdatedEvent): void {
 }
 
 export function handleInfrastructureDeployed(event: InfrastructureDeployedEvent): void {
+  let contractAddress = event.address;
+
+  // Get or create PoaManagerContract and store infrastructure proxy addresses
+  let poaManager = getOrCreatePoaManager(
+    contractAddress,
+    event.block.timestamp,
+    event.block.number
+  );
+  poaManager.orgDeployerProxy = event.params.orgDeployer;
+  poaManager.orgRegistryProxy = event.params.orgRegistry;
+  poaManager.paymasterHubProxy = event.params.paymasterHub;
+  poaManager.globalAccountRegistryProxy = event.params.globalAccountRegistry;
+  poaManager.save();
+
   // Create data source templates for infrastructure contracts
   // This enables dynamic discovery of infrastructure proxy addresses
   OrgDeployerTemplate.create(event.params.orgDeployer);
