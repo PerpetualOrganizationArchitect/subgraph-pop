@@ -22,7 +22,7 @@ import {
   OrgBannedFromSolidarity as OrgBannedFromSolidarityEvent,
   EmergencyWithdraw as EmergencyWithdrawEvent,
   GracePeriodConfigUpdated as GracePeriodConfigUpdatedEvent
-} from "../generated/PaymasterHub/PaymasterHub";
+} from "../generated/templates/PaymasterHub/PaymasterHub";
 import {
   PaymasterHubContract,
   PaymasterOrgConfig,
