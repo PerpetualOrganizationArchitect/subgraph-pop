@@ -115,9 +115,12 @@ export function handleOrgRegistered(event: OrgRegisteredEvent): void {
   org.metadataHash = metadataHash;
 
   // Link to metadata entity (will be populated when IPFS content is indexed)
-  // Use hex string as the metadata ID
-  let metadataId = metadataHash.toHexString();
-  org.metadata = metadataId;
+  // Use CIDv0 format as the metadata ID (must match the ID used in org-metadata.ts)
+  // Skip for zero hash (no metadata)
+  if (!metadataHash.equals(Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000"))) {
+    let metadataId = bytes32ToCid(metadataHash);
+    org.metadata = metadataId;
+  }
 
   org.lastUpdatedAt = event.block.timestamp;
   org.save();
@@ -144,8 +147,14 @@ export function handleMetaUpdated(event: MetaUpdatedEvent): void {
     org.metadataHash = newMetadataHash;
 
     // Link to new metadata entity (will be populated when IPFS content is indexed)
-    let metadataId = newMetadataHash.toHexString();
-    org.metadata = metadataId;
+    // Use CIDv0 format as the metadata ID (must match the ID used in org-metadata.ts)
+    // Skip for zero hash (no metadata)
+    if (!newMetadataHash.equals(Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000"))) {
+      let metadataId = bytes32ToCid(newMetadataHash);
+      org.metadata = metadataId;
+    } else {
+      org.metadata = null;
+    }
 
     org.lastUpdatedAt = event.block.timestamp;
     org.save();

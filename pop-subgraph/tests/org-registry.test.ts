@@ -32,6 +32,22 @@ import {
 // Default mock event address from matchstick
 const REGISTRY_ADDRESS = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a";
 
+/**
+ * Helper function to convert bytes32 sha256 digest to IPFS CIDv0.
+ * Mirrors the logic in org-registry.ts for test assertions.
+ */
+function bytes32ToCid(hash: Bytes): string {
+  let prefix = Bytes.fromHexString("0x1220");
+  let multihash = new Bytes(34);
+  for (let i = 0; i < 2; i++) {
+    multihash[i] = prefix[i];
+  }
+  for (let i = 0; i < 32; i++) {
+    multihash[i + 2] = hash[i];
+  }
+  return multihash.toBase58();
+}
+
 // Helper to create Organization entity (normally created by OrgDeployed)
 function createMockOrganization(orgId: Bytes): void {
   let org = new Organization(orgId);
@@ -103,12 +119,12 @@ describe("OrgRegistry", () => {
         "metadataHash",
         "0x0000000000000000000000000000000000000000000000000000000000001234"
       );
-      // Verify metadata link is set to the hex string of the hash
+      // Verify metadata link is set to the CIDv0 format of the hash (to match OrgMetadata entity ID)
       assert.fieldEquals(
         "Organization",
         orgId.toHexString(),
         "metadata",
-        metadataHash.toHexString()
+        bytes32ToCid(metadataHash)
       );
     });
 
@@ -125,16 +141,16 @@ describe("OrgRegistry", () => {
       let event = createOrgRegisteredEvent(orgId, executor, name, metadataHash);
       handleOrgRegistered(event);
 
-      // Verify metadata field is set to the hex string of the hash
+      // Verify metadata field is set to the CIDv0 format of the hash
       assert.fieldEquals(
         "Organization",
         orgId.toHexString(),
         "metadata",
-        "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+        bytes32ToCid(metadataHash)
       );
     });
 
-    test("sets metadata link even for zero hash", () => {
+    test("does NOT set metadata link for zero hash", () => {
       let orgId = Bytes.fromHexString(
         "0x1111111111111111111111111111111111111111111111111111111111111111"
       );
@@ -148,12 +164,9 @@ describe("OrgRegistry", () => {
       let event = createOrgRegisteredEvent(orgId, executor, name, metadataHash);
       handleOrgRegistered(event);
 
-      // Metadata field should still be set (IPFS data source won't be created for zero hash)
-      assert.fieldEquals(
-        "Organization",
-        orgId.toHexString(),
-        "metadata",
-        "0x0000000000000000000000000000000000000000000000000000000000000000"
+      // Metadata field should NOT be set for zero hash (no IPFS data source created)
+      assert.assertNull(
+        Organization.load(orgId)!.metadata
       );
     });
 
@@ -243,12 +256,12 @@ describe("OrgRegistry", () => {
         "0x0000000000000000000000000000000000000000000000000000000000005678"
       );
 
-      // Verify metadata link was updated to new hash
+      // Verify metadata link was updated to CIDv0 format of new hash
       assert.fieldEquals(
         "Organization",
         orgId.toHexString(),
         "metadata",
-        "0x0000000000000000000000000000000000000000000000000000000000005678"
+        bytes32ToCid(newMetadataHash)
       );
 
       // Verify history record was created
@@ -267,12 +280,12 @@ describe("OrgRegistry", () => {
       let regEvent = createOrgRegisteredEvent(orgId, executor, name, initialHash);
       handleOrgRegistered(regEvent);
 
-      // Verify initial metadata link
+      // Verify initial metadata link is in CIDv0 format
       assert.fieldEquals(
         "Organization",
         orgId.toHexString(),
         "metadata",
-        "0xaaaa000000000000000000000000000000000000000000000000000000001111"
+        bytes32ToCid(initialHash)
       );
 
       // Update to new metadata
@@ -282,12 +295,12 @@ describe("OrgRegistry", () => {
       updateEvent.logIndex = BigInt.fromI32(2);
       handleMetaUpdated(updateEvent);
 
-      // Verify metadata link was updated
+      // Verify metadata link was updated to CIDv0 format of new hash
       assert.fieldEquals(
         "Organization",
         orgId.toHexString(),
         "metadata",
-        "0xbbbb000000000000000000000000000000000000000000000000000000002222"
+        bytes32ToCid(newHash)
       );
     });
 
