@@ -552,6 +552,12 @@ type Role @entity(immutable: false) {
   hatId: BigInt!
   hat: Hat # Link to Hat entity (nullable until HatCreatedWithEligibility)
 
+  # Role metadata from RolesCreated event
+  name: String # Role name from smart contract
+  image: String # Role image URL
+  metadataCID: Bytes # IPFS CID for extended metadata
+  canVote: Boolean # Whether this role can vote
+
   # Timestamps
   createdAt: BigInt!
   createdAtBlock: BigInt!
