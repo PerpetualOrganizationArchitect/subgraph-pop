@@ -24,11 +24,13 @@ function bytes32ToCid(hash: Bytes): string {
 }
 import {
   handleHatMetadataUpdated,
-  handleHatCreatedWithEligibility
+  handleHatCreatedWithEligibility,
+  handleDefaultEligibilityUpdated
 } from "../src/eligibility-module";
 import {
   createHatMetadataUpdatedEvent,
-  createHatCreatedWithEligibilityEvent
+  createHatCreatedWithEligibilityEvent,
+  createDefaultEligibilityUpdatedEvent
 } from "./eligibility-module-utils";
 import {
   Organization,
@@ -42,7 +44,8 @@ import {
   EducationHubContract,
   PaymentManagerContract,
   TaskManager,
-  Hat
+  Hat,
+  Role
 } from "../generated/schema";
 
 /**
@@ -345,5 +348,144 @@ describe("EligibilityModule - HatMetadataUpdated", () => {
 
     // Should not create event entity since hat doesn't exist
     assert.entityCount("HatMetadataUpdateEvent", 0);
+  });
+});
+
+describe("EligibilityModule - DefaultEligibilityUpdated", () => {
+  afterEach(() => {
+    clearStore();
+  });
+
+  test("DefaultEligibilityUpdated creates Hat entity when hat does not exist", () => {
+    setupEligibilityModuleEntities();
+
+    let hatId = BigInt.fromI32(2001);
+    let admin = Address.fromString("0x0000000000000000000000000000000000000099");
+
+    let event = createDefaultEligibilityUpdatedEvent(hatId, true, true, admin);
+    handleDefaultEligibilityUpdated(event);
+
+    // Hat entity should be created
+    let hatEntityId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-2001";
+    assert.entityCount("Hat", 1);
+    assert.fieldEquals("Hat", hatEntityId, "hatId", "2001");
+    assert.fieldEquals("Hat", hatEntityId, "defaultEligible", "true");
+    assert.fieldEquals("Hat", hatEntityId, "defaultStanding", "true");
+  });
+
+  test("DefaultEligibilityUpdated creates Role entity and links Hat to Role", () => {
+    setupEligibilityModuleEntities();
+
+    let hatId = BigInt.fromI32(2002);
+    let admin = Address.fromString("0x0000000000000000000000000000000000000099");
+
+    let event = createDefaultEligibilityUpdatedEvent(hatId, true, true, admin);
+    handleDefaultEligibilityUpdated(event);
+
+    // Role entity should be created
+    let orgId = Bytes.fromHexString("0x1111111111111111111111111111111111111111111111111111111111111111");
+    let roleId = orgId.toHexString() + "-" + hatId.toString();
+    assert.entityCount("Role", 1);
+    assert.fieldEquals("Role", roleId, "hatId", "2002");
+
+    // Role.hat should link to the Hat entity
+    let hatEntityId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-2002";
+    assert.fieldEquals("Role", roleId, "hat", hatEntityId);
+  });
+
+  test("DefaultEligibilityUpdated updates existing Hat without creating duplicate Role", () => {
+    setupEligibilityModuleEntities();
+
+    let hatId = BigInt.fromI32(2003);
+    let admin = Address.fromString("0x0000000000000000000000000000000000000099");
+
+    // First event - creates Hat and Role
+    let event1 = createDefaultEligibilityUpdatedEvent(hatId, true, true, admin);
+    handleDefaultEligibilityUpdated(event1);
+
+    // Verify Hat and Role were created
+    let hatEntityId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-2003";
+    let orgId = Bytes.fromHexString("0x1111111111111111111111111111111111111111111111111111111111111111");
+    let roleId = orgId.toHexString() + "-" + hatId.toString();
+
+    assert.entityCount("Hat", 1);
+    assert.entityCount("Role", 1);
+    assert.fieldEquals("Hat", hatEntityId, "defaultEligible", "true");
+
+    // Second event with same hatId - should update Hat but not create another Role
+    let event2 = createDefaultEligibilityUpdatedEvent(hatId, false, false, admin);
+    event2.logIndex = BigInt.fromI32(2);
+    handleDefaultEligibilityUpdated(event2);
+
+    // Should still have only 1 Hat and 1 Role
+    assert.entityCount("Hat", 1);
+    assert.entityCount("Role", 1);
+
+    // Hat should be updated with new eligibility values
+    assert.fieldEquals("Hat", hatEntityId, "defaultEligible", "false");
+    assert.fieldEquals("Hat", hatEntityId, "defaultStanding", "false");
+  });
+
+  test("DefaultEligibilityUpdated does not duplicate Role link on existing Hat", () => {
+    setupEligibilityModuleEntities();
+
+    let hatId = BigInt.fromI32(1001);  // Use roleHatId that's already in org
+    createHatEntity(hatId);
+
+    // Create a Role entity to simulate what would have been created when the Hat was first indexed
+    let orgId = Bytes.fromHexString("0x1111111111111111111111111111111111111111111111111111111111111111");
+    let roleId = orgId.toHexString() + "-" + hatId.toString();
+    let hatEntityId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1001";
+    let role = new Role(roleId);
+    role.organization = orgId;
+    role.hatId = hatId;
+    role.hat = hatEntityId;
+    role.createdAt = BigInt.fromI32(1000);
+    role.createdAtBlock = BigInt.fromI32(100);
+    role.transactionHash = Bytes.fromHexString("0xabcd");
+    role.save();
+
+    let admin = Address.fromString("0x0000000000000000000000000000000000000099");
+
+    // Event for existing Hat - should NOT create a new Role link
+    let event = createDefaultEligibilityUpdatedEvent(hatId, false, true, admin);
+    handleDefaultEligibilityUpdated(event);
+
+    // Hat should be updated
+    assert.fieldEquals("Hat", hatEntityId, "defaultEligible", "false");
+    assert.fieldEquals("Hat", hatEntityId, "defaultStanding", "true");
+
+    // Only one Role should exist (not duplicated)
+    assert.entityCount("Role", 1);
+  });
+
+  test("HatCreatedWithEligibility creates Hat and links to Role", () => {
+    setupEligibilityModuleEntities();
+
+    let creator = Address.fromString("0x0000000000000000000000000000000000000099");
+    let parentHatId = BigInt.fromI32(1000);
+    let newHatId = BigInt.fromI32(3001);
+
+    let event = createHatCreatedWithEligibilityEvent(
+      creator,
+      parentHatId,
+      newHatId,
+      true,
+      true,
+      BigInt.fromI32(0)
+    );
+    handleHatCreatedWithEligibility(event);
+
+    // Hat should be created
+    let hatEntityId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-3001";
+    assert.entityCount("Hat", 1);
+    assert.fieldEquals("Hat", hatEntityId, "hatId", "3001");
+    assert.fieldEquals("Hat", hatEntityId, "parentHatId", "1000");
+
+    // Role should be created and linked
+    let orgId = Bytes.fromHexString("0x1111111111111111111111111111111111111111111111111111111111111111");
+    let roleId = orgId.toHexString() + "-" + newHatId.toString();
+    assert.entityCount("Role", 1);
+    assert.fieldEquals("Role", roleId, "hat", hatEntityId);
   });
 });

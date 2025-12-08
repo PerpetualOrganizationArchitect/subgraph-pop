@@ -121,6 +121,14 @@ export function handleHatCreatedWithEligibility(
 
   hat.hatId = hatId;
   hat.parentHatId = event.params.parentHatId;
+  // Calculate level based on parent (0 for top hat, otherwise try to get from parent)
+  let parentHat = Hat.load(contractAddress.toHexString() + "-" + event.params.parentHatId.toString());
+  if (parentHat != null) {
+    hat.level = parentHat.level + 1;
+  } else {
+    // Default to 1 if parent not found (parent might not be indexed yet)
+    hat.level = event.params.parentHatId.equals(BigInt.fromI32(0)) ? 0 : 1;
+  }
   hat.eligibilityModule = contractAddress;
   hat.creator = event.params.creator;
   hat.creatorUsername = getUsernameForAddress(event.params.creator);
@@ -276,6 +284,8 @@ export function handleDefaultEligibilityUpdated(
   let hatEntityId = contractAddress.toHexString() + "-" + hatId.toString();
 
   let hat = Hat.load(hatEntityId);
+  let isNewHat = hat == null;
+
   if (hat == null) {
     // Hat doesn't exist yet - this happens when hats are created via HatsTreeSetup
     // (which creates hats directly on Hats Protocol, not via createHatWithEligibility)
@@ -312,13 +322,21 @@ export function handleDefaultEligibilityUpdated(
       hatId.toString(),
       contractAddress.toHexString()
     ]);
-    return;
+  } else {
+    // Hat exists - just update the eligibility fields
+    hat.defaultEligible = event.params.eligible;
+    hat.defaultStanding = event.params.standing;
+    hat.save();
   }
 
-  // Hat exists - just update the eligibility fields
-  hat.defaultEligible = event.params.eligible;
-  hat.defaultStanding = event.params.standing;
-  hat.save();
+  // Link Hat to Role entity if this is a new hat
+  // This ensures Role.hat is set even when hats are created via HatsTreeSetup
+  if (isNewHat) {
+    let eligibilityModule = EligibilityModuleContract.load(contractAddress);
+    if (eligibilityModule) {
+      linkHatToRole(eligibilityModule.organization, hatId, hatEntityId, event);
+    }
+  }
 }
 
 export function handleVouchConfigSet(event: VouchConfigSetEvent): void {

@@ -260,4 +260,205 @@ describe("HatMetadata IPFS Handler", () => {
     // Verify indexedAt is set (we use 0 as placeholder since file handlers don't have block context)
     assert.fieldEquals("HatMetadata", ipfsHash, "indexedAt", "0");
   });
+
+  // Tests for name extraction from IPFS metadata
+
+  test("Parses valid JSON and creates HatMetadata entity with name", () => {
+    let metadataCID = Bytes.fromHexString("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+    let ipfsHash = bytes32ToCid(metadataCID);
+    let hatEntityId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1001";
+
+    createMockHat(hatEntityId);
+
+    let context = new DataSourceContext();
+    context.setString("hatEntityId", hatEntityId);
+    dataSourceMock.setAddressAndContext(ipfsHash, context);
+
+    // JSON with name field
+    let jsonContent = '{"name": "Admin Role"}';
+    let contentBytes = Bytes.fromUTF8(jsonContent);
+
+    handleHatMetadata(contentBytes);
+
+    // Verify HatMetadata entity was created with name
+    assert.entityCount("HatMetadata", 1);
+    assert.fieldEquals("HatMetadata", ipfsHash, "name", "Admin Role");
+    assert.fieldEquals("HatMetadata", ipfsHash, "hat", hatEntityId);
+  });
+
+  test("Parses JSON with both name and description", () => {
+    let metadataCID = Bytes.fromHexString("0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
+    let ipfsHash = bytes32ToCid(metadataCID);
+    let hatEntityId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1001";
+
+    createMockHat(hatEntityId);
+
+    let context = new DataSourceContext();
+    context.setString("hatEntityId", hatEntityId);
+    dataSourceMock.setAddressAndContext(ipfsHash, context);
+
+    // JSON with both name and description
+    let jsonContent = '{"name": "Council Member", "description": "A member of the governance council"}';
+    let contentBytes = Bytes.fromUTF8(jsonContent);
+
+    handleHatMetadata(contentBytes);
+
+    // Verify both fields are set
+    assert.entityCount("HatMetadata", 1);
+    assert.fieldEquals("HatMetadata", ipfsHash, "name", "Council Member");
+    assert.fieldEquals("HatMetadata", ipfsHash, "description", "A member of the governance council");
+    assert.fieldEquals("HatMetadata", ipfsHash, "hat", hatEntityId);
+  });
+
+  test("Updates Hat.name from IPFS metadata when Hat has no name", () => {
+    let metadataCID = Bytes.fromHexString("0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd");
+    let ipfsHash = bytes32ToCid(metadataCID);
+    let hatEntityId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1001";
+
+    createMockHat(hatEntityId);
+
+    // Verify Hat has no name initially
+    let hatBefore = Hat.load(hatEntityId);
+    assert.assertNotNull(hatBefore);
+    assert.assertNull(hatBefore!.name);
+
+    let context = new DataSourceContext();
+    context.setString("hatEntityId", hatEntityId);
+    dataSourceMock.setAddressAndContext(ipfsHash, context);
+
+    let jsonContent = '{"name": "Treasury Manager"}';
+    let contentBytes = Bytes.fromUTF8(jsonContent);
+
+    handleHatMetadata(contentBytes);
+
+    // Verify Hat.name was updated
+    let hatAfter = Hat.load(hatEntityId);
+    assert.assertNotNull(hatAfter);
+    assert.stringEquals(hatAfter!.name!, "Treasury Manager");
+  });
+
+  test("Does NOT update Hat.name from IPFS when Hat already has a name", () => {
+    let metadataCID = Bytes.fromHexString("0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
+    let ipfsHash = bytes32ToCid(metadataCID);
+    let hatEntityId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1001";
+
+    createMockHat(hatEntityId);
+
+    // Set an existing name on the Hat
+    let hat = Hat.load(hatEntityId)!;
+    hat.name = "Existing Role Name";
+    hat.save();
+
+    let context = new DataSourceContext();
+    context.setString("hatEntityId", hatEntityId);
+    dataSourceMock.setAddressAndContext(ipfsHash, context);
+
+    // IPFS has a different name
+    let jsonContent = '{"name": "New Name From IPFS"}';
+    let contentBytes = Bytes.fromUTF8(jsonContent);
+
+    handleHatMetadata(contentBytes);
+
+    // Verify Hat.name was NOT changed (existing name preserved)
+    let hatAfter = Hat.load(hatEntityId);
+    assert.assertNotNull(hatAfter);
+    assert.stringEquals(hatAfter!.name!, "Existing Role Name");
+
+    // But HatMetadata should still have the IPFS name
+    assert.fieldEquals("HatMetadata", ipfsHash, "name", "New Name From IPFS");
+  });
+
+  test("Handles empty name string as null", () => {
+    let metadataCID = Bytes.fromHexString("0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffF");
+    let ipfsHash = bytes32ToCid(metadataCID);
+    let hatEntityId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1001";
+
+    createMockHat(hatEntityId);
+
+    let context = new DataSourceContext();
+    context.setString("hatEntityId", hatEntityId);
+    dataSourceMock.setAddressAndContext(ipfsHash, context);
+
+    // JSON with empty name
+    let jsonContent = '{"name": ""}';
+    let contentBytes = Bytes.fromUTF8(jsonContent);
+
+    handleHatMetadata(contentBytes);
+
+    // Empty strings should be treated as null
+    assert.entityCount("HatMetadata", 1);
+    assert.assertNull(HatMetadata.load(ipfsHash)!.name);
+
+    // Hat.name should remain null
+    let hat = Hat.load(hatEntityId);
+    assert.assertNull(hat!.name);
+  });
+
+  test("Handles null name value", () => {
+    let metadataCID = Bytes.fromHexString("0x0101010101010101010101010101010101010101010101010101010101010101");
+    let ipfsHash = bytes32ToCid(metadataCID);
+    let hatEntityId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1001";
+
+    createMockHat(hatEntityId);
+
+    let context = new DataSourceContext();
+    context.setString("hatEntityId", hatEntityId);
+    dataSourceMock.setAddressAndContext(ipfsHash, context);
+
+    // JSON with null name
+    let jsonContent = '{"name": null}';
+    let contentBytes = Bytes.fromUTF8(jsonContent);
+
+    handleHatMetadata(contentBytes);
+
+    // Should create entity but not set name
+    assert.entityCount("HatMetadata", 1);
+    assert.assertNull(HatMetadata.load(ipfsHash)!.name);
+  });
+
+  test("Handles non-string name type gracefully", () => {
+    let metadataCID = Bytes.fromHexString("0x0202020202020202020202020202020202020202020202020202020202020202");
+    let ipfsHash = bytes32ToCid(metadataCID);
+    let hatEntityId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1001";
+
+    createMockHat(hatEntityId);
+
+    let context = new DataSourceContext();
+    context.setString("hatEntityId", hatEntityId);
+    dataSourceMock.setAddressAndContext(ipfsHash, context);
+
+    // JSON with number instead of string for name
+    let jsonContent = '{"name": 12345}';
+    let contentBytes = Bytes.fromUTF8(jsonContent);
+
+    handleHatMetadata(contentBytes);
+
+    // Should create entity but not set name (wrong type)
+    assert.entityCount("HatMetadata", 1);
+    assert.assertNull(HatMetadata.load(ipfsHash)!.name);
+  });
+
+  test("Does not update Hat entity if Hat does not exist", () => {
+    let metadataCID = Bytes.fromHexString("0x0303030303030303030303030303030303030303030303030303030303030303");
+    let ipfsHash = bytes32ToCid(metadataCID);
+    let hatEntityId = "nonexistent-hat-id";
+
+    // Don't create Hat - it should not exist
+
+    let context = new DataSourceContext();
+    context.setString("hatEntityId", hatEntityId);
+    dataSourceMock.setAddressAndContext(ipfsHash, context);
+
+    let jsonContent = '{"name": "Orphan Role"}';
+    let contentBytes = Bytes.fromUTF8(jsonContent);
+
+    handleHatMetadata(contentBytes);
+
+    // HatMetadata should still be created
+    assert.entityCount("HatMetadata", 1);
+    assert.fieldEquals("HatMetadata", ipfsHash, "name", "Orphan Role");
+
+    // Hat should not exist
+    assert.assertNull(Hat.load(hatEntityId));
+  });
 });
