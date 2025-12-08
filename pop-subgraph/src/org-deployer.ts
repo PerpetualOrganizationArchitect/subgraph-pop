@@ -56,6 +56,7 @@ export function handleOrgDeployed(event: OrgDeployed): void {
   hybridVoting.executor = Address.zero(); // Will be set by Initialized event
   hybridVoting.quorum = 0; // Will be set by QuorumSet event
   hybridVoting.hats = Address.zero(); // Will be set by Initialized event
+  hybridVoting.classVersion = BigInt.fromI32(0); // Will be set by ClassesReplaced event
   hybridVoting.createdAt = event.block.timestamp;
   hybridVoting.createdAtBlock = event.block.number;
 
