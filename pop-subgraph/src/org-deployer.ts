@@ -178,13 +178,12 @@ export function handleOrgDeployed(event: OrgDeployed): void {
   toggleModule.save();
   organization.save();
 
-  // Create Role entities for topHatId and all roleHatIds
+  // Create Role entities for user-defined roleHatIds only (not for topHatId which is a system hat)
   // This allows querying roles before Hat entities are created by EligibilityModule
-  getOrCreateRole(event.params.orgId, event.params.topHatId, event);
-
+  // Note: We do NOT create a Role for topHatId as it's a system hat (worn by Executor)
   // roleHatIds is already declared above for creatorHatIds derivation
   for (let i = 0; i < roleHatIds.length; i++) {
-    getOrCreateRole(event.params.orgId, roleHatIds[i], event);
+    getOrCreateRole(event.params.orgId, roleHatIds[i], event, true, true); // isUserRole = true, setIsUserRole = true
   }
 
   // Instantiate data source templates for this organization
@@ -224,10 +223,10 @@ export function handleRolesCreated(event: RolesCreated): void {
     let hatId = hatIds[i];
     let roleId = orgId.toHexString() + "-" + hatId.toString();
 
-    // Load or create the Role entity
+    // Load or create the Role entity (RolesCreated is always for user-defined roles)
     let role = Role.load(roleId);
     if (role == null) {
-      role = getOrCreateRole(orgId, hatId, event);
+      role = getOrCreateRole(orgId, hatId, event, true, true); // isUserRole = true, setIsUserRole = true
     }
 
     // Update Role with metadata from RolesCreated event
@@ -247,6 +246,8 @@ export function handleRolesCreated(event: RolesCreated): void {
     if (i < canVoteFlags.length) {
       role.canVote = canVoteFlags[i];
     }
+    // Ensure isUserRole is set for roles from RolesCreated event
+    role.isUserRole = true;
 
     role.save();
 

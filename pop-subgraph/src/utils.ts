@@ -233,11 +233,15 @@ export function getOrgIdFromContract(contractAddress: Address): Bytes | null {
 /**
  * Get or create a Role entity for a given organization and hat ID
  * Roles aggregate permissions and wearers for a hat within an organization
+ * @param setIsUserRole - If true, explicitly sets isUserRole field. If false, determines from org.roleHatIds.
+ * @param isUserRoleValue - The value to set for isUserRole when setIsUserRole is true.
  */
 export function getOrCreateRole(
   orgId: Bytes,
   hatId: BigInt,
-  event: ethereum.Event
+  event: ethereum.Event,
+  isUserRoleValue: boolean = false,
+  setIsUserRole: boolean = false
 ): Role {
   let roleId = orgId.toHexString() + "-" + hatId.toString();
   let role = Role.load(roleId);
@@ -249,6 +253,31 @@ export function getOrCreateRole(
     role.createdAt = event.block.timestamp;
     role.createdAtBlock = event.block.number;
     role.transactionHash = event.transaction.hash;
+
+    // Set isUserRole based on parameters or determine from org.roleHatIds
+    if (setIsUserRole) {
+      role.isUserRole = isUserRoleValue;
+    } else {
+      // Try to determine from organization's roleHatIds
+      let org = Organization.load(orgId);
+      if (org) {
+        let roleHatIds = org.roleHatIds;
+        if (roleHatIds) {
+          let found = false;
+          for (let i = 0; i < roleHatIds.length; i++) {
+            if (roleHatIds[i].equals(hatId)) {
+              found = true;
+              break;
+            }
+          }
+          role.isUserRole = found;
+        }
+      }
+    }
+    role.save();
+  } else if (setIsUserRole && role.isUserRole != isUserRoleValue) {
+    // Update existing role if we explicitly want to set a different value
+    role.isUserRole = isUserRoleValue;
     role.save();
   }
 
@@ -258,6 +287,7 @@ export function getOrCreateRole(
 /**
  * Link a Hat entity to its corresponding Role entity
  * Called when a Hat is created via HatCreatedWithEligibility
+ * Also sets isUserRole based on whether the hat is in org.roleHatIds
  */
 export function linkHatToRole(
   orgId: Bytes,
@@ -265,7 +295,22 @@ export function linkHatToRole(
   hatEntityId: string,
   event: ethereum.Event
 ): Role {
-  let role = getOrCreateRole(orgId, hatId, event);
+  // Determine if this is a user role by checking roleHatIds
+  let isUserRole: boolean = false;
+  let org = Organization.load(orgId);
+  if (org) {
+    let roleHatIds = org.roleHatIds;
+    if (roleHatIds) {
+      for (let i = 0; i < roleHatIds.length; i++) {
+        if (roleHatIds[i].equals(hatId)) {
+          isUserRole = true;
+          break;
+        }
+      }
+    }
+  }
+
+  let role = getOrCreateRole(orgId, hatId, event, isUserRole, true); // setIsUserRole = true
   role.hat = hatEntityId;
   role.save();
   return role;
