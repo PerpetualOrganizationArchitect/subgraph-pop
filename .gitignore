@@ -1,2 +1,4 @@
 # Test artifacts
 tests/
+# But allow pop-subgraph tests
+!pop-subgraph/tests/
