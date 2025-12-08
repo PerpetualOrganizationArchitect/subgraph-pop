@@ -6,6 +6,22 @@ import {
   afterEach
 } from "matchstick-as/assembly/index";
 import { Address, Bytes, BigInt } from "@graphprotocol/graph-ts";
+
+/**
+ * Helper function to convert bytes32 sha256 digest to IPFS CIDv0.
+ * Mirrors the logic in eligibility-module.ts for test assertions.
+ */
+function bytes32ToCid(hash: Bytes): string {
+  let prefix = Bytes.fromHexString("0x1220");
+  let multihash = new Bytes(34);
+  for (let i = 0; i < 2; i++) {
+    multihash[i] = prefix[i];
+  }
+  for (let i = 0; i < 32; i++) {
+    multihash[i + 2] = hash[i];
+  }
+  return multihash.toBase58();
+}
 import {
   handleHatMetadataUpdated,
   handleHatCreatedWithEligibility
@@ -218,6 +234,47 @@ describe("EligibilityModule - HatMetadataUpdated", () => {
     let hatEntityId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1001";
     assert.fieldEquals("Hat", hatEntityId, "name", "ADMIN");
     assert.fieldEquals("Hat", hatEntityId, "metadataCID", metadataCID.toHexString());
+    // Verify metadata link is set to CIDv0 format for IPFS fetching
+    assert.fieldEquals("Hat", hatEntityId, "metadata", bytes32ToCid(metadataCID));
+  });
+
+  test("HatMetadataUpdated sets metadata link to CIDv0 format", () => {
+    setupEligibilityModuleEntities();
+
+    let hatId = BigInt.fromI32(1001);
+    createHatEntity(hatId);
+
+    let name = "ROLE_NAME";
+    let metadataCID = Bytes.fromHexString("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890");
+
+    let event = createHatMetadataUpdatedEvent(hatId, name, metadataCID);
+    handleHatMetadataUpdated(event);
+
+    let hatEntityId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1001";
+    // Verify metadata field is set to the CIDv0 format (base58 encoded)
+    assert.fieldEquals("Hat", hatEntityId, "metadata", bytes32ToCid(metadataCID));
+  });
+
+  test("HatMetadataUpdated does NOT set metadata link for zero hash", () => {
+    setupEligibilityModuleEntities();
+
+    let hatId = BigInt.fromI32(1001);
+    createHatEntity(hatId);
+
+    let name = "EMPTY_META";
+    // Zero hash indicates no IPFS metadata
+    let metadataCID = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000");
+
+    let event = createHatMetadataUpdatedEvent(hatId, name, metadataCID);
+    handleHatMetadataUpdated(event);
+
+    let hatEntityId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1001";
+    // Name should still be set
+    assert.fieldEquals("Hat", hatEntityId, "name", "EMPTY_META");
+    // metadataCID should still be stored
+    assert.fieldEquals("Hat", hatEntityId, "metadataCID", metadataCID.toHexString());
+    // But metadata link should NOT be set (no IPFS data source created)
+    assert.assertNull(Hat.load(hatEntityId)!.metadata);
   });
 
   test("HatMetadataUpdated creates event history entity", () => {
@@ -236,25 +293,32 @@ describe("EligibilityModule - HatMetadataUpdated", () => {
     assert.entityCount("HatMetadataUpdateEvent", 1);
   });
 
-  test("Multiple HatMetadataUpdated events create separate history entities", () => {
+  test("Multiple HatMetadataUpdated events create separate history entities and update metadata link", () => {
     setupEligibilityModuleEntities();
 
     let hatId = BigInt.fromI32(1001);
     createHatEntity(hatId);
 
+    let firstCID = Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef");
+    let secondCID = Bytes.fromHexString("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890");
+
     // First update
     let event1 = createHatMetadataUpdatedEvent(
       hatId,
       "ADMIN",
-      Bytes.fromHexString("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
+      firstCID
     );
     handleHatMetadataUpdated(event1);
+
+    let hatEntityId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1001";
+    // Verify first metadata link
+    assert.fieldEquals("Hat", hatEntityId, "metadata", bytes32ToCid(firstCID));
 
     // Second update with different log index
     let event2 = createHatMetadataUpdatedEvent(
       hatId,
       "SUPER_ADMIN",
-      Bytes.fromHexString("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890")
+      secondCID
     );
     event2.logIndex = BigInt.fromI32(2);
     handleHatMetadataUpdated(event2);
@@ -262,8 +326,9 @@ describe("EligibilityModule - HatMetadataUpdated", () => {
     assert.entityCount("HatMetadataUpdateEvent", 2);
 
     // Verify hat has latest metadata
-    let hatEntityId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1001";
     assert.fieldEquals("Hat", hatEntityId, "name", "SUPER_ADMIN");
+    // Verify metadata link is updated to new CID
+    assert.fieldEquals("Hat", hatEntityId, "metadata", bytes32ToCid(secondCID));
   });
 
   test("HatMetadataUpdated for non-existent hat does not create event", () => {

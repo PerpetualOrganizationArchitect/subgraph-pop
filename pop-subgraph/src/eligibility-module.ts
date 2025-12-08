@@ -1,4 +1,5 @@
-import { Address, BigInt, Bytes, log } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes, DataSourceContext, log } from "@graphprotocol/graph-ts";
+import { HatMetadata as HatMetadataTemplate } from "../generated/templates";
 import {
   EligibilityModuleInitialized as EligibilityModuleInitializedEvent,
   HatCreatedWithEligibility as HatCreatedWithEligibilityEvent,
@@ -39,6 +40,58 @@ import {
   recordUserHatChange,
   shouldCreateRoleWearer
 } from "./utils";
+
+/**
+ * Helper function to convert bytes32 sha256 digest to IPFS CIDv0.
+ *
+ * CIDv0 = base58( 0x1220 + sha256_digest )
+ * - 0x12 = sha2-256 multicodec
+ * - 0x20 = 32 bytes length
+ * - sha256_digest = 32 bytes (the bytes32 from contract)
+ */
+function bytes32ToCid(hash: Bytes): string {
+  // Create the multihash by prepending 0x1220 header
+  let prefix = Bytes.fromHexString("0x1220");
+
+  // Concatenate prefix + hash (34 bytes total)
+  let multihash = new Bytes(34);
+  for (let i = 0; i < 2; i++) {
+    multihash[i] = prefix[i];
+  }
+  for (let i = 0; i < 32; i++) {
+    multihash[i + 2] = hash[i];
+  }
+
+  // Base58 encode to get CIDv0 (starts with "Qm")
+  return multihash.toBase58();
+}
+
+/**
+ * Helper function to create an IPFS file data source for hat metadata.
+ * Uses DataSourceContext to pass the hatEntityId to the handler so it can
+ * link the metadata back to the hat.
+ *
+ * The contract stores bytes32 which is the sha256 digest from the IPFS CID.
+ * We convert it back to CIDv0 format for The Graph to fetch.
+ */
+function createHatIpfsDataSource(metadataCID: Bytes, hatEntityId: string): void {
+  // Skip if metadataCID is empty (all zeros)
+  if (metadataCID.equals(Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000"))) {
+    return;
+  }
+
+  // Convert bytes32 sha256 digest to IPFS CIDv0 string
+  let ipfsCid = bytes32ToCid(metadataCID);
+
+  // Create context to pass hatEntityId to the IPFS handler
+  let context = new DataSourceContext();
+  context.setString("hatEntityId", hatEntityId);
+
+  // Create the file data source with context
+  // If IPFS is unavailable or slow, this will be retried automatically
+  // and won't block the main chain indexing
+  HatMetadataTemplate.createWithContext(ipfsCid, context);
+}
 
 export function handleEligibilityModuleInitialized(
   event: EligibilityModuleInitializedEvent
@@ -574,6 +627,13 @@ export function handleHatMetadataUpdated(
   hat.metadataCID = event.params.metadataCID;
   hat.metadataUpdatedAt = event.block.timestamp;
   hat.metadataUpdatedAtBlock = event.block.number;
+
+  // Link to IPFS metadata entity (will be populated when IPFS content is fetched)
+  let metadataCID = event.params.metadataCID;
+  if (!metadataCID.equals(Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000"))) {
+    hat.metadata = bytes32ToCid(metadataCID);
+  }
+
   hat.save();
 
   // Create event entity for history tracking
@@ -589,4 +649,7 @@ export function handleHatMetadataUpdated(
   metadataEvent.updatedAtBlock = event.block.number;
   metadataEvent.transactionHash = event.transaction.hash;
   metadataEvent.save();
+
+  // Trigger IPFS fetch for metadata content
+  createHatIpfsDataSource(metadataCID, hatEntityId);
 }
