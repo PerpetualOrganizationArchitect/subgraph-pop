@@ -1627,3 +1627,151 @@ type RegistryUpdate @entity(immutable: true) {
   updatedAtBlock: BigInt!
   transactionHash: Bytes!
 }
+
+# ═══════════════════════════════════════════════════════════════════════
+#                    PASSKEY ACCOUNT ENTITIES
+# ═══════════════════════════════════════════════════════════════════════
+
+type PasskeyAccountFactory @entity(immutable: false) {
+  id: Bytes! # Factory contract address
+  executor: Bytes!
+  accountBeacon: Bytes!
+  organizations: [PasskeyOrgConfig!]! @derivedFrom(field: "factory")
+  accounts: [PasskeyAccount!]! @derivedFrom(field: "factory")
+  createdAt: BigInt!
+  blockNumber: BigInt!
+}
+
+type PasskeyOrgConfig @entity(immutable: false) {
+  id: String! # orgId as hex string
+  factory: PasskeyAccountFactory!
+  orgId: Bytes!
+  maxCredentialsPerAccount: Int!
+  defaultGuardian: Bytes!
+  recoveryDelay: BigInt!
+  enabled: Boolean!
+  createdAt: BigInt!
+  updatedAt: BigInt!
+}
+
+type PasskeyAccount @entity(immutable: false) {
+  id: Bytes! # Account contract address
+  factory: PasskeyAccountFactory!
+  orgId: Bytes!
+  owner: Bytes! # Address that triggered creation
+  guardian: Bytes!
+  recoveryDelay: BigInt!
+  credentials: [PasskeyCredential!]! @derivedFrom(field: "account")
+  recoveryRequests: [RecoveryRequest!]! @derivedFrom(field: "account")
+  executions: [PasskeyExecution!]! @derivedFrom(field: "account")
+  batchExecutions: [PasskeyBatchExecution!]! @derivedFrom(field: "account")
+  guardianChanges: [GuardianChange!]! @derivedFrom(field: "account")
+  quickJoinEvents: [PasskeyQuickJoin!]! @derivedFrom(field: "account")
+  createdAt: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+type PasskeyCredential @entity(immutable: false) {
+  id: String! # account-credentialId
+  account: PasskeyAccount!
+  credentialId: Bytes!
+  orgId: Bytes!
+  publicKeyX: Bytes # Not emitted in event, but useful if available
+  publicKeyY: Bytes # Not emitted in event, but useful if available
+  active: Boolean!
+  signCount: BigInt!
+  createdAt: BigInt!
+  removedAt: BigInt
+  blockNumber: BigInt!
+}
+
+enum RecoveryStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+type RecoveryRequest @entity(immutable: false) {
+  id: String! # account-recoveryId
+  account: PasskeyAccount!
+  recoveryId: Bytes!
+  credentialId: Bytes!
+  initiator: Bytes!
+  executeAfter: BigInt!
+  status: RecoveryStatus!
+  completedAt: BigInt
+  cancelledAt: BigInt
+  createdAt: BigInt!
+  blockNumber: BigInt!
+}
+
+type PasskeyExecution @entity(immutable: true) {
+  id: Bytes! # txHash.concatI32(logIndex)
+  account: PasskeyAccount!
+  target: Bytes!
+  value: BigInt!
+  data: Bytes!
+  result: Bytes!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+type PasskeyBatchExecution @entity(immutable: true) {
+  id: Bytes! # txHash.concatI32(logIndex)
+  account: PasskeyAccount!
+  count: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+type GuardianChange @entity(immutable: true) {
+  id: Bytes! # txHash.concatI32(logIndex)
+  account: PasskeyAccount!
+  oldGuardian: Bytes!
+  newGuardian: Bytes!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+# ═══════════════════════════════════════════════════════════════════════
+#                    QUICKJOIN PASSKEY ENTITIES
+# ═══════════════════════════════════════════════════════════════════════
+
+type PasskeyQuickJoin @entity(immutable: true) {
+  id: Bytes! # txHash.concatI32(logIndex)
+  quickJoinContract: Bytes!
+  account: PasskeyAccount!
+  username: String!
+  credentialId: Bytes!
+  hatIds: [BigInt!]!
+  master: Bytes # Only set for master deploy path
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+# ═══════════════════════════════════════════════════════════════════════
+#                    PAYMASTER VOUCHER ENTITIES
+# ═══════════════════════════════════════════════════════════════════════
+
+type PaymasterVouchConfig @entity(immutable: false) {
+  id: String! # orgId as hex string
+  orgId: Bytes!
+  voucherHatId: BigInt!
+  updatedAt: BigInt!
+  blockNumber: BigInt!
+}
+
+type PaymasterVouch @entity(immutable: true) {
+  id: Bytes! # txHash.concatI32(logIndex)
+  orgId: Bytes!
+  account: Bytes!
+  voucher: Bytes!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}

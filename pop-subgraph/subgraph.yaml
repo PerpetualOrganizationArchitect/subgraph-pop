@@ -684,6 +684,75 @@ templates:
         - event: AdminTransferred(indexed address,indexed address)
           handler: handleAdminTransferred
       file: ./src/toggle-module.ts
+  # Passkey Account Factory template
+  - kind: ethereum
+    name: PasskeyAccountFactory
+    network: hoodi
+    source:
+      abi: PasskeyAccountFactory
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - PasskeyAccountFactory
+        - PasskeyOrgConfig
+        - PasskeyAccount
+      abis:
+        - name: PasskeyAccountFactory
+          file: ./abis/PasskeyAccountFactory.json
+      eventHandlers:
+        - event: AccountCreated(indexed address,indexed bytes32,bytes32,indexed address)
+          handler: handleAccountCreated
+        - event: OrgRegistered(indexed bytes32,uint8,address,uint48)
+          handler: handleOrgRegistered
+        - event: OrgConfigUpdated(indexed bytes32)
+          handler: handleOrgConfigUpdated
+        - event: ExecutorUpdated(indexed address,indexed address)
+          handler: handleFactoryExecutorUpdated
+      file: ./src/passkey-account-factory.ts
+  # Passkey Account template (created dynamically when accounts are created)
+  - kind: ethereum
+    name: PasskeyAccount
+    network: hoodi
+    source:
+      abi: PasskeyAccount
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - PasskeyAccount
+        - PasskeyCredential
+        - RecoveryRequest
+        - PasskeyExecution
+        - PasskeyBatchExecution
+        - GuardianChange
+      abis:
+        - name: PasskeyAccount
+          file: ./abis/PasskeyAccount.json
+      eventHandlers:
+        - event: CredentialAdded(indexed bytes32,bytes32,uint64)
+          handler: handleCredentialAdded
+        - event: CredentialRemoved(indexed bytes32)
+          handler: handleCredentialRemoved
+        - event: CredentialStatusChanged(indexed bytes32,bool)
+          handler: handleCredentialStatusChanged
+        - event: GuardianUpdated(indexed address,indexed address)
+          handler: handleGuardianUpdated
+        - event: RecoveryDelayUpdated(uint48,uint48)
+          handler: handleRecoveryDelayUpdated
+        - event: RecoveryInitiated(indexed bytes32,bytes32,indexed address,uint48)
+          handler: handleRecoveryInitiated
+        - event: RecoveryCompleted(indexed bytes32,indexed bytes32)
+          handler: handleRecoveryCompleted
+        - event: RecoveryCancelled(indexed bytes32)
+          handler: handleRecoveryCancelled
+        - event: Executed(indexed address,uint256,bytes,bytes)
+          handler: handleExecuted
+        - event: BatchExecuted(uint256)
+          handler: handleBatchExecuted
+      file: ./src/passkey-account.ts
   # IPFS file data source for org metadata
   - kind: file/ipfs
     name: OrgMetadata
