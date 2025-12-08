@@ -487,12 +487,18 @@ type Hat @entity(immutable: false) {
   defaultEligible: Boolean!
   defaultStanding: Boolean!
   mintedCount: BigInt!
+  # Metadata fields
+  name: String # Role name from metadata update
+  metadataCID: Bytes # IPFS CID for extended role metadata JSON
+  metadataUpdatedAt: BigInt
+  metadataUpdatedAtBlock: BigInt
   createdAt: BigInt!
   createdAtBlock: BigInt!
   transactionHash: Bytes!
   wearers: [WearerEligibility!]! @derivedFrom(field: "hat")
   vouchConfig: VouchConfig @derivedFrom(field: "hat")
   role: Role @derivedFrom(field: "hat")
+  metadataUpdates: [HatMetadataUpdateEvent!]! @derivedFrom(field: "hat")
 }
 
 # ========================================
@@ -641,6 +647,19 @@ type HatClaimEvent @entity(immutable: true) {
   hat: Hat
   claimedAt: BigInt!
   claimedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type HatMetadataUpdateEvent @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  eligibilityModule: EligibilityModuleContract!
+  hat: Hat!
+  hatId: BigInt!
+  name: String!
+  metadataCID: Bytes!
+  updatedBy: Bytes!
+  updatedAt: BigInt!
+  updatedAtBlock: BigInt!
   transactionHash: Bytes!
 }
 

@@ -414,6 +414,7 @@ templates:
         - VouchingRestrictionEvent
         - HatAutoMintEvent
         - HatClaimEvent
+        - HatMetadataUpdateEvent
       abis:
         - name: EligibilityModule
           file: ./abis/EligibilityModule.json
@@ -436,6 +437,8 @@ templates:
           handler: handleVouchRevoked
         - event: HatClaimed(indexed address,indexed uint256)
           handler: handleHatClaimed
+        - event: HatMetadataUpdated(indexed uint256,string,bytes32)
+          handler: handleHatMetadataUpdated
         - event: UserJoinTimeSet(indexed address,indexed uint256)
           handler: handleUserJoinTimeSet
         - event: EligibilityModuleAdminHatSet(indexed uint256)

@@ -1,0 +1,60 @@
+import { newMockEvent } from "matchstick-as";
+import { ethereum, Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
+import {
+  HatMetadataUpdated,
+  HatCreatedWithEligibility
+} from "../generated/templates/EligibilityModule/EligibilityModule";
+
+export function createHatMetadataUpdatedEvent(
+  hatId: BigInt,
+  name: string,
+  metadataCID: Bytes
+): HatMetadataUpdated {
+  let event = changetype<HatMetadataUpdated>(newMockEvent());
+
+  event.parameters = new Array();
+  event.parameters.push(
+    new ethereum.EventParam("hatId", ethereum.Value.fromUnsignedBigInt(hatId))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("name", ethereum.Value.fromString(name))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("metadataCID", ethereum.Value.fromFixedBytes(metadataCID))
+  );
+
+  return event;
+}
+
+export function createHatCreatedWithEligibilityEvent(
+  creator: Address,
+  parentHatId: BigInt,
+  newHatId: BigInt,
+  defaultEligible: boolean,
+  defaultStanding: boolean,
+  mintedCount: BigInt
+): HatCreatedWithEligibility {
+  let event = changetype<HatCreatedWithEligibility>(newMockEvent());
+
+  event.parameters = new Array();
+  event.parameters.push(
+    new ethereum.EventParam("creator", ethereum.Value.fromAddress(creator))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("parentHatId", ethereum.Value.fromUnsignedBigInt(parentHatId))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("newHatId", ethereum.Value.fromUnsignedBigInt(newHatId))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("defaultEligible", ethereum.Value.fromBoolean(defaultEligible))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("defaultStanding", ethereum.Value.fromBoolean(defaultStanding))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("mintedCount", ethereum.Value.fromUnsignedBigInt(mintedCount))
+  );
+
+  return event;
+}

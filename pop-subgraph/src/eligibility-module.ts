@@ -9,6 +9,7 @@ import {
   Vouched as VouchedEvent,
   VouchRevoked as VouchRevokedEvent,
   HatClaimed as HatClaimedEvent,
+  HatMetadataUpdated as HatMetadataUpdatedEvent,
   UserJoinTimeSet as UserJoinTimeSetEvent,
   EligibilityModuleAdminHatSet as EligibilityModuleAdminHatSetEvent,
   SuperAdminTransferred as SuperAdminTransferredEvent,
@@ -26,7 +27,8 @@ import {
   UserJoinTime,
   VouchingRestrictionEvent,
   HatAutoMintEvent,
-  HatClaimEvent
+  HatClaimEvent,
+  HatMetadataUpdateEvent
 } from "../generated/schema";
 import {
   getUsernameForAddress,
@@ -552,4 +554,39 @@ export function handleNewUserVouchingRestricted(
   }
 
   restriction.save();
+}
+
+export function handleHatMetadataUpdated(
+  event: HatMetadataUpdatedEvent
+): void {
+  let contractAddress = event.address;
+  let hatId = event.params.hatId;
+  let hatEntityId = contractAddress.toHexString() + "-" + hatId.toString();
+
+  let hat = Hat.load(hatEntityId);
+  if (hat == null) {
+    log.warning("Hat not found for metadata update: {}", [hatEntityId]);
+    return;
+  }
+
+  // Update hat metadata fields
+  hat.name = event.params.name;
+  hat.metadataCID = event.params.metadataCID;
+  hat.metadataUpdatedAt = event.block.timestamp;
+  hat.metadataUpdatedAtBlock = event.block.number;
+  hat.save();
+
+  // Create event entity for history tracking
+  let eventId = event.transaction.hash.concatI32(event.logIndex.toI32());
+  let metadataEvent = new HatMetadataUpdateEvent(eventId);
+  metadataEvent.eligibilityModule = contractAddress;
+  metadataEvent.hat = hatEntityId;
+  metadataEvent.hatId = hatId;
+  metadataEvent.name = event.params.name;
+  metadataEvent.metadataCID = event.params.metadataCID;
+  metadataEvent.updatedBy = event.transaction.from;
+  metadataEvent.updatedAt = event.block.timestamp;
+  metadataEvent.updatedAtBlock = event.block.number;
+  metadataEvent.transactionHash = event.transaction.hash;
+  metadataEvent.save();
 }
