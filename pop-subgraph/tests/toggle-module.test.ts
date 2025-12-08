@@ -81,6 +81,7 @@ function setupToggleModuleEntities(): void {
   hybridVoting.executor = Address.zero();
   hybridVoting.quorum = 0;
   hybridVoting.hats = Address.zero();
+  hybridVoting.classVersion = BigInt.fromI32(0);
   hybridVoting.createdAt = BigInt.fromI32(1000);
   hybridVoting.createdAtBlock = BigInt.fromI32(100);
 
