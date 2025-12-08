@@ -1,5 +1,5 @@
-import { Address, BigInt } from "@graphprotocol/graph-ts";
-import { OrgDeployed } from "../generated/templates/OrgDeployer/OrgDeployer";
+import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
+import { OrgDeployed, RolesCreated } from "../generated/templates/OrgDeployer/OrgDeployer";
 import {
   Organization,
   TaskManager as TaskManagerEntity,
@@ -11,7 +11,9 @@ import {
   EducationHubContract,
   PaymentManagerContract,
   ExecutorContract,
-  ToggleModuleContract
+  ToggleModuleContract,
+  Role,
+  Hat
 } from "../generated/schema";
 import { getOrCreateRole } from "./utils";
 import {
@@ -196,4 +198,76 @@ export function handleOrgDeployed(event: OrgDeployed): void {
   PaymentManagerTemplate.create(event.params.paymentManager);
   ExecutorTemplate.create(event.params.executor);
   ToggleModuleTemplate.create(event.params.toggleModule);
+}
+
+/**
+ * Handles the RolesCreated event from the OrgDeployer contract.
+ * Updates Role entities with name, image, metadataCID, and canVote fields.
+ * Also updates corresponding Hat entities with name and metadataCID.
+ */
+export function handleRolesCreated(event: RolesCreated): void {
+  let orgId = event.params.orgId;
+  let hatIds = event.params.hatIds;
+  let names = event.params.names;
+  let images = event.params.images;
+  let metadataCIDs = event.params.metadataCIDs;
+  let canVoteFlags = event.params.canVote;
+
+  // Load the organization to get the eligibilityModule address for Hat lookups
+  let org = Organization.load(orgId);
+  let eligibilityModuleAddress: Bytes | null = null;
+  if (org && org.eligibilityModule) {
+    eligibilityModuleAddress = org.eligibilityModule;
+  }
+
+  for (let i = 0; i < hatIds.length; i++) {
+    let hatId = hatIds[i];
+    let roleId = orgId.toHexString() + "-" + hatId.toString();
+
+    // Load or create the Role entity
+    let role = Role.load(roleId);
+    if (role == null) {
+      role = getOrCreateRole(orgId, hatId, event);
+    }
+
+    // Update Role with metadata from RolesCreated event
+    if (i < names.length) {
+      role.name = names[i];
+    }
+    if (i < images.length) {
+      role.image = images[i];
+    }
+    if (i < metadataCIDs.length) {
+      // Only set metadataCID if it's not empty (bytes32(0))
+      let cid = metadataCIDs[i];
+      if (cid != Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000")) {
+        role.metadataCID = cid;
+      }
+    }
+    if (i < canVoteFlags.length) {
+      role.canVote = canVoteFlags[i];
+    }
+
+    role.save();
+
+    // Also update the corresponding Hat entity if it exists
+    if (eligibilityModuleAddress) {
+      let hatEntityId = eligibilityModuleAddress.toHexString() + "-" + hatId.toString();
+      let hat = Hat.load(hatEntityId);
+      if (hat != null) {
+        // Update Hat with name if Role has it
+        if (i < names.length && names[i].length > 0) {
+          hat.name = names[i];
+        }
+        // Update Hat with metadataCID if Role has it
+        if (i < metadataCIDs.length) {
+          let cid = metadataCIDs[i];
+          if (cid != Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000")) {
+            hat.metadataCID = cid;
+          }
+        }
+        hat.save();
+      }
+    }
+  }
 }

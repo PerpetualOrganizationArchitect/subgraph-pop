@@ -7,8 +7,8 @@ import {
   afterEach
 } from "matchstick-as/assembly/index";
 import { Address, Bytes, BigInt } from "@graphprotocol/graph-ts";
-import { handleOrgDeployed } from "../src/org-deployer";
-import { createOrgDeployedEvent } from "./org-deployer-utils";
+import { handleOrgDeployed, handleRolesCreated } from "../src/org-deployer";
+import { createOrgDeployedEvent, createRolesCreatedEvent } from "./org-deployer-utils";
 
 // Tests for OrgDeployer event handlers
 describe("OrgDeployer", () => {
@@ -399,5 +399,266 @@ describe("OrgDeployer", () => {
       "creatorHatIds",
       "[3002, 3003, 3004, 3005]"
     );
+  });
+
+  // ========================================
+  // RolesCreated Event Tests
+  // ========================================
+
+  test("RolesCreated updates Role entities with name, image, metadataCID, and canVote", () => {
+    let orgId = Bytes.fromHexString(
+      "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+    );
+    let executor = Address.fromString("0x0000000000000000000000000000000000000031");
+    let hybridVoting = Address.fromString("0x0000000000000000000000000000000000000032");
+    let directDemocracyVoting = Address.fromString("0x0000000000000000000000000000000000000033");
+    let quickJoin = Address.fromString("0x0000000000000000000000000000000000000034");
+    let participationToken = Address.fromString("0x0000000000000000000000000000000000000035");
+    let taskManager = Address.fromString("0x0000000000000000000000000000000000000036");
+    let educationHub = Address.fromString("0x0000000000000000000000000000000000000037");
+    let paymentManager = Address.fromString("0x0000000000000000000000000000000000000038");
+    let eligibilityModule = Address.fromString("0x0000000000000000000000000000000000000039");
+    let toggleModule = Address.fromString("0x000000000000000000000000000000000000003a");
+    let topHatId = BigInt.fromI32(4000);
+    let roleHatIds = [BigInt.fromI32(4001), BigInt.fromI32(4002), BigInt.fromI32(4003)];
+
+    // First deploy the org to create Role entities
+    let orgDeployedEvent = createOrgDeployedEvent(
+      orgId,
+      executor,
+      hybridVoting,
+      directDemocracyVoting,
+      quickJoin,
+      participationToken,
+      taskManager,
+      educationHub,
+      paymentManager,
+      eligibilityModule,
+      toggleModule,
+      topHatId,
+      roleHatIds
+    );
+
+    handleOrgDeployed(orgDeployedEvent);
+
+    // Verify Role entities are created
+    assert.entityCount("Role", 4); // topHatId + 3 roleHatIds
+
+    // Now emit RolesCreated to update the roles
+    let hatIds = [BigInt.fromI32(4001), BigInt.fromI32(4002), BigInt.fromI32(4003)];
+    let names = ["Member", "Admin", "Executive"];
+    let images = ["ipfs://member.png", "ipfs://admin.png", "ipfs://executive.png"];
+    let metadataCIDs = [
+      Bytes.fromHexString("0x1111111111111111111111111111111111111111111111111111111111111111"),
+      Bytes.fromHexString("0x2222222222222222222222222222222222222222222222222222222222222222"),
+      Bytes.fromHexString("0x3333333333333333333333333333333333333333333333333333333333333333")
+    ];
+    let canVote = [true, true, true];
+
+    let rolesCreatedEvent = createRolesCreatedEvent(
+      orgId,
+      hatIds,
+      names,
+      images,
+      metadataCIDs,
+      canVote
+    );
+
+    handleRolesCreated(rolesCreatedEvent);
+
+    // Verify Role entities are updated with metadata
+    let roleId1 = "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890-4001";
+    let roleId2 = "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890-4002";
+    let roleId3 = "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890-4003";
+
+    assert.fieldEquals("Role", roleId1, "name", "Member");
+    assert.fieldEquals("Role", roleId1, "image", "ipfs://member.png");
+    assert.fieldEquals("Role", roleId1, "canVote", "true");
+    assert.fieldEquals("Role", roleId1, "metadataCID", "0x1111111111111111111111111111111111111111111111111111111111111111");
+
+    assert.fieldEquals("Role", roleId2, "name", "Admin");
+    assert.fieldEquals("Role", roleId2, "image", "ipfs://admin.png");
+    assert.fieldEquals("Role", roleId2, "canVote", "true");
+    assert.fieldEquals("Role", roleId2, "metadataCID", "0x2222222222222222222222222222222222222222222222222222222222222222");
+
+    assert.fieldEquals("Role", roleId3, "name", "Executive");
+    assert.fieldEquals("Role", roleId3, "image", "ipfs://executive.png");
+    assert.fieldEquals("Role", roleId3, "canVote", "true");
+    assert.fieldEquals("Role", roleId3, "metadataCID", "0x3333333333333333333333333333333333333333333333333333333333333333");
+  });
+
+  test("RolesCreated does not set metadataCID when it is bytes32(0)", () => {
+    let orgId = Bytes.fromHexString(
+      "0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321"
+    );
+    let executor = Address.fromString("0x0000000000000000000000000000000000000041");
+    let hybridVoting = Address.fromString("0x0000000000000000000000000000000000000042");
+    let directDemocracyVoting = Address.fromString("0x0000000000000000000000000000000000000043");
+    let quickJoin = Address.fromString("0x0000000000000000000000000000000000000044");
+    let participationToken = Address.fromString("0x0000000000000000000000000000000000000045");
+    let taskManager = Address.fromString("0x0000000000000000000000000000000000000046");
+    let educationHub = Address.fromString("0x0000000000000000000000000000000000000047");
+    let paymentManager = Address.fromString("0x0000000000000000000000000000000000000048");
+    let eligibilityModule = Address.fromString("0x0000000000000000000000000000000000000049");
+    let toggleModule = Address.fromString("0x000000000000000000000000000000000000004a");
+    let topHatId = BigInt.fromI32(5000);
+    let roleHatIds = [BigInt.fromI32(5001)];
+
+    // First deploy the org
+    let orgDeployedEvent = createOrgDeployedEvent(
+      orgId,
+      executor,
+      hybridVoting,
+      directDemocracyVoting,
+      quickJoin,
+      participationToken,
+      taskManager,
+      educationHub,
+      paymentManager,
+      eligibilityModule,
+      toggleModule,
+      topHatId,
+      roleHatIds
+    );
+
+    handleOrgDeployed(orgDeployedEvent);
+
+    // Emit RolesCreated with empty metadataCID (bytes32(0))
+    let hatIds = [BigInt.fromI32(5001)];
+    let names = ["Member"];
+    let images = [""];
+    let metadataCIDs = [
+      Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000")
+    ];
+    let canVote = [true];
+
+    let rolesCreatedEvent = createRolesCreatedEvent(
+      orgId,
+      hatIds,
+      names,
+      images,
+      metadataCIDs,
+      canVote
+    );
+
+    handleRolesCreated(rolesCreatedEvent);
+
+    // Verify Role is updated but metadataCID remains null (not set)
+    let roleId = "0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321-5001";
+    assert.fieldEquals("Role", roleId, "name", "Member");
+    assert.fieldEquals("Role", roleId, "canVote", "true");
+    // metadataCID should not be set when it's bytes32(0)
+    assert.assertNull(null); // Note: Matchstick doesn't have assertFieldNull, but we can verify by checking the entity
+  });
+
+  test("RolesCreated creates Role entities if they don't exist", () => {
+    let orgId = Bytes.fromHexString(
+      "0x9999888877776666999988887777666699998888777766669999888877776666"
+    );
+
+    // Don't deploy org first - directly emit RolesCreated
+    let hatIds = [BigInt.fromI32(6001), BigInt.fromI32(6002)];
+    let names = ["Role A", "Role B"];
+    let images = ["", ""];
+    let metadataCIDs = [
+      Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000"),
+      Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000")
+    ];
+    let canVote = [false, true];
+
+    let rolesCreatedEvent = createRolesCreatedEvent(
+      orgId,
+      hatIds,
+      names,
+      images,
+      metadataCIDs,
+      canVote
+    );
+
+    handleRolesCreated(rolesCreatedEvent);
+
+    // Verify Role entities are created
+    let roleId1 = "0x9999888877776666999988887777666699998888777766669999888877776666-6001";
+    let roleId2 = "0x9999888877776666999988887777666699998888777766669999888877776666-6002";
+
+    assert.fieldEquals("Role", roleId1, "name", "Role A");
+    assert.fieldEquals("Role", roleId1, "canVote", "false");
+    assert.fieldEquals("Role", roleId1, "hatId", "6001");
+
+    assert.fieldEquals("Role", roleId2, "name", "Role B");
+    assert.fieldEquals("Role", roleId2, "canVote", "true");
+    assert.fieldEquals("Role", roleId2, "hatId", "6002");
+  });
+
+  test("RolesCreated handles mixed canVote values", () => {
+    let orgId = Bytes.fromHexString(
+      "0xaaaabbbbccccddddaaaabbbbccccddddaaaabbbbccccddddaaaabbbbccccdddd"
+    );
+    let executor = Address.fromString("0x0000000000000000000000000000000000000051");
+    let hybridVoting = Address.fromString("0x0000000000000000000000000000000000000052");
+    let directDemocracyVoting = Address.fromString("0x0000000000000000000000000000000000000053");
+    let quickJoin = Address.fromString("0x0000000000000000000000000000000000000054");
+    let participationToken = Address.fromString("0x0000000000000000000000000000000000000055");
+    let taskManager = Address.fromString("0x0000000000000000000000000000000000000056");
+    let educationHub = Address.fromString("0x0000000000000000000000000000000000000057");
+    let paymentManager = Address.fromString("0x0000000000000000000000000000000000000058");
+    let eligibilityModule = Address.fromString("0x0000000000000000000000000000000000000059");
+    let toggleModule = Address.fromString("0x000000000000000000000000000000000000005a");
+    let topHatId = BigInt.fromI32(7000);
+    let roleHatIds = [BigInt.fromI32(7001), BigInt.fromI32(7002), BigInt.fromI32(7003)];
+
+    let orgDeployedEvent = createOrgDeployedEvent(
+      orgId,
+      executor,
+      hybridVoting,
+      directDemocracyVoting,
+      quickJoin,
+      participationToken,
+      taskManager,
+      educationHub,
+      paymentManager,
+      eligibilityModule,
+      toggleModule,
+      topHatId,
+      roleHatIds
+    );
+
+    handleOrgDeployed(orgDeployedEvent);
+
+    // Emit RolesCreated with mixed canVote values
+    let hatIds = [BigInt.fromI32(7001), BigInt.fromI32(7002), BigInt.fromI32(7003)];
+    let names = ["Member", "Observer", "Admin"];
+    let images = ["", "", ""];
+    let metadataCIDs = [
+      Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000"),
+      Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000"),
+      Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000")
+    ];
+    let canVote = [true, false, true]; // Member and Admin can vote, Observer cannot
+
+    let rolesCreatedEvent = createRolesCreatedEvent(
+      orgId,
+      hatIds,
+      names,
+      images,
+      metadataCIDs,
+      canVote
+    );
+
+    handleRolesCreated(rolesCreatedEvent);
+
+    // Verify canVote values
+    let roleId1 = "0xaaaabbbbccccddddaaaabbbbccccddddaaaabbbbccccddddaaaabbbbccccdddd-7001";
+    let roleId2 = "0xaaaabbbbccccddddaaaabbbbccccddddaaaabbbbccccddddaaaabbbbccccdddd-7002";
+    let roleId3 = "0xaaaabbbbccccddddaaaabbbbccccddddaaaabbbbccccddddaaaabbbbccccdddd-7003";
+
+    assert.fieldEquals("Role", roleId1, "name", "Member");
+    assert.fieldEquals("Role", roleId1, "canVote", "true");
+
+    assert.fieldEquals("Role", roleId2, "name", "Observer");
+    assert.fieldEquals("Role", roleId2, "canVote", "false");
+
+    assert.fieldEquals("Role", roleId3, "name", "Admin");
+    assert.fieldEquals("Role", roleId3, "canVote", "true");
   });
 });

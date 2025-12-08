@@ -1,6 +1,6 @@
 import { newMockEvent } from "matchstick-as";
 import { ethereum, Address, Bytes, BigInt } from "@graphprotocol/graph-ts";
-import { OrgDeployed } from "../generated/templates/OrgDeployer/OrgDeployer";
+import { OrgDeployed, RolesCreated } from "../generated/templates/OrgDeployer/OrgDeployer";
 
 export function createOrgDeployedEvent(
   orgId: Bytes,
@@ -92,4 +92,44 @@ export function createOrgDeployedEvent(
   );
 
   return orgDeployedEvent;
+}
+
+export function createRolesCreatedEvent(
+  orgId: Bytes,
+  hatIds: BigInt[],
+  names: string[],
+  images: string[],
+  metadataCIDs: Bytes[],
+  canVote: boolean[]
+): RolesCreated {
+  let rolesCreatedEvent = changetype<RolesCreated>(newMockEvent());
+
+  rolesCreatedEvent.parameters = new Array();
+
+  rolesCreatedEvent.parameters.push(
+    new ethereum.EventParam("orgId", ethereum.Value.fromFixedBytes(orgId))
+  );
+  rolesCreatedEvent.parameters.push(
+    new ethereum.EventParam(
+      "hatIds",
+      ethereum.Value.fromUnsignedBigIntArray(hatIds)
+    )
+  );
+  rolesCreatedEvent.parameters.push(
+    new ethereum.EventParam("names", ethereum.Value.fromStringArray(names))
+  );
+  rolesCreatedEvent.parameters.push(
+    new ethereum.EventParam("images", ethereum.Value.fromStringArray(images))
+  );
+  rolesCreatedEvent.parameters.push(
+    new ethereum.EventParam(
+      "metadataCIDs",
+      ethereum.Value.fromFixedBytesArray(metadataCIDs)
+    )
+  );
+  rolesCreatedEvent.parameters.push(
+    new ethereum.EventParam("canVote", ethereum.Value.fromBooleanArray(canVote))
+  );
+
+  return rolesCreatedEvent;
 }
