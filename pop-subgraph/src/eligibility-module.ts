@@ -121,6 +121,14 @@ export function handleHatCreatedWithEligibility(
 
   hat.hatId = hatId;
   hat.parentHatId = event.params.parentHatId;
+  // Calculate level based on parent (0 for top hat, otherwise try to get from parent)
+  let parentHat = Hat.load(contractAddress.toHexString() + "-" + event.params.parentHatId.toString());
+  if (parentHat != null) {
+    hat.level = parentHat.level + 1;
+  } else {
+    // Default to 1 if parent not found (parent might not be indexed yet)
+    hat.level = event.params.parentHatId.equals(BigInt.fromI32(0)) ? 0 : 1;
+  }
   hat.eligibilityModule = contractAddress;
   hat.creator = event.params.creator;
   hat.creatorUsername = getUsernameForAddress(event.params.creator);

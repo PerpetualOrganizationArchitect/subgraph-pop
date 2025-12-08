@@ -2,7 +2,8 @@ import { newMockEvent } from "matchstick-as";
 import { ethereum, Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import {
   HatMetadataUpdated,
-  HatCreatedWithEligibility
+  HatCreatedWithEligibility,
+  DefaultEligibilityUpdated
 } from "../generated/templates/EligibilityModule/EligibilityModule";
 
 export function createHatMetadataUpdatedEvent(
@@ -54,6 +55,31 @@ export function createHatCreatedWithEligibilityEvent(
   );
   event.parameters.push(
     new ethereum.EventParam("mintedCount", ethereum.Value.fromUnsignedBigInt(mintedCount))
+  );
+
+  return event;
+}
+
+export function createDefaultEligibilityUpdatedEvent(
+  hatId: BigInt,
+  eligible: boolean,
+  standing: boolean,
+  admin: Address
+): DefaultEligibilityUpdated {
+  let event = changetype<DefaultEligibilityUpdated>(newMockEvent());
+
+  event.parameters = new Array();
+  event.parameters.push(
+    new ethereum.EventParam("hatId", ethereum.Value.fromUnsignedBigInt(hatId))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("eligible", ethereum.Value.fromBoolean(eligible))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("standing", ethereum.Value.fromBoolean(standing))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("admin", ethereum.Value.fromAddress(admin))
   );
 
   return event;

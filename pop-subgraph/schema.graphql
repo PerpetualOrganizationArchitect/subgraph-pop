@@ -1604,6 +1604,7 @@ type OrgMetadataLink @entity(immutable: true) {
 type HatMetadata @entity(immutable: false) {
   id: String! # IPFS hash (CID)
   hat: Hat
+  name: String # Role name fetched from IPFS JSON
   description: String # Fetched from IPFS JSON
   indexedAt: BigInt
 }
