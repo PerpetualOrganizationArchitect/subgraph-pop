@@ -12,25 +12,15 @@ import {
   PasskeyAccount
 } from "../generated/schema";
 
-// Helper to get or create PasskeyAccountFactory
-function getOrCreateFactory(factoryAddress: Bytes, event: AccountCreatedEvent): PasskeyAccountFactory {
-  let factory = PasskeyAccountFactory.load(factoryAddress);
-  if (factory == null) {
-    factory = new PasskeyAccountFactory(factoryAddress);
-    factory.executor = factoryAddress; // Will be updated by ExecutorUpdated event
-    factory.accountBeacon = factoryAddress; // Will be updated if needed
-    factory.createdAt = event.block.timestamp;
-    factory.blockNumber = event.block.number;
-  }
-  return factory;
-}
-
 export function handleAccountCreated(event: AccountCreatedEvent): void {
   let factoryAddress = event.address;
 
-  // Ensure factory exists
-  let factory = getOrCreateFactory(factoryAddress, event);
-  factory.save();
+  // Factory should already exist from InfrastructureDeployed event
+  let factory = PasskeyAccountFactory.load(factoryAddress);
+  if (factory == null) {
+    // Factory not found - this shouldn't happen if InfrastructureDeployed was processed
+    return;
+  }
 
   // Create PasskeyAccount entity
   let account = new PasskeyAccount(event.params.account);

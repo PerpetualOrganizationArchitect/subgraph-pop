@@ -61,7 +61,14 @@ describe("PasskeyAccountFactory", () => {
   });
 
   describe("handleAccountCreated", () => {
-    test("creates PasskeyAccountFactory entity if not exists", () => {
+    beforeEach(() => {
+      // Factory must exist from InfrastructureDeployed before accounts can be created
+      setupFactory();
+    });
+
+    test("skips account creation if factory does not exist", () => {
+      clearStore(); // Remove the factory created in beforeEach
+
       let accountAddress = Address.fromString("0x0000000000000000000000000000000000000001");
       let orgId = getTestOrgId();
       let credentialId = getTestCredentialId();
@@ -70,13 +77,8 @@ describe("PasskeyAccountFactory", () => {
       let event = createAccountCreatedEvent(accountAddress, orgId, credentialId, owner);
       handleAccountCreated(event);
 
-      assert.entityCount("PasskeyAccountFactory", 1);
-      assert.fieldEquals(
-        "PasskeyAccountFactory",
-        FACTORY_ADDRESS,
-        "executor",
-        FACTORY_ADDRESS
-      );
+      // Should not create account if factory doesn't exist
+      assert.entityCount("PasskeyAccount", 0);
     });
 
     test("creates PasskeyAccount entity with correct fields", () => {

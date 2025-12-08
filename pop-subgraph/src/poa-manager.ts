@@ -9,12 +9,14 @@ import {
   PoaManagerContract,
   Beacon,
   BeaconUpgradeEvent,
-  RegistryUpdate
+  RegistryUpdate,
+  PasskeyAccountFactory
 } from "../generated/schema";
 import { OrgDeployer as OrgDeployerTemplate } from "../generated/templates";
 import { OrgRegistry as OrgRegistryTemplate } from "../generated/templates";
 import { PaymasterHub as PaymasterHubTemplate } from "../generated/templates";
 import { UniversalAccountRegistry as UniversalAccountRegistryTemplate } from "../generated/templates";
+import { PasskeyAccountFactory as PasskeyAccountFactoryTemplate } from "../generated/templates";
 
 function getOrCreatePoaManager(
   address: Bytes,
@@ -127,6 +129,7 @@ export function handleInfrastructureDeployed(event: InfrastructureDeployedEvent)
   poaManager.orgRegistryProxy = event.params.orgRegistry;
   poaManager.paymasterHubProxy = event.params.paymasterHub;
   poaManager.globalAccountRegistryProxy = event.params.globalAccountRegistry;
+  poaManager.passkeyAccountFactoryProxy = event.params.passkeyAccountFactoryBeacon;
   poaManager.save();
 
   // Create data source templates for infrastructure contracts
@@ -135,4 +138,15 @@ export function handleInfrastructureDeployed(event: InfrastructureDeployedEvent)
   OrgRegistryTemplate.create(event.params.orgRegistry);
   PaymasterHubTemplate.create(event.params.paymasterHub);
   UniversalAccountRegistryTemplate.create(event.params.globalAccountRegistry);
+
+  // Create PasskeyAccountFactory entity and data source template
+  let passkeyFactoryAddress = event.params.passkeyAccountFactoryBeacon;
+  let factory = new PasskeyAccountFactory(passkeyFactoryAddress);
+  factory.executor = passkeyFactoryAddress; // Will be updated by ExecutorUpdated event
+  factory.accountBeacon = passkeyFactoryAddress; // Will be updated if needed
+  factory.createdAt = event.block.timestamp;
+  factory.blockNumber = event.block.number;
+  factory.save();
+
+  PasskeyAccountFactoryTemplate.create(passkeyFactoryAddress);
 }
