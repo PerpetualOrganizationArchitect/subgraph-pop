@@ -89,7 +89,7 @@ dataSources:
           handler: handleBeaconUpgraded
         - event: RegistryUpdated(address,address)
           handler: handleRegistryUpdated
-        - event: InfrastructureDeployed(address,address,address,address,address)
+        - event: InfrastructureDeployed(address,address,address,address,address,address)
           handler: handleInfrastructureDeployed
       file: ./src/poa-manager.ts
 templates:

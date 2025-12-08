@@ -1646,6 +1646,7 @@ type PoaManagerContract @entity(immutable: false) {
   orgRegistryProxy: Bytes # OrgRegistry proxy contract address
   paymasterHubProxy: Bytes # PaymasterHub proxy contract address
   globalAccountRegistryProxy: Bytes # UniversalAccountRegistry proxy contract address
+  passkeyAccountFactoryProxy: Bytes # PasskeyAccountFactory proxy contract address
 }
 
 type Beacon @entity(immutable: false) {
