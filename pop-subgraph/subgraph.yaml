@@ -775,3 +775,17 @@ templates:
       abis:
         - name: OrgRegistry
           file: ./abis/OrgRegistry.json
+  # IPFS file data source for hat metadata
+  - kind: file/ipfs
+    name: HatMetadata
+    network: hoodi
+    mapping:
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      file: ./src/hat-metadata.ts
+      handler: handleHatMetadata
+      entities:
+        - HatMetadata
+      abis:
+        - name: EligibilityModule
+          file: ./abis/EligibilityModule.json

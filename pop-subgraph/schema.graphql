@@ -529,6 +529,7 @@ type Hat @entity(immutable: false) {
   # Metadata fields
   name: String # Role name from metadata update
   metadataCID: Bytes # IPFS CID for extended role metadata JSON
+  metadata: HatMetadata # Link to IPFS-indexed metadata content
   metadataUpdatedAt: BigInt
   metadataUpdatedAtBlock: BigInt
   createdAt: BigInt!
@@ -1598,6 +1599,13 @@ type OrgMetadataLink @entity(immutable: true) {
   name: String!
   url: String!
   index: Int!
+}
+
+type HatMetadata @entity(immutable: false) {
+  id: String! # IPFS hash (CID)
+  hat: Hat
+  description: String # Fetched from IPFS JSON
+  indexedAt: BigInt
 }
 
 type RegisteredContract @entity(immutable: false) {
