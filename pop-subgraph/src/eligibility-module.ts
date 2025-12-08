@@ -276,6 +276,8 @@ export function handleDefaultEligibilityUpdated(
   let hatEntityId = contractAddress.toHexString() + "-" + hatId.toString();
 
   let hat = Hat.load(hatEntityId);
+  let isNewHat = hat == null;
+
   if (hat == null) {
     // Hat doesn't exist yet - this happens when hats are created via HatsTreeSetup
     // (which creates hats directly on Hats Protocol, not via createHatWithEligibility)
@@ -312,13 +314,21 @@ export function handleDefaultEligibilityUpdated(
       hatId.toString(),
       contractAddress.toHexString()
     ]);
-    return;
+  } else {
+    // Hat exists - just update the eligibility fields
+    hat.defaultEligible = event.params.eligible;
+    hat.defaultStanding = event.params.standing;
+    hat.save();
   }
 
-  // Hat exists - just update the eligibility fields
-  hat.defaultEligible = event.params.eligible;
-  hat.defaultStanding = event.params.standing;
-  hat.save();
+  // Link Hat to Role entity if this is a new hat
+  // This ensures Role.hat is set even when hats are created via HatsTreeSetup
+  if (isNewHat) {
+    let eligibilityModule = EligibilityModuleContract.load(contractAddress);
+    if (eligibilityModule) {
+      linkHatToRole(eligibilityModule.organization, hatId, hatEntityId, event);
+    }
+  }
 }
 
 export function handleVouchConfigSet(event: VouchConfigSetEvent): void {
