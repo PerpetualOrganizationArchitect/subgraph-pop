@@ -928,10 +928,42 @@
         "internalType": "bytes32"
       },
       {
-        "name": "numClasses",
-        "type": "uint256",
+        "name": "classes",
+        "type": "tuple[]",
         "indexed": false,
-        "internalType": "uint256"
+        "internalType": "struct HybridVoting.ClassConfig[]",
+        "components": [
+          {
+            "name": "strategy",
+            "type": "uint8",
+            "internalType": "enum HybridVoting.ClassStrategy"
+          },
+          {
+            "name": "slicePct",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "quadratic",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "minBalance",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "asset",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "hatIds",
+            "type": "uint256[]",
+            "internalType": "uint256[]"
+          }
+        ]
       },
       {
         "name": "timestamp",

@@ -11,7 +11,8 @@ import {
   NewHatProposal,
   VoteCast,
   Winner,
-  ProposalExecuted
+  ProposalExecuted,
+  ClassesReplaced
 } from "../generated/templates/HybridVoting/HybridVoting";
 
 /**
@@ -285,6 +286,60 @@ export function createProposalExecutedEvent(
   );
   event.parameters.push(
     new ethereum.EventParam("numCalls", ethereum.Value.fromUnsignedBigInt(numCalls))
+  );
+
+  return event;
+}
+
+/**
+ * Creates a mock ClassesReplaced event with 2 sample classes
+ * Class 0: DIRECT strategy, 60%, no quadratic
+ * Class 1: ERC20_BAL strategy, 40%, quadratic
+ */
+export function createClassesReplacedEvent(
+  version: BigInt,
+  classesHash: Bytes,
+  timestamp: i64
+): ClassesReplaced {
+  let event = changetype<ClassesReplaced>(newMockEvent());
+
+  event.parameters = new Array();
+  event.parameters.push(
+    new ethereum.EventParam("version", ethereum.Value.fromUnsignedBigInt(version))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("classesHash", ethereum.Value.fromFixedBytes(classesHash))
+  );
+
+  // Create 2 sample ClassConfig tuples
+  // ClassConfig struct: (strategy, slicePct, quadratic, minBalance, asset, hatIds)
+  let classConfigs: ethereum.Tuple[] = [];
+
+  // Class 0: DIRECT strategy, 60%, no quadratic, no min balance, zero address asset
+  let class0 = new ethereum.Tuple(6);
+  class0[0] = ethereum.Value.fromI32(0); // strategy: DIRECT
+  class0[1] = ethereum.Value.fromI32(60); // slicePct: 60%
+  class0[2] = ethereum.Value.fromBoolean(false); // quadratic: false
+  class0[3] = ethereum.Value.fromUnsignedBigInt(BigInt.fromI32(0)); // minBalance: 0
+  class0[4] = ethereum.Value.fromAddress(Address.zero()); // asset: zero address
+  class0[5] = ethereum.Value.fromUnsignedBigIntArray([BigInt.fromI32(1001)]); // hatIds
+  classConfigs.push(class0);
+
+  // Class 1: ERC20_BAL strategy, 40%, quadratic, 1 ETH min balance
+  let class1 = new ethereum.Tuple(6);
+  class1[0] = ethereum.Value.fromI32(1); // strategy: ERC20_BAL
+  class1[1] = ethereum.Value.fromI32(40); // slicePct: 40%
+  class1[2] = ethereum.Value.fromBoolean(true); // quadratic: true
+  class1[3] = ethereum.Value.fromUnsignedBigInt(BigInt.fromString("1000000000000000000")); // minBalance: 1 ETH
+  class1[4] = ethereum.Value.fromAddress(Address.fromString("0x0000000000000000000000000000000000000099")); // asset: token address
+  class1[5] = ethereum.Value.fromUnsignedBigIntArray([BigInt.fromI32(1002)]); // hatIds
+  classConfigs.push(class1);
+
+  event.parameters.push(
+    new ethereum.EventParam("classes", ethereum.Value.fromTupleArray(classConfigs))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("timestamp", ethereum.Value.fromI32(timestamp as i32))
   );
 
   return event;

@@ -17,7 +17,8 @@ import {
   handleNewHatProposal,
   handleVoteCast,
   handleWinner,
-  handleProposalExecuted
+  handleProposalExecuted,
+  handleClassesReplaced
 } from "../src/hybrid-voting";
 import {
   createInitializedEvent,
@@ -30,9 +31,10 @@ import {
   createNewHatProposalEvent,
   createVoteCastEvent,
   createWinnerEvent,
-  createProposalExecutedEvent
+  createProposalExecutedEvent,
+  createClassesReplacedEvent
 } from "./hybrid-voting-utils";
-import { Organization, HybridVotingContract, TaskManager, DirectDemocracyVotingContract, EligibilityModuleContract, ParticipationTokenContract, QuickJoinContract, EducationHubContract, PaymentManagerContract, ExecutorContract, ToggleModuleContract } from "../generated/schema";
+import { Organization, HybridVotingContract, TaskManager, DirectDemocracyVotingContract, EligibilityModuleContract, ParticipationTokenContract, QuickJoinContract, EducationHubContract, PaymentManagerContract, ExecutorContract, ToggleModuleContract, VotingClass, VotingClassChange } from "../generated/schema";
 
 /**
  * Helper function to create necessary entities for hybrid voting tests.
@@ -84,6 +86,7 @@ function setupHybridVotingContract(contractAddress: Address): void {
   hybridVoting.executor = Address.zero();
   hybridVoting.quorum = 0;
   hybridVoting.hats = Address.zero();
+  hybridVoting.classVersion = BigInt.fromI32(0);
   hybridVoting.createdAt = BigInt.fromI32(1000);
   hybridVoting.createdAtBlock = BigInt.fromI32(100);
 
@@ -858,6 +861,199 @@ describe("HybridVoting", () => {
       assert.fieldEquals("Proposal", proposalEntityId, "status", "Executed");
       assert.fieldEquals("Proposal", proposalEntityId, "wasExecuted", "true");
       assert.fieldEquals("Proposal", proposalEntityId, "executedCallsCount", "3");
+    });
+  });
+
+  describe("ClassesReplaced", () => {
+    test("VotingClass entities created from ClassesReplaced event", () => {
+      // Create a ClassesReplaced event with 2 classes
+      let version = BigInt.fromI32(12345);
+      let classesHash = Bytes.fromHexString(
+        "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+      );
+      let timestamp = 1700000000 as i64;
+
+      // Class 0: DIRECT strategy, 60%, no quadratic, no min balance, no asset
+      // Class 1: ERC20_BAL strategy, 40%, quadratic, 1 ETH min balance, token asset
+      let event = createClassesReplacedEvent(version, classesHash, timestamp);
+
+      // Setup contract first (handler requires HybridVotingContract to exist)
+      setupHybridVotingContract(event.address);
+
+      handleClassesReplaced(event);
+
+      // Verify 2 VotingClass entities were created
+      assert.entityCount("VotingClass", 2);
+
+      // Verify VotingClassChange entity was created
+      assert.entityCount("VotingClassChange", 1);
+
+      // Verify first class (DIRECT)
+      let class0Id = event.address.toHexString() + "-12345-0";
+      assert.fieldEquals("VotingClass", class0Id, "strategy", "DIRECT");
+      assert.fieldEquals("VotingClass", class0Id, "slicePct", "60");
+      assert.fieldEquals("VotingClass", class0Id, "quadratic", "false");
+      assert.fieldEquals("VotingClass", class0Id, "classIndex", "0");
+      assert.fieldEquals("VotingClass", class0Id, "isActive", "true");
+
+      // Verify second class (ERC20_BAL)
+      let class1Id = event.address.toHexString() + "-12345-1";
+      assert.fieldEquals("VotingClass", class1Id, "strategy", "ERC20_BAL");
+      assert.fieldEquals("VotingClass", class1Id, "slicePct", "40");
+      assert.fieldEquals("VotingClass", class1Id, "quadratic", "true");
+      assert.fieldEquals("VotingClass", class1Id, "classIndex", "1");
+      assert.fieldEquals("VotingClass", class1Id, "isActive", "true");
+
+      // Verify contract's classVersion was updated
+      assert.fieldEquals(
+        "HybridVotingContract",
+        event.address.toHexString(),
+        "classVersion",
+        "12345"
+      );
+    });
+
+    test("ClassesReplaced skips if contract doesn't exist", () => {
+      let version = BigInt.fromI32(12345);
+      let classesHash = Bytes.fromHexString(
+        "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+      );
+      let timestamp = 1700000000 as i64;
+      let event = createClassesReplacedEvent(version, classesHash, timestamp);
+      // Don't setup contract
+
+      handleClassesReplaced(event);
+
+      // Verify no entities were created
+      assert.entityCount("VotingClass", 0);
+      assert.entityCount("VotingClassChange", 0);
+    });
+
+    test("VotingClassChange entity has correct fields", () => {
+      let version = BigInt.fromI32(99999);
+      let classesHash = Bytes.fromHexString(
+        "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+      );
+      let timestamp = 1700500000 as i64;
+      let event = createClassesReplacedEvent(version, classesHash, timestamp);
+
+      setupHybridVotingContract(event.address);
+      handleClassesReplaced(event);
+
+      // Verify VotingClassChange fields
+      assert.entityCount("VotingClassChange", 1);
+
+      // The ID is txHash.concatI32(logIndex)
+      let changeId = event.transaction.hash.concatI32(event.logIndex.toI32()).toHexString();
+      assert.fieldEquals("VotingClassChange", changeId, "version", "99999");
+      assert.fieldEquals("VotingClassChange", changeId, "numClasses", "2");
+      assert.fieldEquals(
+        "VotingClassChange",
+        changeId,
+        "classesHash",
+        "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+      );
+    });
+
+    test("VotingClass entities have correct minBalance and asset fields", () => {
+      let version = BigInt.fromI32(54321);
+      let classesHash = Bytes.fromHexString(
+        "0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321"
+      );
+      let timestamp = 1700100000 as i64;
+      let event = createClassesReplacedEvent(version, classesHash, timestamp);
+
+      setupHybridVotingContract(event.address);
+      handleClassesReplaced(event);
+
+      // Verify Class 0 has zero minBalance and zero asset (DIRECT strategy)
+      let class0Id = event.address.toHexString() + "-54321-0";
+      assert.fieldEquals("VotingClass", class0Id, "minBalance", "0");
+      assert.fieldEquals(
+        "VotingClass",
+        class0Id,
+        "asset",
+        "0x0000000000000000000000000000000000000000"
+      );
+
+      // Verify Class 1 has 1 ETH minBalance and non-zero asset (ERC20_BAL strategy)
+      let class1Id = event.address.toHexString() + "-54321-1";
+      assert.fieldEquals("VotingClass", class1Id, "minBalance", "1000000000000000000");
+      assert.fieldEquals(
+        "VotingClass",
+        class1Id,
+        "asset",
+        "0x0000000000000000000000000000000000000099"
+      );
+    });
+
+    test("VotingClass entities link to HybridVotingContract", () => {
+      let version = BigInt.fromI32(11111);
+      let classesHash = Bytes.fromHexString(
+        "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      );
+      let timestamp = 1700200000 as i64;
+      let event = createClassesReplacedEvent(version, classesHash, timestamp);
+
+      setupHybridVotingContract(event.address);
+      handleClassesReplaced(event);
+
+      // Verify VotingClass entities link to the correct HybridVotingContract
+      let class0Id = event.address.toHexString() + "-11111-0";
+      let class1Id = event.address.toHexString() + "-11111-1";
+
+      assert.fieldEquals(
+        "VotingClass",
+        class0Id,
+        "hybridVoting",
+        event.address.toHexString()
+      );
+      assert.fieldEquals(
+        "VotingClass",
+        class1Id,
+        "hybridVoting",
+        event.address.toHexString()
+      );
+    });
+
+    test("VotingClass entities have correct version field", () => {
+      let version = BigInt.fromI32(77777);
+      let classesHash = Bytes.fromHexString(
+        "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      );
+      let timestamp = 1700300000 as i64;
+      let event = createClassesReplacedEvent(version, classesHash, timestamp);
+
+      setupHybridVotingContract(event.address);
+      handleClassesReplaced(event);
+
+      let class0Id = event.address.toHexString() + "-77777-0";
+      let class1Id = event.address.toHexString() + "-77777-1";
+
+      assert.fieldEquals("VotingClass", class0Id, "version", "77777");
+      assert.fieldEquals("VotingClass", class1Id, "version", "77777");
+    });
+
+    test("VotingClass entities have correct timestamps", () => {
+      let version = BigInt.fromI32(88888);
+      let classesHash = Bytes.fromHexString(
+        "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      );
+      let timestamp = 1700400000 as i64;
+      let event = createClassesReplacedEvent(version, classesHash, timestamp);
+
+      setupHybridVotingContract(event.address);
+      handleClassesReplaced(event);
+
+      let class0Id = event.address.toHexString() + "-88888-0";
+
+      // Verify createdAt uses block.timestamp from event
+      assert.fieldEquals(
+        "VotingClass",
+        class0Id,
+        "createdAtBlock",
+        event.block.number.toString()
+      );
     });
   });
 });

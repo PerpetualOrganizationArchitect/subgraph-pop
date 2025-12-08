@@ -10,7 +10,8 @@ import {
   NewHatProposal,
   VoteCast,
   Winner,
-  ProposalExecuted
+  ProposalExecuted,
+  ClassesReplaced
 } from "../generated/templates/HybridVoting/HybridVoting";
 import {
   HybridVotingContract,
@@ -18,7 +19,9 @@ import {
   HybridVotingQuorumChange,
   HatPermission,
   Proposal,
-  Vote
+  Vote,
+  VotingClass,
+  VotingClassChange
 } from "../generated/schema";
 import { getUsernameForAddress, getOrCreateUser, createHatPermission, createExecutorChange, getOrCreateRole } from "./utils";
 
@@ -400,4 +403,79 @@ export function handleProposalExecuted(event: ProposalExecuted): void {
   proposal.executedCallsCount = event.params.numCalls;
 
   proposal.save();
+}
+
+// ============================================================================
+// CLASS CONFIGURATION HANDLERS
+// ============================================================================
+
+/**
+ * Handler for ClassesReplaced event
+ * Creates VotingClass entities for each class in the configuration
+ * and records the change in VotingClassChange
+ */
+export function handleClassesReplaced(event: ClassesReplaced): void {
+  let contract = HybridVotingContract.load(event.address);
+
+  if (!contract) {
+    // Edge case: contract doesn't exist yet (OrgDeployed not processed)
+    // Skip this update - the contract will be created by OrgDeployed
+    return;
+  }
+
+  let version = event.params.version;
+  let contractAddress = event.address.toHexString();
+
+  // Mark all previous VotingClass entities for this contract as inactive
+  // (We can't query for them directly in AssemblyScript, so we'll just create new ones)
+  // The isActive field will help queries filter for current classes
+
+  // Create VotingClass entities for each class in the new configuration
+  let classes = event.params.classes;
+  for (let i = 0; i < classes.length; i++) {
+    let classConfig = classes[i];
+    let classId = contractAddress + "-" + version.toString() + "-" + i.toString();
+
+    let votingClass = new VotingClass(classId);
+    votingClass.hybridVoting = event.address;
+    votingClass.version = version;
+    votingClass.classIndex = i;
+
+    // Map strategy enum: 0 = DIRECT, 1 = ERC20_BAL
+    if (classConfig.strategy == 0) {
+      votingClass.strategy = "DIRECT";
+    } else {
+      votingClass.strategy = "ERC20_BAL";
+    }
+
+    votingClass.slicePct = classConfig.slicePct;
+    votingClass.quadratic = classConfig.quadratic;
+    votingClass.minBalance = classConfig.minBalance;
+    votingClass.asset = classConfig.asset;
+    votingClass.hatIds = classConfig.hatIds;
+    votingClass.isActive = true; // New classes are active
+    votingClass.createdAt = event.block.timestamp;
+    votingClass.createdAtBlock = event.block.number;
+    votingClass.transactionHash = event.transaction.hash;
+
+    votingClass.save();
+  }
+
+  // Update contract's classVersion
+  contract.classVersion = version;
+  contract.save();
+
+  // Create immutable VotingClassChange record
+  let changeId = event.transaction.hash.concatI32(event.logIndex.toI32());
+  let change = new VotingClassChange(changeId);
+
+  change.hybridVoting = event.address;
+  change.version = version;
+  change.classesHash = event.params.classesHash;
+  change.numClasses = classes.length;
+  change.changedAt = event.block.timestamp;
+  change.changedAtBlock = event.block.number;
+  change.transactionHash = event.transaction.hash;
+
+  change.save();
 }
