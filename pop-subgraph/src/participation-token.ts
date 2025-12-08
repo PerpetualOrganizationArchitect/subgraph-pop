@@ -16,7 +16,7 @@ import {
   TokenRequest,
   TokenBalance
 } from "../generated/schema";
-import { getOrCreateRole } from "./utils";
+import { getOrCreateRole, getOrCreateUser } from "./utils";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -61,6 +61,18 @@ export function handleTransfer(event: TransferEvent): void {
     fromBalance.updatedAt = event.block.timestamp;
     fromBalance.updatedAtBlock = event.block.number;
     fromBalance.save();
+
+    // Update User.participationTokenBalance for sender
+    if (contract != null) {
+      let fromUser = getOrCreateUser(
+        contract.organization,
+        fromAddress,
+        event.block.timestamp,
+        event.block.number
+      );
+      fromUser.participationTokenBalance = fromUser.participationTokenBalance.minus(amount);
+      fromUser.save();
+    }
   } else {
     // This is a mint - increase total supply
     if (contract != null) {
@@ -85,6 +97,18 @@ export function handleTransfer(event: TransferEvent): void {
     toBalance.updatedAt = event.block.timestamp;
     toBalance.updatedAtBlock = event.block.number;
     toBalance.save();
+
+    // Update User.participationTokenBalance for receiver
+    if (contract != null) {
+      let toUser = getOrCreateUser(
+        contract.organization,
+        toAddress,
+        event.block.timestamp,
+        event.block.number
+      );
+      toUser.participationTokenBalance = toUser.participationTokenBalance.plus(amount);
+      toUser.save();
+    }
   } else {
     // This is a burn - decrease total supply
     if (contract != null) {
