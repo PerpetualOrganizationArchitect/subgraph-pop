@@ -557,6 +557,7 @@ type Role @entity(immutable: false) {
   image: String # Role image URL
   metadataCID: Bytes # IPFS CID for extended metadata
   canVote: Boolean # Whether this role can vote
+  isUserRole: Boolean # True for user-defined roles (in roleHatIds), false for system hats (TopHat, AdminHat)
 
   # Timestamps
   createdAt: BigInt!
