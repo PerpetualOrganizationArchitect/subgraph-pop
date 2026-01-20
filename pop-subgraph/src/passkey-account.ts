@@ -27,7 +27,6 @@ export function handleCredentialAdded(event: CredentialAddedEvent): void {
   let credential = new PasskeyCredential(credentialId);
   credential.account = accountAddress;
   credential.credentialId = event.params.credentialId;
-  credential.orgId = event.params.orgId;
   credential.active = true;
   credential.signCount = BigInt.fromI32(0);
   credential.createdAt = event.params.createdAt;
@@ -103,6 +102,7 @@ export function handleRecoveryInitiated(event: RecoveryInitiatedEvent): void {
   request.status = "PENDING";
   request.createdAt = event.block.timestamp;
   request.blockNumber = event.block.number;
+  request.transactionHash = event.transaction.hash;
   request.save();
 }
 

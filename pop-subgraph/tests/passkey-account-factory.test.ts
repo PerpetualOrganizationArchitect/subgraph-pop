@@ -9,19 +9,18 @@ import {
 import { Address, Bytes, BigInt } from "@graphprotocol/graph-ts";
 import {
   handleAccountCreated,
-  handleOrgRegistered,
-  handleOrgConfigUpdated,
-  handleFactoryExecutorUpdated
+  handleGlobalConfigUpdated,
+  handlePoaManagerUpdated,
+  handlePausedStateChanged
 } from "../src/passkey-account-factory";
 import {
   createAccountCreatedEvent,
-  createOrgRegisteredEvent,
-  createOrgConfigUpdatedEvent,
-  createFactoryExecutorUpdatedEvent
+  createGlobalConfigUpdatedEvent,
+  createPoaManagerUpdatedEvent,
+  createPausedStateChangedEvent
 } from "./passkey-account-factory-utils";
 import {
   PasskeyAccountFactory,
-  PasskeyOrgConfig,
   PasskeyAccount
 } from "../generated/schema";
 
@@ -34,18 +33,15 @@ const FACTORY_ADDRESS = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a";
 function setupFactory(): void {
   let factoryAddress = Address.fromString(FACTORY_ADDRESS);
   let factory = new PasskeyAccountFactory(factoryAddress);
-  factory.executor = factoryAddress;
-  factory.accountBeacon = factoryAddress;
+  factory.poaManager = factoryAddress;
+  factory.accountBeacon = null; // Optional - no event to track
+  factory.poaGuardian = Address.zero();
+  factory.recoveryDelay = BigInt.fromI32(604800);
+  factory.maxCredentialsPerAccount = 10;
+  factory.paused = false;
   factory.createdAt = BigInt.fromI32(1000);
   factory.blockNumber = BigInt.fromI32(100);
   factory.save();
-}
-
-/**
- * Helper to create a test org ID
- */
-function getTestOrgId(): Bytes {
-  return Bytes.fromHexString("0x1111111111111111111111111111111111111111111111111111111111111111");
 }
 
 /**
@@ -70,11 +66,10 @@ describe("PasskeyAccountFactory", () => {
       clearStore(); // Remove the factory created in beforeEach
 
       let accountAddress = Address.fromString("0x0000000000000000000000000000000000000001");
-      let orgId = getTestOrgId();
       let credentialId = getTestCredentialId();
       let owner = Address.fromString("0x0000000000000000000000000000000000000002");
 
-      let event = createAccountCreatedEvent(accountAddress, orgId, credentialId, owner);
+      let event = createAccountCreatedEvent(accountAddress, credentialId, owner);
       handleAccountCreated(event);
 
       // Should not create account if factory doesn't exist
@@ -83,11 +78,10 @@ describe("PasskeyAccountFactory", () => {
 
     test("creates PasskeyAccount entity with correct fields", () => {
       let accountAddress = Address.fromString("0x0000000000000000000000000000000000000001");
-      let orgId = getTestOrgId();
       let credentialId = getTestCredentialId();
       let owner = Address.fromString("0x0000000000000000000000000000000000000002");
 
-      let event = createAccountCreatedEvent(accountAddress, orgId, credentialId, owner);
+      let event = createAccountCreatedEvent(accountAddress, credentialId, owner);
       handleAccountCreated(event);
 
       assert.entityCount("PasskeyAccount", 1);
@@ -109,19 +103,24 @@ describe("PasskeyAccountFactory", () => {
         "guardian",
         Address.zero().toHexString()
       );
+      assert.fieldEquals(
+        "PasskeyAccount",
+        "0x0000000000000000000000000000000000000001",
+        "initialCredentialId",
+        credentialId.toHexString()
+      );
     });
 
     test("creates multiple PasskeyAccount entities for different addresses", () => {
-      let orgId = getTestOrgId();
       let credentialId = getTestCredentialId();
       let owner = Address.fromString("0x0000000000000000000000000000000000000002");
 
       let account1 = Address.fromString("0x0000000000000000000000000000000000000001");
-      let event1 = createAccountCreatedEvent(account1, orgId, credentialId, owner);
+      let event1 = createAccountCreatedEvent(account1, credentialId, owner);
       handleAccountCreated(event1);
 
       let account2 = Address.fromString("0x0000000000000000000000000000000000000003");
-      let event2 = createAccountCreatedEvent(account2, orgId, credentialId, owner);
+      let event2 = createAccountCreatedEvent(account2, credentialId, owner);
       handleAccountCreated(event2);
 
       assert.entityCount("PasskeyAccount", 2);
@@ -129,105 +128,122 @@ describe("PasskeyAccountFactory", () => {
     });
   });
 
-  describe("handleOrgRegistered", () => {
-    test("creates PasskeyOrgConfig entity with correct fields", () => {
-      let orgId = getTestOrgId();
-      let maxCredentials: i32 = 5;
-      let guardian = Address.fromString("0x0000000000000000000000000000000000000001");
-      let recoveryDelay = BigInt.fromI32(86400); // 1 day
-
-      let event = createOrgRegisteredEvent(orgId, maxCredentials, guardian, recoveryDelay);
-      handleOrgRegistered(event);
-
-      let orgIdHex = orgId.toHexString();
-      assert.entityCount("PasskeyOrgConfig", 1);
-      assert.fieldEquals("PasskeyOrgConfig", orgIdHex, "maxCredentialsPerAccount", "5");
-      assert.fieldEquals("PasskeyOrgConfig", orgIdHex, "enabled", "true");
-      assert.fieldEquals(
-        "PasskeyOrgConfig",
-        orgIdHex,
-        "defaultGuardian",
-        "0x0000000000000000000000000000000000000001"
-      );
-      assert.fieldEquals("PasskeyOrgConfig", orgIdHex, "recoveryDelay", "86400");
-    });
-
-    test("creates multiple PasskeyOrgConfig entities for different orgs", () => {
-      let guardian = Address.fromString("0x0000000000000000000000000000000000000001");
-      let recoveryDelay = BigInt.fromI32(86400);
-
-      let orgId1 = Bytes.fromHexString("0x1111111111111111111111111111111111111111111111111111111111111111");
-      let event1 = createOrgRegisteredEvent(orgId1, 5, guardian, recoveryDelay);
-      handleOrgRegistered(event1);
-
-      let orgId2 = Bytes.fromHexString("0x3333333333333333333333333333333333333333333333333333333333333333");
-      let event2 = createOrgRegisteredEvent(orgId2, 10, guardian, recoveryDelay);
-      handleOrgRegistered(event2);
-
-      assert.entityCount("PasskeyOrgConfig", 2);
-    });
-  });
-
-  describe("handleOrgConfigUpdated", () => {
-    test("updates PasskeyOrgConfig updatedAt timestamp", () => {
-      // First register the org
-      let orgId = getTestOrgId();
-      let guardian = Address.fromString("0x0000000000000000000000000000000000000001");
-      let recoveryDelay = BigInt.fromI32(86400);
-
-      let registerEvent = createOrgRegisteredEvent(orgId, 5, guardian, recoveryDelay);
-      handleOrgRegistered(registerEvent);
-
-      // Then update it
-      let updateEvent = createOrgConfigUpdatedEvent(orgId);
-      updateEvent.block.timestamp = BigInt.fromI32(2000);
-      handleOrgConfigUpdated(updateEvent);
-
-      let orgIdHex = orgId.toHexString();
-      assert.fieldEquals("PasskeyOrgConfig", orgIdHex, "updatedAt", "2000");
-    });
-
-    test("does nothing if org config does not exist", () => {
-      let orgId = getTestOrgId();
-      let event = createOrgConfigUpdatedEvent(orgId);
-
-      // Should not throw
-      handleOrgConfigUpdated(event);
-
-      assert.entityCount("PasskeyOrgConfig", 0);
-    });
-  });
-
-  describe("handleFactoryExecutorUpdated", () => {
+  describe("handleGlobalConfigUpdated", () => {
     beforeEach(() => {
       setupFactory();
     });
 
-    test("updates factory executor address", () => {
-      let oldExecutor = Address.fromString(FACTORY_ADDRESS);
-      let newExecutor = Address.fromString("0x0000000000000000000000000000000000000001");
+    test("updates PasskeyAccountFactory global config fields", () => {
+      let guardian = Address.fromString("0x0000000000000000000000000000000000000001");
+      let recoveryDelay = BigInt.fromI32(172800); // 2 days
+      let maxCredentials: i32 = 5;
 
-      let event = createFactoryExecutorUpdatedEvent(oldExecutor, newExecutor);
-      handleFactoryExecutorUpdated(event);
+      let event = createGlobalConfigUpdatedEvent(guardian, recoveryDelay, maxCredentials);
+      handleGlobalConfigUpdated(event);
 
       assert.fieldEquals(
         "PasskeyAccountFactory",
         FACTORY_ADDRESS,
-        "executor",
+        "poaGuardian",
+        "0x0000000000000000000000000000000000000001"
+      );
+      assert.fieldEquals(
+        "PasskeyAccountFactory",
+        FACTORY_ADDRESS,
+        "recoveryDelay",
+        "172800"
+      );
+      assert.fieldEquals(
+        "PasskeyAccountFactory",
+        FACTORY_ADDRESS,
+        "maxCredentialsPerAccount",
+        "5"
+      );
+    });
+
+    test("does nothing if factory does not exist", () => {
+      clearStore();
+
+      let guardian = Address.fromString("0x0000000000000000000000000000000000000001");
+      let recoveryDelay = BigInt.fromI32(172800);
+      let maxCredentials: i32 = 5;
+
+      let event = createGlobalConfigUpdatedEvent(guardian, recoveryDelay, maxCredentials);
+
+      // Should not throw
+      handleGlobalConfigUpdated(event);
+
+      assert.entityCount("PasskeyAccountFactory", 0);
+    });
+  });
+
+  describe("handlePoaManagerUpdated", () => {
+    beforeEach(() => {
+      setupFactory();
+    });
+
+    test("updates factory poaManager address", () => {
+      let oldPoaManager = Address.fromString(FACTORY_ADDRESS);
+      let newPoaManager = Address.fromString("0x0000000000000000000000000000000000000001");
+
+      let event = createPoaManagerUpdatedEvent(oldPoaManager, newPoaManager);
+      handlePoaManagerUpdated(event);
+
+      assert.fieldEquals(
+        "PasskeyAccountFactory",
+        FACTORY_ADDRESS,
+        "poaManager",
         "0x0000000000000000000000000000000000000001"
       );
     });
 
     test("does nothing if factory does not exist", () => {
-      clearStore(); // Remove the factory created in beforeEach
+      clearStore();
 
-      let oldExecutor = Address.fromString(FACTORY_ADDRESS);
-      let newExecutor = Address.fromString("0x0000000000000000000000000000000000000001");
+      let oldPoaManager = Address.fromString(FACTORY_ADDRESS);
+      let newPoaManager = Address.fromString("0x0000000000000000000000000000000000000001");
 
-      let event = createFactoryExecutorUpdatedEvent(oldExecutor, newExecutor);
+      let event = createPoaManagerUpdatedEvent(oldPoaManager, newPoaManager);
 
       // Should not throw
-      handleFactoryExecutorUpdated(event);
+      handlePoaManagerUpdated(event);
+
+      assert.entityCount("PasskeyAccountFactory", 0);
+    });
+  });
+
+  describe("handlePausedStateChanged", () => {
+    beforeEach(() => {
+      setupFactory();
+    });
+
+    test("sets factory paused to true", () => {
+      let event = createPausedStateChangedEvent(true);
+      handlePausedStateChanged(event);
+
+      assert.fieldEquals("PasskeyAccountFactory", FACTORY_ADDRESS, "paused", "true");
+    });
+
+    test("sets factory paused to false", () => {
+      // First pause
+      let pauseEvent = createPausedStateChangedEvent(true);
+      handlePausedStateChanged(pauseEvent);
+
+      // Then unpause
+      let unpauseEvent = createPausedStateChangedEvent(false);
+      unpauseEvent.logIndex = BigInt.fromI32(2);
+      handlePausedStateChanged(unpauseEvent);
+
+      assert.fieldEquals("PasskeyAccountFactory", FACTORY_ADDRESS, "paused", "false");
+    });
+
+    test("does nothing if factory does not exist", () => {
+      clearStore();
+
+      let event = createPausedStateChangedEvent(true);
+
+      // Should not throw
+      handlePausedStateChanged(event);
 
       assert.entityCount("PasskeyAccountFactory", 0);
     });

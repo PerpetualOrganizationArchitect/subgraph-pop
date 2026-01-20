@@ -1709,30 +1709,24 @@ type RegistryUpdate @entity(immutable: true) {
 
 type PasskeyAccountFactory @entity(immutable: false) {
   id: Bytes! # Factory contract address
-  executor: Bytes!
-  accountBeacon: Bytes!
-  organizations: [PasskeyOrgConfig!]! @derivedFrom(field: "factory")
+  poaManager: Bytes!
+  accountBeacon: Bytes # Optional - set at deployment, no event to track
+  # Global config (replaces per-org config)
+  poaGuardian: Bytes!
+  recoveryDelay: BigInt!
+  maxCredentialsPerAccount: Int!
+  paused: Boolean!
+  # Derived
   accounts: [PasskeyAccount!]! @derivedFrom(field: "factory")
+  # Metadata
   createdAt: BigInt!
   blockNumber: BigInt!
-}
-
-type PasskeyOrgConfig @entity(immutable: false) {
-  id: String! # orgId as hex string
-  factory: PasskeyAccountFactory!
-  orgId: Bytes!
-  maxCredentialsPerAccount: Int!
-  defaultGuardian: Bytes!
-  recoveryDelay: BigInt!
-  enabled: Boolean!
-  createdAt: BigInt!
-  updatedAt: BigInt!
 }
 
 type PasskeyAccount @entity(immutable: false) {
   id: Bytes! # Account contract address
   factory: PasskeyAccountFactory!
-  orgId: Bytes!
+  initialCredentialId: Bytes! # Store the credential used at creation
   owner: Bytes! # Address that triggered creation
   guardian: Bytes!
   recoveryDelay: BigInt!
@@ -1751,9 +1745,7 @@ type PasskeyCredential @entity(immutable: false) {
   id: String! # account-credentialId
   account: PasskeyAccount!
   credentialId: Bytes!
-  orgId: Bytes!
-  publicKeyX: Bytes # Not emitted in event, but useful if available
-  publicKeyY: Bytes # Not emitted in event, but useful if available
+  # publicKeyX/Y not emitted in events, remove unless we call contract
   active: Boolean!
   signCount: BigInt!
   createdAt: BigInt!
@@ -1779,6 +1771,7 @@ type RecoveryRequest @entity(immutable: false) {
   cancelledAt: BigInt
   createdAt: BigInt!
   blockNumber: BigInt!
+  transactionHash: Bytes!
 }
 
 type PasskeyExecution @entity(immutable: true) {

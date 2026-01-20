@@ -2,14 +2,13 @@ import { newMockEvent } from "matchstick-as";
 import { ethereum, Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import {
   AccountCreated,
-  OrgRegistered,
-  OrgConfigUpdated,
-  ExecutorUpdated
+  GlobalConfigUpdated,
+  PoaManagerUpdated,
+  PausedStateChanged
 } from "../generated/templates/PasskeyAccountFactory/PasskeyAccountFactory";
 
 export function createAccountCreatedEvent(
   account: Address,
-  orgId: Bytes,
   credentialId: Bytes,
   owner: Address
 ): AccountCreated {
@@ -18,9 +17,6 @@ export function createAccountCreatedEvent(
   event.parameters = new Array();
   event.parameters.push(
     new ethereum.EventParam("account", ethereum.Value.fromAddress(account))
-  );
-  event.parameters.push(
-    new ethereum.EventParam("orgId", ethereum.Value.fromFixedBytes(orgId))
   );
   event.parameters.push(
     new ethereum.EventParam("credentialId", ethereum.Value.fromFixedBytes(credentialId))
@@ -32,54 +28,50 @@ export function createAccountCreatedEvent(
   return event;
 }
 
-export function createOrgRegisteredEvent(
-  orgId: Bytes,
-  maxCredentials: i32,
+export function createGlobalConfigUpdatedEvent(
   guardian: Address,
-  recoveryDelay: BigInt
-): OrgRegistered {
-  let event = changetype<OrgRegistered>(newMockEvent());
+  recoveryDelay: BigInt,
+  maxCredentials: i32
+): GlobalConfigUpdated {
+  let event = changetype<GlobalConfigUpdated>(newMockEvent());
 
   event.parameters = new Array();
-  event.parameters.push(
-    new ethereum.EventParam("orgId", ethereum.Value.fromFixedBytes(orgId))
-  );
-  event.parameters.push(
-    new ethereum.EventParam("maxCredentials", ethereum.Value.fromI32(maxCredentials))
-  );
   event.parameters.push(
     new ethereum.EventParam("guardian", ethereum.Value.fromAddress(guardian))
   );
   event.parameters.push(
     new ethereum.EventParam("recoveryDelay", ethereum.Value.fromUnsignedBigInt(recoveryDelay))
   );
-
-  return event;
-}
-
-export function createOrgConfigUpdatedEvent(orgId: Bytes): OrgConfigUpdated {
-  let event = changetype<OrgConfigUpdated>(newMockEvent());
-
-  event.parameters = new Array();
   event.parameters.push(
-    new ethereum.EventParam("orgId", ethereum.Value.fromFixedBytes(orgId))
+    new ethereum.EventParam("maxCredentials", ethereum.Value.fromI32(maxCredentials))
   );
 
   return event;
 }
 
-export function createFactoryExecutorUpdatedEvent(
-  oldExecutor: Address,
-  newExecutor: Address
-): ExecutorUpdated {
-  let event = changetype<ExecutorUpdated>(newMockEvent());
+export function createPoaManagerUpdatedEvent(
+  oldPoaManager: Address,
+  newPoaManager: Address
+): PoaManagerUpdated {
+  let event = changetype<PoaManagerUpdated>(newMockEvent());
 
   event.parameters = new Array();
   event.parameters.push(
-    new ethereum.EventParam("oldExecutor", ethereum.Value.fromAddress(oldExecutor))
+    new ethereum.EventParam("oldPoaManager", ethereum.Value.fromAddress(oldPoaManager))
   );
   event.parameters.push(
-    new ethereum.EventParam("newExecutor", ethereum.Value.fromAddress(newExecutor))
+    new ethereum.EventParam("newPoaManager", ethereum.Value.fromAddress(newPoaManager))
+  );
+
+  return event;
+}
+
+export function createPausedStateChangedEvent(paused: boolean): PausedStateChanged {
+  let event = changetype<PausedStateChanged>(newMockEvent());
+
+  event.parameters = new Array();
+  event.parameters.push(
+    new ethereum.EventParam("paused", ethereum.Value.fromBoolean(paused))
   );
 
   return event;

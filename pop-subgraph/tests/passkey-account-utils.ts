@@ -15,7 +15,6 @@ import {
 
 export function createCredentialAddedEvent(
   credentialId: Bytes,
-  orgId: Bytes,
   createdAt: BigInt
 ): CredentialAdded {
   let event = changetype<CredentialAdded>(newMockEvent());
@@ -23,9 +22,6 @@ export function createCredentialAddedEvent(
   event.parameters = new Array();
   event.parameters.push(
     new ethereum.EventParam("credentialId", ethereum.Value.fromFixedBytes(credentialId))
-  );
-  event.parameters.push(
-    new ethereum.EventParam("orgId", ethereum.Value.fromFixedBytes(orgId))
   );
   event.parameters.push(
     new ethereum.EventParam("createdAt", ethereum.Value.fromUnsignedBigInt(createdAt))

@@ -1,4 +1,4 @@
-import { BigInt, Bytes } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import {
   BeaconCreated as BeaconCreatedEvent,
   BeaconUpgraded as BeaconUpgradedEvent,
@@ -142,8 +142,12 @@ export function handleInfrastructureDeployed(event: InfrastructureDeployedEvent)
   // Create PasskeyAccountFactory entity and data source template
   let passkeyFactoryAddress = event.params.passkeyAccountFactoryBeacon;
   let factory = new PasskeyAccountFactory(passkeyFactoryAddress);
-  factory.executor = passkeyFactoryAddress; // Will be updated by ExecutorUpdated event
-  factory.accountBeacon = passkeyFactoryAddress; // Will be updated if needed
+  factory.poaManager = event.address; // The PoaManager that deployed it
+  factory.accountBeacon = null; // No event to track this - set at deployment
+  factory.poaGuardian = Address.zero(); // Will be set via GlobalConfigUpdated event
+  factory.recoveryDelay = BigInt.fromI32(604800); // 7 days default
+  factory.maxCredentialsPerAccount = 10; // default
+  factory.paused = false;
   factory.createdAt = event.block.timestamp;
   factory.blockNumber = event.block.number;
   factory.save();
