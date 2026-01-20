@@ -49,8 +49,12 @@ function setupAccountEntities(): void {
   // Create factory
   let factoryAddress = Address.fromString(FACTORY_ADDRESS);
   let factory = new PasskeyAccountFactory(factoryAddress);
-  factory.executor = factoryAddress;
-  factory.accountBeacon = factoryAddress;
+  factory.poaManager = factoryAddress;
+  factory.accountBeacon = null; // Optional - no event to track
+  factory.poaGuardian = Address.zero();
+  factory.recoveryDelay = BigInt.fromI32(604800);
+  factory.maxCredentialsPerAccount = 10;
+  factory.paused = false;
   factory.createdAt = BigInt.fromI32(1000);
   factory.blockNumber = BigInt.fromI32(100);
   factory.save();
@@ -59,7 +63,7 @@ function setupAccountEntities(): void {
   let accountAddress = Address.fromString(ACCOUNT_ADDRESS);
   let account = new PasskeyAccount(accountAddress);
   account.factory = factoryAddress;
-  account.orgId = getTestOrgId();
+  account.initialCredentialId = getTestCredentialId();
   account.owner = Address.fromString("0x0000000000000000000000000000000000000001");
   account.guardian = Address.zero();
   account.recoveryDelay = BigInt.fromI32(0);
@@ -67,13 +71,6 @@ function setupAccountEntities(): void {
   account.blockNumber = BigInt.fromI32(100);
   account.transactionHash = Bytes.fromHexString("0xabcd");
   account.save();
-}
-
-/**
- * Helper to create a test org ID
- */
-function getTestOrgId(): Bytes {
-  return Bytes.fromHexString("0x1111111111111111111111111111111111111111111111111111111111111111");
 }
 
 /**
@@ -98,10 +95,9 @@ describe("PasskeyAccount", () => {
   describe("handleCredentialAdded", () => {
     test("creates PasskeyCredential entity with correct fields", () => {
       let credentialId = getTestCredentialId();
-      let orgId = getTestOrgId();
       let createdAt = BigInt.fromI32(1000);
 
-      let event = createCredentialAddedEvent(credentialId, orgId, createdAt);
+      let event = createCredentialAddedEvent(credentialId, createdAt);
       handleCredentialAdded(event);
 
       let entityId = ACCOUNT_ADDRESS + "-" + credentialId.toHexString();
@@ -112,15 +108,14 @@ describe("PasskeyAccount", () => {
     });
 
     test("creates multiple credentials for same account", () => {
-      let orgId = getTestOrgId();
       let createdAt = BigInt.fromI32(1000);
 
       let cred1 = Bytes.fromHexString("0x1111111111111111111111111111111111111111111111111111111111111111");
-      let event1 = createCredentialAddedEvent(cred1, orgId, createdAt);
+      let event1 = createCredentialAddedEvent(cred1, createdAt);
       handleCredentialAdded(event1);
 
       let cred2 = Bytes.fromHexString("0x2222222222222222222222222222222222222222222222222222222222222222");
-      let event2 = createCredentialAddedEvent(cred2, orgId, createdAt);
+      let event2 = createCredentialAddedEvent(cred2, createdAt);
       handleCredentialAdded(event2);
 
       assert.entityCount("PasskeyCredential", 2);
@@ -131,10 +126,9 @@ describe("PasskeyAccount", () => {
     test("sets credential active to false and records removedAt", () => {
       // First add a credential
       let credentialId = getTestCredentialId();
-      let orgId = getTestOrgId();
       let createdAt = BigInt.fromI32(1000);
 
-      let addEvent = createCredentialAddedEvent(credentialId, orgId, createdAt);
+      let addEvent = createCredentialAddedEvent(credentialId, createdAt);
       handleCredentialAdded(addEvent);
 
       // Then remove it
@@ -162,10 +156,9 @@ describe("PasskeyAccount", () => {
     test("updates credential active status to false", () => {
       // First add a credential
       let credentialId = getTestCredentialId();
-      let orgId = getTestOrgId();
       let createdAt = BigInt.fromI32(1000);
 
-      let addEvent = createCredentialAddedEvent(credentialId, orgId, createdAt);
+      let addEvent = createCredentialAddedEvent(credentialId, createdAt);
       handleCredentialAdded(addEvent);
 
       // Then deactivate it
@@ -179,10 +172,9 @@ describe("PasskeyAccount", () => {
     test("updates credential active status to true", () => {
       // First add a credential
       let credentialId = getTestCredentialId();
-      let orgId = getTestOrgId();
       let createdAt = BigInt.fromI32(1000);
 
-      let addEvent = createCredentialAddedEvent(credentialId, orgId, createdAt);
+      let addEvent = createCredentialAddedEvent(credentialId, createdAt);
       handleCredentialAdded(addEvent);
 
       // Deactivate then reactivate

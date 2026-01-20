@@ -705,20 +705,19 @@ templates:
       language: wasm/assemblyscript
       entities:
         - PasskeyAccountFactory
-        - PasskeyOrgConfig
         - PasskeyAccount
       abis:
         - name: PasskeyAccountFactory
           file: ./abis/PasskeyAccountFactory.json
       eventHandlers:
-        - event: AccountCreated(indexed address,indexed bytes32,bytes32,indexed address)
+        - event: AccountCreated(indexed address,bytes32,indexed address)
           handler: handleAccountCreated
-        - event: OrgRegistered(indexed bytes32,uint8,address,uint48)
-          handler: handleOrgRegistered
-        - event: OrgConfigUpdated(indexed bytes32)
-          handler: handleOrgConfigUpdated
-        - event: ExecutorUpdated(indexed address,indexed address)
-          handler: handleFactoryExecutorUpdated
+        - event: GlobalConfigUpdated(address,uint48,uint8)
+          handler: handleGlobalConfigUpdated
+        - event: PoaManagerUpdated(indexed address,indexed address)
+          handler: handlePoaManagerUpdated
+        - event: PausedStateChanged(bool)
+          handler: handlePausedStateChanged
       file: ./src/passkey-account-factory.ts
   # Passkey Account template (created dynamically when accounts are created)
   - kind: ethereum
@@ -741,7 +740,7 @@ templates:
         - name: PasskeyAccount
           file: ./abis/PasskeyAccount.json
       eventHandlers:
-        - event: CredentialAdded(indexed bytes32,bytes32,uint64)
+        - event: CredentialAdded(indexed bytes32,uint64)
           handler: handleCredentialAdded
         - event: CredentialRemoved(indexed bytes32)
           handler: handleCredentialRemoved
