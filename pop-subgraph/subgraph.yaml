@@ -67,9 +67,9 @@ dataSources:
     name: PoaManager
     network: hoodi
     source:
-      address: "0xd2b5f225a0e80f2B7916923D4f5F4EF6cc777CB6"
+      address: "0x116bE92C998F0447D2C54DC1Bb8cE4aaDf06eA1f"
       abi: PoaManager
-      startBlock: 1783655
+      startBlock: 1785792
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
