@@ -478,14 +478,13 @@ export function handleHatClaimed(event: HatClaimedEvent): void {
         event
       );
 
-      // Record the hat change on the user
-      recordUserHatChange(user, hatId, true, event);
-
-      // Update join method if this is their first hat
+      // Update join method if this is their first hat (before recordUserHatChange saves)
       if (user.joinMethod == null) {
         user.joinMethod = "HatClaim";
-        user.save();
       }
+
+      // Record the hat change on the user (this will save the user)
+      recordUserHatChange(user, hatId, true, event);
     }
   }
 
