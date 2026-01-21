@@ -425,5 +425,214 @@
     "type": "error",
     "name": "ZeroUser",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PasskeyFactoryNotSet",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "AccountAlreadyRegistered",
+    "inputs": []
+  },
+  {
+    "type": "event",
+    "name": "UniversalFactoryUpdated",
+    "inputs": [
+      {
+        "name": "universalFactory",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "QuickJoinedWithPasskey",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "username",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "credentialId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "hatIds",
+        "type": "uint256[]",
+        "indexed": false,
+        "internalType": "uint256[]"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "QuickJoinedWithPasskeyByMaster",
+    "inputs": [
+      {
+        "name": "master",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "username",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "credentialId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "hatIds",
+        "type": "uint256[]",
+        "indexed": false,
+        "internalType": "uint256[]"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "function",
+    "name": "universalFactory",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract IUniversalPasskeyAccountFactory"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "setUniversalFactory",
+    "inputs": [
+      {
+        "name": "factory",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "quickJoinWithPasskey",
+    "inputs": [
+      {
+        "name": "username",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "passkey",
+        "type": "tuple",
+        "internalType": "struct QuickJoin.PasskeyEnrollment",
+        "components": [
+          {
+            "name": "credentialId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "publicKeyX",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "publicKeyY",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "salt",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "quickJoinWithPasskeyMasterDeploy",
+    "inputs": [
+      {
+        "name": "username",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "passkey",
+        "type": "tuple",
+        "internalType": "struct QuickJoin.PasskeyEnrollment",
+        "components": [
+          {
+            "name": "credentialId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "publicKeyX",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "publicKeyY",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "salt",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "nonpayable"
   }
 ]

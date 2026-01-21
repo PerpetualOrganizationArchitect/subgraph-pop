@@ -6,13 +6,18 @@ import {
   ExecutorUpdated as ExecutorUpdatedEvent,
   HatToggled as HatToggledEvent,
   MemberHatIdsUpdated as MemberHatIdsUpdatedEvent,
-  AddressesUpdated as AddressesUpdatedEvent
+  AddressesUpdated as AddressesUpdatedEvent,
+  UniversalFactoryUpdated as UniversalFactoryUpdatedEvent,
+  QuickJoinedWithPasskey as QuickJoinedWithPasskeyEvent,
+  QuickJoinedWithPasskeyByMaster as QuickJoinedWithPasskeyByMasterEvent
 } from "../generated/templates/QuickJoin/QuickJoin";
 import {
   QuickJoinContract,
   HatPermission,
   QuickJoinEvent,
-  QuickJoinAddressUpdate
+  QuickJoinAddressUpdate,
+  PasskeyQuickJoin,
+  PasskeyAccount
 } from "../generated/schema";
 import { createExecutorChange, getOrCreateRole, getOrCreateRoleWearer, getOrCreateUser, recordUserHatChange, shouldCreateRoleWearer } from "./utils";
 
@@ -240,4 +245,114 @@ export function handleAddressesUpdated(event: AddressesUpdatedEvent): void {
   update.transactionHash = event.transaction.hash;
 
   update.save();
+}
+
+export function handleUniversalFactoryUpdated(event: UniversalFactoryUpdatedEvent): void {
+  let contract = QuickJoinContract.load(event.address);
+  if (contract == null) {
+    log.warning("QuickJoinContract not found at address {}", [
+      event.address.toHexString()
+    ]);
+    return;
+  }
+
+  contract.universalFactory = event.params.universalFactory;
+  contract.save();
+}
+
+export function handleQuickJoinedWithPasskey(event: QuickJoinedWithPasskeyEvent): void {
+  let contractAddress = event.address;
+  let contract = QuickJoinContract.load(contractAddress);
+  if (!contract) {
+    log.warning("QuickJoinContract not found at address {}", [
+      contractAddress.toHexString()
+    ]);
+    return;
+  }
+
+  // Create PasskeyQuickJoin event record
+  let eventId = event.transaction.hash.concatI32(event.logIndex.toI32());
+  let passkeyJoin = new PasskeyQuickJoin(eventId);
+  passkeyJoin.quickJoinContract = contractAddress;
+  passkeyJoin.username = event.params.username;
+  passkeyJoin.credentialId = event.params.credentialId;
+  passkeyJoin.hatIds = event.params.hatIds;
+  passkeyJoin.timestamp = event.block.timestamp;
+  passkeyJoin.blockNumber = event.block.number;
+  passkeyJoin.transactionHash = event.transaction.hash;
+
+  // Link to PasskeyAccount - account should be created by PasskeyAccountFactory in the same transaction
+  passkeyJoin.account = event.params.account;
+  passkeyJoin.save();
+
+  // Create User and RoleWearer entities for the passkey account
+  let user = getOrCreateUser(
+    contract.organization,
+    event.params.account,
+    event.block.timestamp,
+    event.block.number
+  );
+
+  let hatIds = event.params.hatIds;
+  for (let i = 0; i < hatIds.length; i++) {
+    if (shouldCreateRoleWearer(contract.organization, hatIds[i], event.params.account)) {
+      getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.account, event);
+      recordUserHatChange(user, hatIds[i], true, event);
+    }
+  }
+
+  // Update join method
+  if (user.joinMethod == null) {
+    user.joinMethod = "QuickJoinWithPasskey";
+    user.save();
+  }
+}
+
+export function handleQuickJoinedWithPasskeyByMaster(event: QuickJoinedWithPasskeyByMasterEvent): void {
+  let contractAddress = event.address;
+  let contract = QuickJoinContract.load(contractAddress);
+  if (!contract) {
+    log.warning("QuickJoinContract not found at address {}", [
+      contractAddress.toHexString()
+    ]);
+    return;
+  }
+
+  // Create PasskeyQuickJoin event record
+  let eventId = event.transaction.hash.concatI32(event.logIndex.toI32());
+  let passkeyJoin = new PasskeyQuickJoin(eventId);
+  passkeyJoin.quickJoinContract = contractAddress;
+  passkeyJoin.master = event.params.master;
+  passkeyJoin.username = event.params.username;
+  passkeyJoin.credentialId = event.params.credentialId;
+  passkeyJoin.hatIds = event.params.hatIds;
+  passkeyJoin.timestamp = event.block.timestamp;
+  passkeyJoin.blockNumber = event.block.number;
+  passkeyJoin.transactionHash = event.transaction.hash;
+
+  // Link to PasskeyAccount - account should be created by PasskeyAccountFactory in the same transaction
+  passkeyJoin.account = event.params.account;
+  passkeyJoin.save();
+
+  // Create User and RoleWearer entities for the passkey account
+  let user = getOrCreateUser(
+    contract.organization,
+    event.params.account,
+    event.block.timestamp,
+    event.block.number
+  );
+
+  let hatIds = event.params.hatIds;
+  for (let i = 0; i < hatIds.length; i++) {
+    if (shouldCreateRoleWearer(contract.organization, hatIds[i], event.params.account)) {
+      getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.account, event);
+      recordUserHatChange(user, hatIds[i], true, event);
+    }
+  }
+
+  // Update join method
+  if (user.joinMethod == null) {
+    user.joinMethod = "QuickJoinWithPasskey";
+    user.save();
+  }
 }
