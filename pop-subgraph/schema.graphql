@@ -774,9 +774,11 @@ type QuickJoinContract @entity(immutable: false) {
   hatsContract: Bytes!
   accountRegistry: Bytes!
   masterDeployAddress: Bytes!
+  universalFactory: Bytes # PasskeyAccountFactory address for passkey joins
   createdAt: BigInt!
   createdAtBlock: BigInt!
   joinEvents: [QuickJoinEvent!]! @derivedFrom(field: "quickJoin")
+  passkeyJoinEvents: [PasskeyQuickJoin!]! @derivedFrom(field: "quickJoinContract")
 }
 
 type QuickJoinEvent @entity(immutable: true) {
@@ -1811,7 +1813,7 @@ type GuardianChange @entity(immutable: true) {
 
 type PasskeyQuickJoin @entity(immutable: true) {
   id: Bytes! # txHash.concatI32(logIndex)
-  quickJoinContract: Bytes!
+  quickJoinContract: QuickJoinContract!
   account: PasskeyAccount!
   username: String!
   credentialId: Bytes!

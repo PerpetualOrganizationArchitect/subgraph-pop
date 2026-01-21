@@ -67,9 +67,9 @@ dataSources:
     name: PoaManager
     network: hoodi
     source:
-      address: "0x116bE92C998F0447D2C54DC1Bb8cE4aaDf06eA1f"
+      address: "0x868680dc2689fa49A8389b0313da15408C8BE340"
       abi: PoaManager
-      startBlock: 1785792
+      startBlock: 1773533
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -531,6 +531,12 @@ templates:
           handler: handleMemberHatIdsUpdated
         - event: AddressesUpdated(address,address,address)
           handler: handleAddressesUpdated
+        - event: UniversalFactoryUpdated(indexed address)
+          handler: handleUniversalFactoryUpdated
+        - event: QuickJoinedWithPasskey(indexed address,string,indexed bytes32,uint256[])
+          handler: handleQuickJoinedWithPasskey
+        - event: QuickJoinedWithPasskeyByMaster(indexed address,indexed address,string,indexed bytes32,uint256[])
+          handler: handleQuickJoinedWithPasskeyByMaster
       file: ./src/quick-join.ts
   - kind: ethereum
     name: EducationHub
