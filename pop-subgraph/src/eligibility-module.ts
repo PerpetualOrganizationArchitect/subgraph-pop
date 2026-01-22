@@ -133,19 +133,10 @@ export function handleHatCreatedWithEligibility(
   hat.creator = event.params.creator;
   hat.creatorUsername = getUsernameForAddress(event.params.creator);
 
-  // Link to User entity
+  // Note: We intentionally do NOT create a User entity for the creator here.
+  // During deployment, hats are often created by helper contracts (HatsTreeSetup, etc.)
+  // which are not real users. The creator address is still stored in hat.creator.
   let eligibilityModule = EligibilityModuleContract.load(contractAddress);
-  if (eligibilityModule) {
-    let user = getOrCreateUser(
-      eligibilityModule.organization,
-      event.params.creator,
-      event.block.timestamp,
-      event.block.number
-    );
-    if (user) {
-      hat.creatorUser = user.id;
-    }
-  }
 
   hat.defaultEligible = event.params.defaultEligible;
   hat.defaultStanding = event.params.defaultStanding;
@@ -308,19 +299,9 @@ export function handleDefaultEligibilityUpdated(
     hat.creator = event.params.admin; // Use admin as creator
     hat.creatorUsername = getUsernameForAddress(event.params.admin);
 
-    // Link to User entity if EligibilityModuleContract exists
-    let eligibilityModule = EligibilityModuleContract.load(contractAddress);
-    if (eligibilityModule) {
-      let user = getOrCreateUser(
-        eligibilityModule.organization,
-        event.params.admin,
-        event.block.timestamp,
-        event.block.number
-      );
-      if (user) {
-        hat.creatorUser = user.id;
-      }
-    }
+    // Note: We intentionally do NOT create a User entity for the admin here.
+    // During deployment, hats are often created/configured by helper contracts
+    // which are not real users. The admin address is stored in hat.creator.
 
     hat.defaultEligible = event.params.eligible;
     hat.defaultStanding = event.params.standing;
