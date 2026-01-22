@@ -42,7 +42,6 @@ type User @entity(immutable: false) {
   organization: Organization!
   address: Bytes!
   account: Account # Link to global Account for username
-  username: String # Denormalized from account for convenience
 
   # Membership tracking
   joinMethod: String # "QuickJoin", "HatClaim", "VouchingAutoMint", "ExecutorMint"

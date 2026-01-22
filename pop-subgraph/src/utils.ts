@@ -70,12 +70,9 @@ export function getOrCreateUser(
   user.lastActiveAt = timestamp;
   user.lastActiveAtBlock = blockNumber;
 
-  // Update username from Account if available
-  let account = Account.load(userAddress);
-  if (account && !account.isDeleted) {
-    user.account = userAddress;
-    user.username = account.username;
-  }
+  // Always link User to Account by address
+  // Relationship resolves at query time - returns Account if it exists, null otherwise
+  user.account = userAddress;
 
   user.save();
   return user;
