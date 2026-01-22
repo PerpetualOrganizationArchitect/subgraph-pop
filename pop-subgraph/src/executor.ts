@@ -211,24 +211,26 @@ export function handleHatsMinted(event: HatsMintedEvent): void {
       event.block.timestamp,
       event.block.number
     );
-    mint.recipientUser = user.id;
+    if (user) {
+      mint.recipientUser = user.id;
 
-    // Create RoleWearers for each minted hat (only for user-facing hats to non-system addresses)
-    let hatIds = event.params.hatIds;
-    for (let i = 0; i < hatIds.length; i++) {
-      let hatId = hatIds[i];
-      // Only create RoleWearer for eligible combinations (not system contracts, not system hats)
-      if (shouldCreateRoleWearer(executor.organization, hatId, recipient)) {
-        getOrCreateRoleWearer(
-          executor.organization,
-          hatId,
-          recipient,
-          event
-        );
-        recordUserHatChange(user, hatId, true, event);
+      // Create RoleWearers for each minted hat (only for user-facing hats to non-system addresses)
+      let hatIds = event.params.hatIds;
+      for (let i = 0; i < hatIds.length; i++) {
+        let hatId = hatIds[i];
+        // Only create RoleWearer for eligible combinations (not system contracts, not system hats)
+        if (shouldCreateRoleWearer(executor.organization, hatId, recipient)) {
+          getOrCreateRoleWearer(
+            executor.organization,
+            hatId,
+            recipient,
+            event
+          );
+          recordUserHatChange(user, hatId, true, event);
+        }
       }
+      user.save();
     }
-    user.save();
   }
 
   mint.save();

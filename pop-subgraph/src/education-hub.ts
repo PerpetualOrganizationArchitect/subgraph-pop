@@ -80,9 +80,11 @@ export function handleModuleCompleted(event: ModuleCompletedEvent): void {
       event.block.timestamp,
       event.block.number
     );
-    completion.learnerUser = user.id;
-    user.totalModulesCompleted = user.totalModulesCompleted.plus(BigInt.fromI32(1));
-    user.save();
+    if (user) {
+      completion.learnerUser = user.id;
+      user.totalModulesCompleted = user.totalModulesCompleted.plus(BigInt.fromI32(1));
+      user.save();
+    }
   }
 
   completion.completedAt = event.block.timestamp;

@@ -142,7 +142,9 @@ export function handleHatCreatedWithEligibility(
       event.block.timestamp,
       event.block.number
     );
-    hat.creatorUser = user.id;
+    if (user) {
+      hat.creatorUser = user.id;
+    }
   }
 
   hat.defaultEligible = event.params.defaultEligible;
@@ -195,7 +197,9 @@ export function handleWearerEligibilityUpdated(
       event.block.timestamp,
       event.block.number
     );
-    wearerEligibility.wearerUser = wearerUser.id;
+    if (wearerUser) {
+      wearerEligibility.wearerUser = wearerUser.id;
+    }
 
     // Link admin
     let adminUser = getOrCreateUser(
@@ -204,7 +208,9 @@ export function handleWearerEligibilityUpdated(
       event.block.timestamp,
       event.block.number
     );
-    wearerEligibility.adminUser = adminUser.id;
+    if (adminUser) {
+      wearerEligibility.adminUser = adminUser.id;
+    }
   }
 
   wearerEligibility.updatedAt = event.block.timestamp;
@@ -256,7 +262,9 @@ export function handleBulkWearerEligibilityUpdated(
         event.block.timestamp,
         event.block.number
       );
-      wearerEligibility.wearerUser = wearerUser.id;
+      if (wearerUser) {
+        wearerEligibility.wearerUser = wearerUser.id;
+      }
 
       // Link admin
       let adminUser = getOrCreateUser(
@@ -265,7 +273,9 @@ export function handleBulkWearerEligibilityUpdated(
         event.block.timestamp,
         event.block.number
       );
-      wearerEligibility.adminUser = adminUser.id;
+      if (adminUser) {
+        wearerEligibility.adminUser = adminUser.id;
+      }
     }
 
     wearerEligibility.updatedAt = event.block.timestamp;
@@ -307,7 +317,9 @@ export function handleDefaultEligibilityUpdated(
         event.block.timestamp,
         event.block.number
       );
-      hat.creatorUser = user.id;
+      if (user) {
+        hat.creatorUser = user.id;
+      }
     }
 
     hat.defaultEligible = event.params.eligible;
@@ -393,7 +405,9 @@ export function handleVouched(event: VouchedEvent): void {
       event.block.timestamp,
       event.block.number
     );
-    vouch.wearerUser = wearerUser.id;
+    if (wearerUser) {
+      vouch.wearerUser = wearerUser.id;
+    }
 
     // Link voucher
     let voucherUser = getOrCreateUser(
@@ -402,7 +416,9 @@ export function handleVouched(event: VouchedEvent): void {
       event.block.timestamp,
       event.block.number
     );
-    vouch.voucherUser = voucherUser.id;
+    if (voucherUser) {
+      vouch.voucherUser = voucherUser.id;
+    }
   }
 
   vouch.createdAt = event.block.timestamp;
@@ -466,25 +482,27 @@ export function handleHatClaimed(event: HatClaimedEvent): void {
       event.block.timestamp,
       event.block.number
     );
-    claim.wearerUser = user.id;
+    if (user) {
+      claim.wearerUser = user.id;
 
-    // Only create RoleWearer for user-facing hats to non-system addresses
-    if (shouldCreateRoleWearer(eligibilityModule.organization, hatId, event.params.wearer)) {
-      // Create RoleWearer entity
-      getOrCreateRoleWearer(
-        eligibilityModule.organization,
-        hatId,
-        event.params.wearer,
-        event
-      );
+      // Only create RoleWearer for user-facing hats to non-system addresses
+      if (shouldCreateRoleWearer(eligibilityModule.organization, hatId, event.params.wearer)) {
+        // Create RoleWearer entity
+        getOrCreateRoleWearer(
+          eligibilityModule.organization,
+          hatId,
+          event.params.wearer,
+          event
+        );
 
-      // Update join method if this is their first hat (before recordUserHatChange saves)
-      if (user.joinMethod == null) {
-        user.joinMethod = "HatClaim";
+        // Update join method if this is their first hat (before recordUserHatChange saves)
+        if (user.joinMethod == null) {
+          user.joinMethod = "HatClaim";
+        }
+
+        // Record the hat change on the user (this will save the user)
+        recordUserHatChange(user, hatId, true, event);
       }
-
-      // Record the hat change on the user (this will save the user)
-      recordUserHatChange(user, hatId, true, event);
     }
   }
 
@@ -591,7 +609,9 @@ export function handleVouchingRateLimitExceeded(
       event.block.timestamp,
       event.block.number
     );
-    restriction.userUser = user.id;
+    if (user) {
+      restriction.userUser = user.id;
+    }
   }
 
   restriction.save();
@@ -620,7 +640,9 @@ export function handleNewUserVouchingRestricted(
       event.block.timestamp,
       event.block.number
     );
-    restriction.userUser = user.id;
+    if (user) {
+      restriction.userUser = user.id;
+    }
   }
 
   restriction.save();

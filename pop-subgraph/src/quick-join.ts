@@ -63,19 +63,21 @@ export function handleQuickJoined(event: QuickJoinedEvent): void {
       event.block.number
     );
 
-    let hatIds = event.params.hatIds;
-    for (let i = 0; i < hatIds.length; i++) {
-      // Only create RoleWearer for eligible combinations
-      if (shouldCreateRoleWearer(contract.organization, hatIds[i], event.params.user)) {
-        getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.user, event);
-        recordUserHatChange(user, hatIds[i], true, event);
+    if (user) {
+      let hatIds = event.params.hatIds;
+      for (let i = 0; i < hatIds.length; i++) {
+        // Only create RoleWearer for eligible combinations
+        if (shouldCreateRoleWearer(contract.organization, hatIds[i], event.params.user)) {
+          getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.user, event);
+          recordUserHatChange(user, hatIds[i], true, event);
+        }
       }
-    }
 
-    // Update join method
-    if (user.joinMethod == null) {
-      user.joinMethod = "QuickJoin";
-      user.save();
+      // Update join method
+      if (user.joinMethod == null) {
+        user.joinMethod = "QuickJoin";
+        user.save();
+      }
     }
   }
 }
@@ -107,19 +109,21 @@ export function handleQuickJoinedByMaster(event: QuickJoinedByMasterEvent): void
       event.block.number
     );
 
-    let hatIds = event.params.hatIds;
-    for (let i = 0; i < hatIds.length; i++) {
-      // Only create RoleWearer for eligible combinations
-      if (shouldCreateRoleWearer(contract.organization, hatIds[i], event.params.user)) {
-        getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.user, event);
-        recordUserHatChange(user, hatIds[i], true, event);
+    if (user) {
+      let hatIds = event.params.hatIds;
+      for (let i = 0; i < hatIds.length; i++) {
+        // Only create RoleWearer for eligible combinations
+        if (shouldCreateRoleWearer(contract.organization, hatIds[i], event.params.user)) {
+          getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.user, event);
+          recordUserHatChange(user, hatIds[i], true, event);
+        }
       }
-    }
 
-    // Update join method
-    if (user.joinMethod == null) {
-      user.joinMethod = "QuickJoin";
-      user.save();
+      // Update join method
+      if (user.joinMethod == null) {
+        user.joinMethod = "QuickJoin";
+        user.save();
+      }
     }
   }
 }
@@ -293,18 +297,20 @@ export function handleQuickJoinedWithPasskey(event: QuickJoinedWithPasskeyEvent)
     event.block.number
   );
 
-  let hatIds = event.params.hatIds;
-  for (let i = 0; i < hatIds.length; i++) {
-    if (shouldCreateRoleWearer(contract.organization, hatIds[i], event.params.account)) {
-      getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.account, event);
-      recordUserHatChange(user, hatIds[i], true, event);
+  if (user) {
+    let hatIds = event.params.hatIds;
+    for (let i = 0; i < hatIds.length; i++) {
+      if (shouldCreateRoleWearer(contract.organization, hatIds[i], event.params.account)) {
+        getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.account, event);
+        recordUserHatChange(user, hatIds[i], true, event);
+      }
     }
-  }
 
-  // Update join method
-  if (user.joinMethod == null) {
-    user.joinMethod = "QuickJoinWithPasskey";
-    user.save();
+    // Update join method
+    if (user.joinMethod == null) {
+      user.joinMethod = "QuickJoinWithPasskey";
+      user.save();
+    }
   }
 }
 
@@ -342,17 +348,19 @@ export function handleQuickJoinedWithPasskeyByMaster(event: QuickJoinedWithPassk
     event.block.number
   );
 
-  let hatIds = event.params.hatIds;
-  for (let i = 0; i < hatIds.length; i++) {
-    if (shouldCreateRoleWearer(contract.organization, hatIds[i], event.params.account)) {
-      getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.account, event);
-      recordUserHatChange(user, hatIds[i], true, event);
+  if (user) {
+    let hatIds = event.params.hatIds;
+    for (let i = 0; i < hatIds.length; i++) {
+      if (shouldCreateRoleWearer(contract.organization, hatIds[i], event.params.account)) {
+        getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.account, event);
+        recordUserHatChange(user, hatIds[i], true, event);
+      }
     }
-  }
 
-  // Update join method
-  if (user.joinMethod == null) {
-    user.joinMethod = "QuickJoinWithPasskey";
-    user.save();
+    // Update join method
+    if (user.joinMethod == null) {
+      user.joinMethod = "QuickJoinWithPasskey";
+      user.save();
+    }
   }
 }
