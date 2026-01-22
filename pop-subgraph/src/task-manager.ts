@@ -111,7 +111,9 @@ export function handleTaskAssigned(event: TaskAssigned): void {
         event.block.timestamp,
         event.block.number
       );
-      task.assigneeUser = user.id;
+      if (user) {
+        task.assigneeUser = user.id;
+      }
     }
 
     task.assignee = event.params.assignee;
@@ -168,11 +170,13 @@ export function handleTaskCompleted(event: TaskCompleted): void {
         event.block.timestamp,
         event.block.number
       );
-      task.completerUser = user.id;
+      if (user) {
+        task.completerUser = user.id;
 
-      // Increment totalTasksCompleted
-      user.totalTasksCompleted = user.totalTasksCompleted.plus(BigInt.fromI32(1));
-      user.save();
+        // Increment totalTasksCompleted
+        user.totalTasksCompleted = user.totalTasksCompleted.plus(BigInt.fromI32(1));
+        user.save();
+      }
     }
 
     // Set assignee to completer if not already set
@@ -205,11 +209,13 @@ export function handleTaskCancelled(event: TaskCancelled): void {
         event.block.timestamp,
         event.block.number
       );
-      task.cancellerUser = user.id;
+      if (user) {
+        task.cancellerUser = user.id;
 
-      // Increment totalTasksCancelled
-      user.totalTasksCancelled = user.totalTasksCancelled.plus(BigInt.fromI32(1));
-      user.save();
+        // Increment totalTasksCancelled
+        user.totalTasksCancelled = user.totalTasksCancelled.plus(BigInt.fromI32(1));
+        user.save();
+      }
     }
 
     task.canceller = event.params.canceller;
@@ -259,7 +265,9 @@ export function handleTaskApplicationSubmitted(event: TaskApplicationSubmitted):
       event.block.timestamp,
       event.block.number
     );
-    application.applicantUser = user.id;
+    if (user) {
+      application.applicantUser = user.id;
+    }
   }
 
   application.applicationHash = event.params.applicationHash;
@@ -287,7 +295,9 @@ export function handleTaskApplicationApproved(event: TaskApplicationApproved): v
         event.block.timestamp,
         event.block.number
       );
-      application.approverUser = user.id;
+      if (user) {
+        application.approverUser = user.id;
+      }
     }
 
     application.approved = true;
@@ -353,7 +363,9 @@ export function handleProjectManagerUpdated(event: ProjectManagerUpdated): void 
         event.block.timestamp,
         event.block.number
       );
-      manager.managerUser = user.id;
+      if (user) {
+        manager.managerUser = user.id;
+      }
     }
   }
 

@@ -88,9 +88,11 @@ export function handleDistributionClaimed(event: DistributionClaimedEvent): void
       event.block.timestamp,
       event.block.number
     );
-    claim.claimerUser = user.id;
-    user.totalClaimsAmount = user.totalClaimsAmount.plus(amount);
-    user.save();
+    if (user) {
+      claim.claimerUser = user.id;
+      user.totalClaimsAmount = user.totalClaimsAmount.plus(amount);
+      user.save();
+    }
   }
 
   claim.amount = amount;
@@ -140,9 +142,11 @@ export function handlePaymentReceived(event: PaymentReceivedEvent): void {
       event.block.timestamp,
       event.block.number
     );
-    payment.payerUser = user.id;
-    user.totalPaymentsAmount = user.totalPaymentsAmount.plus(event.params.amount);
-    user.save();
+    if (user) {
+      payment.payerUser = user.id;
+      user.totalPaymentsAmount = user.totalPaymentsAmount.plus(event.params.amount);
+      user.save();
+    }
   }
 
   payment.amount = event.params.amount;

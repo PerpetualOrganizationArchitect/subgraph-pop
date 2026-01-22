@@ -30,13 +30,20 @@ export function getUsernameForAddress(address: Address): string | null {
 /**
  * Get or create a User entity for a given organization and address
  * Updates the user's last active timestamp and username
+ * Returns null for system contracts (Executor, EligibilityModule) to prevent
+ * them from being indexed as members
  */
 export function getOrCreateUser(
   orgId: Bytes,
   userAddress: Address,
   timestamp: BigInt,
   blockNumber: BigInt
-): User {
+): User | null {
+  // Skip creating User entities for system contracts
+  if (isSystemContract(orgId, userAddress)) {
+    return null;
+  }
+
   let userId = orgId.toHexString() + "-" + userAddress.toHexString();
   let user = User.load(userId);
 
@@ -71,7 +78,7 @@ export function getOrCreateUser(
   }
 
   user.save();
-  return user as User;
+  return user;
 }
 
 /**
@@ -318,13 +325,14 @@ export function linkHatToRole(
 
 /**
  * Get or create a RoleWearer entity for a user wearing a role
+ * Returns null if the wearer is a system contract
  */
 export function getOrCreateRoleWearer(
   orgId: Bytes,
   hatId: BigInt,
   wearerAddress: Address,
   event: ethereum.Event
-): RoleWearer {
+): RoleWearer | null {
   let roleWearerId =
     orgId.toHexString() +
     "-" +
@@ -337,13 +345,18 @@ export function getOrCreateRoleWearer(
     // Ensure Role exists
     let role = getOrCreateRole(orgId, hatId, event);
 
-    // Ensure User exists
+    // Ensure User exists (will return null for system contracts)
     let user = getOrCreateUser(
       orgId,
       wearerAddress,
       event.block.timestamp,
       event.block.number
     );
+
+    // Skip creating RoleWearer if user is a system contract
+    if (!user) {
+      return null;
+    }
 
     roleWearer = new RoleWearer(roleWearerId);
     roleWearer.role = role.id;

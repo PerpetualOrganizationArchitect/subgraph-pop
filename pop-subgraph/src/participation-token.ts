@@ -70,8 +70,10 @@ export function handleTransfer(event: TransferEvent): void {
         event.block.timestamp,
         event.block.number
       );
-      fromUser.participationTokenBalance = fromUser.participationTokenBalance.minus(amount);
-      fromUser.save();
+      if (fromUser) {
+        fromUser.participationTokenBalance = fromUser.participationTokenBalance.minus(amount);
+        fromUser.save();
+      }
     }
   } else {
     // This is a mint - increase total supply
@@ -106,8 +108,10 @@ export function handleTransfer(event: TransferEvent): void {
         event.block.timestamp,
         event.block.number
       );
-      toUser.participationTokenBalance = toUser.participationTokenBalance.plus(amount);
-      toUser.save();
+      if (toUser) {
+        toUser.participationTokenBalance = toUser.participationTokenBalance.plus(amount);
+        toUser.save();
+      }
     }
   } else {
     // This is a burn - decrease total supply

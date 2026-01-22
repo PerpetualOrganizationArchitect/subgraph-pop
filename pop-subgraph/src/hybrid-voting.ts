@@ -240,7 +240,9 @@ export function handleNewProposal(event: NewProposal): void {
       event.block.timestamp,
       event.block.number
     );
-    proposal.creatorUser = user.id;
+    if (user) {
+      proposal.creatorUser = user.id;
+    }
   }
 
   proposal.title = event.params.title.toString();
@@ -283,7 +285,9 @@ export function handleNewHatProposal(event: NewHatProposal): void {
       event.block.timestamp,
       event.block.number
     );
-    proposal.creatorUser = user.id;
+    if (user) {
+      proposal.creatorUser = user.id;
+    }
   }
 
   proposal.title = event.params.title.toString();
@@ -326,9 +330,11 @@ export function handleVoteCast(event: VoteCast): void {
       event.block.timestamp,
       event.block.number
     );
-    vote.voterUser = user.id;
-    user.totalVotes = user.totalVotes.plus(BigInt.fromI32(1));
-    user.save();
+    if (user) {
+      vote.voterUser = user.id;
+      user.totalVotes = user.totalVotes.plus(BigInt.fromI32(1));
+      user.save();
+    }
   }
 
   // Convert uint8[] arrays to Int arrays for optionIndexes and optionWeights
