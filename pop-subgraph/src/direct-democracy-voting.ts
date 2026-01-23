@@ -21,7 +21,7 @@ import {
   DDVProposal,
   DDVVote
 } from "../generated/schema";
-import { getUsernameForAddress, getOrCreateUser, createExecutorChange, getOrCreateRole } from "./utils";
+import { getUsernameForAddress, loadExistingUser, createExecutorChange, getOrCreateRole } from "./utils";
 
 /**
  * Handler for Initialized event
@@ -314,7 +314,7 @@ export function handleVoteCast(event: VoteCast): void {
   // Link to User entity and increment totalVotes
   let votingContract = DirectDemocracyVotingContract.load(event.address);
   if (votingContract) {
-    let user = getOrCreateUser(
+    let user = loadExistingUser(
       votingContract.organization,
       event.params.voter,
       event.block.timestamp,

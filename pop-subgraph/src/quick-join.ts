@@ -19,7 +19,7 @@ import {
   PasskeyQuickJoin,
   PasskeyAccount
 } from "../generated/schema";
-import { createExecutorChange, getOrCreateRole, getOrCreateRoleWearer, getOrCreateUser, recordUserHatChange, shouldCreateRoleWearer } from "./utils";
+import { createExecutorChange, getOrCreateRole, getOrCreateRoleWearer, createUserOnJoin, recordUserHatChange, shouldCreateRoleWearer } from "./utils";
 
 export function handleInitialized(event: InitializedEvent): void {
   // Initialization is handled by OrgDeployer when the contract is created.
@@ -56,9 +56,10 @@ export function handleQuickJoined(event: QuickJoinedEvent): void {
   // Create RoleWearer entities for each hat (only for user-facing hats to non-system addresses)
   let contract = QuickJoinContract.load(contractAddress);
   if (contract) {
-    let user = getOrCreateUser(
+    let user = createUserOnJoin(
       contract.organization,
       event.params.user,
+      "QuickJoin",
       event.block.timestamp,
       event.block.number
     );
@@ -71,12 +72,6 @@ export function handleQuickJoined(event: QuickJoinedEvent): void {
           getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.user, event);
           recordUserHatChange(user, hatIds[i], true, event);
         }
-      }
-
-      // Update join method
-      if (user.joinMethod == null) {
-        user.joinMethod = "QuickJoin";
-        user.save();
       }
     }
   }
@@ -102,9 +97,10 @@ export function handleQuickJoinedByMaster(event: QuickJoinedByMasterEvent): void
   // Create RoleWearer entities for each hat (only for user-facing hats to non-system addresses)
   let contract = QuickJoinContract.load(contractAddress);
   if (contract) {
-    let user = getOrCreateUser(
+    let user = createUserOnJoin(
       contract.organization,
       event.params.user,
+      "QuickJoin",
       event.block.timestamp,
       event.block.number
     );
@@ -117,12 +113,6 @@ export function handleQuickJoinedByMaster(event: QuickJoinedByMasterEvent): void
           getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.user, event);
           recordUserHatChange(user, hatIds[i], true, event);
         }
-      }
-
-      // Update join method
-      if (user.joinMethod == null) {
-        user.joinMethod = "QuickJoin";
-        user.save();
       }
     }
   }
@@ -290,9 +280,10 @@ export function handleQuickJoinedWithPasskey(event: QuickJoinedWithPasskeyEvent)
   passkeyJoin.save();
 
   // Create User and RoleWearer entities for the passkey account
-  let user = getOrCreateUser(
+  let user = createUserOnJoin(
     contract.organization,
     event.params.account,
+    "QuickJoinWithPasskey",
     event.block.timestamp,
     event.block.number
   );
@@ -304,12 +295,6 @@ export function handleQuickJoinedWithPasskey(event: QuickJoinedWithPasskeyEvent)
         getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.account, event);
         recordUserHatChange(user, hatIds[i], true, event);
       }
-    }
-
-    // Update join method
-    if (user.joinMethod == null) {
-      user.joinMethod = "QuickJoinWithPasskey";
-      user.save();
     }
   }
 }
@@ -341,9 +326,10 @@ export function handleQuickJoinedWithPasskeyByMaster(event: QuickJoinedWithPassk
   passkeyJoin.save();
 
   // Create User and RoleWearer entities for the passkey account
-  let user = getOrCreateUser(
+  let user = createUserOnJoin(
     contract.organization,
     event.params.account,
+    "QuickJoinWithPasskey",
     event.block.timestamp,
     event.block.number
   );
@@ -355,12 +341,6 @@ export function handleQuickJoinedWithPasskeyByMaster(event: QuickJoinedWithPassk
         getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.account, event);
         recordUserHatChange(user, hatIds[i], true, event);
       }
-    }
-
-    // Update join method
-    if (user.joinMethod == null) {
-      user.joinMethod = "QuickJoinWithPasskey";
-      user.save();
     }
   }
 }

@@ -23,7 +23,7 @@ import {
   EducationHubTokenChange,
   EducationHubHatsChange
 } from "../generated/schema";
-import { getUsernameForAddress, getOrCreateUser, createExecutorChange, createPauseEvent, getOrCreateRole } from "./utils";
+import { getUsernameForAddress, loadExistingUser, createExecutorChange, createPauseEvent, getOrCreateRole } from "./utils";
 
 export function handleInitialized(event: InitializedEvent): void {
   // Initialization handled in org-deployer.ts
@@ -74,7 +74,7 @@ export function handleModuleCompleted(event: ModuleCompletedEvent): void {
   // Link to User entity and increment totalModulesCompleted
   let hubContract = EducationHubContract.load(contractAddress);
   if (hubContract) {
-    let user = getOrCreateUser(
+    let user = loadExistingUser(
       hubContract.organization,
       learner,
       event.block.timestamp,

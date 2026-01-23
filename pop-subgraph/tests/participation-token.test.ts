@@ -46,6 +46,35 @@ const USER_3 = Address.fromString("0x0000000000000000000000000000000000000003");
 const ZERO_ADDRESS = Address.fromString("0x0000000000000000000000000000000000000000");
 
 /**
+ * Helper function to create a User entity for testing.
+ * Users are only created by JOIN events (QuickJoin, HatClaim) in production,
+ * so we need to pre-create them for ACTIVITY event tests like token transfers.
+ */
+function createTestUser(userAddress: Address): void {
+  let userId = ORG_ID.toHexString() + "-" + userAddress.toHexString();
+  let user = new User(userId);
+  user.organization = ORG_ID;
+  user.address = userAddress;
+  user.account = userAddress;
+  user.participationTokenBalance = BigInt.fromI32(0);
+  user.totalVotes = BigInt.fromI32(0);
+  user.totalTasksCompleted = BigInt.fromI32(0);
+  user.totalTasksCancelled = BigInt.fromI32(0);
+  user.totalModulesCompleted = BigInt.fromI32(0);
+  user.totalClaimsAmount = BigInt.fromI32(0);
+  user.totalPaymentsAmount = BigInt.fromI32(0);
+  user.totalTokenRequestsAmount = BigInt.fromI32(0);
+  user.firstSeenAt = BigInt.fromI32(1000);
+  user.firstSeenAtBlock = BigInt.fromI32(100);
+  user.lastActiveAt = BigInt.fromI32(1000);
+  user.lastActiveAtBlock = BigInt.fromI32(100);
+  user.currentHatIds = [];
+  user.membershipStatus = "Active";
+  user.joinMethod = "QuickJoin";
+  user.save();
+}
+
+/**
  * Helper function to set up the required entities for participation token tests.
  */
 function setupParticipationTokenEntities(): void {
@@ -72,6 +101,17 @@ function setupParticipationTokenEntities(): void {
   participationToken.save();
 }
 
+/**
+ * Helper function to set up entities for participation token tests including Users.
+ * Use this for tests that expect User entities to be updated.
+ */
+function setupParticipationTokenEntitiesWithUsers(): void {
+  setupParticipationTokenEntities();
+  createTestUser(USER_1);
+  createTestUser(USER_2);
+  createTestUser(USER_3);
+}
+
 describe("ParticipationToken", () => {
   afterEach(() => {
     clearStore();
@@ -93,15 +133,14 @@ describe("ParticipationToken", () => {
     });
 
     test("Mint increases User.participationTokenBalance", () => {
-      setupParticipationTokenEntities();
+      setupParticipationTokenEntitiesWithUsers();
 
       let amount = BigInt.fromI32(1000);
       let event = createMintEvent(USER_1, amount, PARTICIPATION_TOKEN_ADDRESS);
       handleTransfer(event);
 
-      // Verify User entity was created and balance updated
+      // Verify User balance was updated (User was pre-created via JOIN event simulation)
       let userId = ORG_ID.toHexString() + "-" + USER_1.toHexString();
-      assert.entityCount("User", 1);
       assert.fieldEquals("User", userId, "participationTokenBalance", "1000");
     });
 
@@ -121,7 +160,7 @@ describe("ParticipationToken", () => {
     });
 
     test("Multiple mints to same user accumulate correctly", () => {
-      setupParticipationTokenEntities();
+      setupParticipationTokenEntitiesWithUsers();
 
       // First mint
       let event1 = createMintEvent(USER_1, BigInt.fromI32(1000), PARTICIPATION_TOKEN_ADDRESS);
@@ -149,7 +188,7 @@ describe("ParticipationToken", () => {
     });
 
     test("Mint to multiple users creates separate User and TokenBalance entities", () => {
-      setupParticipationTokenEntities();
+      setupParticipationTokenEntitiesWithUsers();
 
       // Mint to user 1
       let event1 = createMintEvent(USER_1, BigInt.fromI32(1000), PARTICIPATION_TOKEN_ADDRESS);
@@ -160,8 +199,8 @@ describe("ParticipationToken", () => {
       event2.logIndex = BigInt.fromI32(2);
       handleTransfer(event2);
 
-      // Verify separate entities
-      assert.entityCount("User", 2);
+      // Verify separate TokenBalance entities and updated User balances
+      // (Users were pre-created; we have 3 users total from setup)
       assert.entityCount("TokenBalance", 2);
 
       let user1Id = ORG_ID.toHexString() + "-" + USER_1.toHexString();
@@ -173,7 +212,7 @@ describe("ParticipationToken", () => {
 
   describe("Transfer - Burning (to zero address)", () => {
     test("Burn decreases User.participationTokenBalance", () => {
-      setupParticipationTokenEntities();
+      setupParticipationTokenEntitiesWithUsers();
 
       // First mint to have some balance
       let mintEvent = createMintEvent(USER_1, BigInt.fromI32(1000), PARTICIPATION_TOKEN_ADDRESS);
@@ -227,7 +266,7 @@ describe("ParticipationToken", () => {
 
   describe("Transfer - User to User", () => {
     test("Transfer updates both sender and receiver User.participationTokenBalance", () => {
-      setupParticipationTokenEntities();
+      setupParticipationTokenEntitiesWithUsers();
 
       // First mint to user 1
       let mintEvent = createMintEvent(USER_1, BigInt.fromI32(1000), PARTICIPATION_TOKEN_ADDRESS);
@@ -301,7 +340,7 @@ describe("ParticipationToken", () => {
     });
 
     test("Multiple transfers between users track correctly", () => {
-      setupParticipationTokenEntities();
+      setupParticipationTokenEntitiesWithUsers();
 
       // Mint to user 1
       let mint1 = createMintEvent(USER_1, BigInt.fromI32(1000), PARTICIPATION_TOKEN_ADDRESS);
@@ -361,7 +400,7 @@ describe("ParticipationToken", () => {
     });
 
     test("Large amount transfers work correctly", () => {
-      setupParticipationTokenEntities();
+      setupParticipationTokenEntitiesWithUsers();
 
       // Mint a large amount (e.g., 1 trillion tokens with 18 decimals)
       let largeAmount = BigInt.fromString("1000000000000000000000000000000");
@@ -552,7 +591,7 @@ describe("ParticipationToken", () => {
 
   describe("Integration - Full Token Lifecycle", () => {
     test("Complete mint, transfer, burn lifecycle maintains correct balances", () => {
-      setupParticipationTokenEntities();
+      setupParticipationTokenEntitiesWithUsers();
 
       // 1. Mint 1000 tokens to user 1
       let mint = createMintEvent(USER_1, BigInt.fromI32(1000), PARTICIPATION_TOKEN_ADDRESS);

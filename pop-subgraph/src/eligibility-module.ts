@@ -33,7 +33,8 @@ import {
 } from "../generated/schema";
 import {
   getUsernameForAddress,
-  getOrCreateUser,
+  createUserOnJoin,
+  loadExistingUser,
   linkHatToRole,
   getOrCreateRoleWearer,
   linkWearerEligibilityToRoleWearer,
@@ -182,7 +183,7 @@ export function handleWearerEligibilityUpdated(
   let eligibilityModule = EligibilityModuleContract.load(contractAddress);
   if (eligibilityModule) {
     // Link wearer
-    let wearerUser = getOrCreateUser(
+    let wearerUser = loadExistingUser(
       eligibilityModule.organization,
       wearer,
       event.block.timestamp,
@@ -193,7 +194,7 @@ export function handleWearerEligibilityUpdated(
     }
 
     // Link admin
-    let adminUser = getOrCreateUser(
+    let adminUser = loadExistingUser(
       eligibilityModule.organization,
       event.params.admin,
       event.block.timestamp,
@@ -247,7 +248,7 @@ export function handleBulkWearerEligibilityUpdated(
     // Link to User entities
     if (eligibilityModule) {
       // Link wearer
-      let wearerUser = getOrCreateUser(
+      let wearerUser = loadExistingUser(
         eligibilityModule.organization,
         wearer,
         event.block.timestamp,
@@ -258,7 +259,7 @@ export function handleBulkWearerEligibilityUpdated(
       }
 
       // Link admin
-      let adminUser = getOrCreateUser(
+      let adminUser = loadExistingUser(
         eligibilityModule.organization,
         admin,
         event.block.timestamp,
@@ -380,7 +381,7 @@ export function handleVouched(event: VouchedEvent): void {
   let eligibilityModule = EligibilityModuleContract.load(contractAddress);
   if (eligibilityModule) {
     // Link wearer
-    let wearerUser = getOrCreateUser(
+    let wearerUser = loadExistingUser(
       eligibilityModule.organization,
       wearer,
       event.block.timestamp,
@@ -391,7 +392,7 @@ export function handleVouched(event: VouchedEvent): void {
     }
 
     // Link voucher
-    let voucherUser = getOrCreateUser(
+    let voucherUser = loadExistingUser(
       eligibilityModule.organization,
       voucher,
       event.block.timestamp,
@@ -457,9 +458,10 @@ export function handleHatClaimed(event: HatClaimedEvent): void {
       return;
     }
 
-    let user = getOrCreateUser(
+    let user = createUserOnJoin(
       eligibilityModule.organization,
       event.params.wearer,
+      "HatClaim",
       event.block.timestamp,
       event.block.number
     );
@@ -475,11 +477,6 @@ export function handleHatClaimed(event: HatClaimedEvent): void {
           event.params.wearer,
           event
         );
-
-        // Update join method if this is their first hat (before recordUserHatChange saves)
-        if (user.joinMethod == null) {
-          user.joinMethod = "HatClaim";
-        }
 
         // Record the hat change on the user (this will save the user)
         recordUserHatChange(user, hatId, true, event);
@@ -584,7 +581,7 @@ export function handleVouchingRateLimitExceeded(
   // Link to User entity
   let eligibilityModule = EligibilityModuleContract.load(event.address);
   if (eligibilityModule) {
-    let user = getOrCreateUser(
+    let user = loadExistingUser(
       eligibilityModule.organization,
       event.params.user,
       event.block.timestamp,
@@ -615,7 +612,7 @@ export function handleNewUserVouchingRestricted(
   // Link to User entity
   let eligibilityModule = EligibilityModuleContract.load(event.address);
   if (eligibilityModule) {
-    let user = getOrCreateUser(
+    let user = loadExistingUser(
       eligibilityModule.organization,
       event.params.user,
       event.block.timestamp,
