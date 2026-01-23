@@ -178,31 +178,10 @@ export function handleWearerEligibilityUpdated(
   wearerEligibility.adminUsername = getUsernameForAddress(event.params.admin);
   wearerEligibility.wearerUsername = getUsernameForAddress(wearer);
 
-  // Link to User entities
-  let eligibilityModule = EligibilityModuleContract.load(contractAddress);
-  if (eligibilityModule) {
-    // Link wearer
-    let wearerUser = getOrCreateUser(
-      eligibilityModule.organization,
-      wearer,
-      event.block.timestamp,
-      event.block.number
-    );
-    if (wearerUser) {
-      wearerEligibility.wearerUser = wearerUser.id;
-    }
-
-    // Link admin
-    let adminUser = getOrCreateUser(
-      eligibilityModule.organization,
-      event.params.admin,
-      event.block.timestamp,
-      event.block.number
-    );
-    if (adminUser) {
-      wearerEligibility.adminUser = adminUser.id;
-    }
-  }
+  // Note: We intentionally do NOT create User entities for admin or wearer here.
+  // Admins and wearers during deployment are often helper contracts, not real org members.
+  // The addresses are still stored in wearerEligibility.admin and wearer fields for reference.
+  // Real users get their User entities when they claim hats (HatClaimed event).
 
   wearerEligibility.updatedAt = event.block.timestamp;
   wearerEligibility.updatedAtBlock = event.block.number;
@@ -220,9 +199,6 @@ export function handleBulkWearerEligibilityUpdated(
   let eligible = event.params.eligible;
   let standing = event.params.standing;
   let admin = event.params.admin;
-
-  // Get organization for User linking
-  let eligibilityModule = EligibilityModuleContract.load(contractAddress);
 
   for (let i = 0; i < wearers.length; i++) {
     let wearer = wearers[i];
@@ -244,30 +220,10 @@ export function handleBulkWearerEligibilityUpdated(
     wearerEligibility.adminUsername = getUsernameForAddress(admin);
     wearerEligibility.wearerUsername = getUsernameForAddress(wearer);
 
-    // Link to User entities
-    if (eligibilityModule) {
-      // Link wearer
-      let wearerUser = getOrCreateUser(
-        eligibilityModule.organization,
-        wearer,
-        event.block.timestamp,
-        event.block.number
-      );
-      if (wearerUser) {
-        wearerEligibility.wearerUser = wearerUser.id;
-      }
-
-      // Link admin
-      let adminUser = getOrCreateUser(
-        eligibilityModule.organization,
-        admin,
-        event.block.timestamp,
-        event.block.number
-      );
-      if (adminUser) {
-        wearerEligibility.adminUser = adminUser.id;
-      }
-    }
+    // Note: We intentionally do NOT create User entities for admin or wearer here.
+    // Admins and wearers during deployment are often helper contracts, not real org members.
+    // The addresses are still stored in wearerEligibility.admin and wearer fields for reference.
+    // Real users get their User entities when they claim hats (HatClaimed event).
 
     wearerEligibility.updatedAt = event.block.timestamp;
     wearerEligibility.updatedAtBlock = event.block.number;
