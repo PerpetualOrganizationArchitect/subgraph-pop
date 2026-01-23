@@ -23,7 +23,7 @@ import {
   VotingClass,
   VotingClassChange
 } from "../generated/schema";
-import { getUsernameForAddress, getOrCreateUser, createHatPermission, createExecutorChange, getOrCreateRole } from "./utils";
+import { getUsernameForAddress, loadExistingUser, createHatPermission, createExecutorChange, getOrCreateRole } from "./utils";
 
 /**
  * Handler for Initialized event
@@ -234,7 +234,7 @@ export function handleNewProposal(event: NewProposal): void {
   // Link to User entity
   let votingContract = HybridVotingContract.load(event.address);
   if (votingContract) {
-    let user = getOrCreateUser(
+    let user = loadExistingUser(
       votingContract.organization,
       event.transaction.from,
       event.block.timestamp,
@@ -279,7 +279,7 @@ export function handleNewHatProposal(event: NewHatProposal): void {
   // Link to User entity
   let votingContract = HybridVotingContract.load(event.address);
   if (votingContract) {
-    let user = getOrCreateUser(
+    let user = loadExistingUser(
       votingContract.organization,
       event.transaction.from,
       event.block.timestamp,
@@ -324,7 +324,7 @@ export function handleVoteCast(event: VoteCast): void {
   // Link to User entity and increment totalVotes
   let votingContract = HybridVotingContract.load(event.address);
   if (votingContract) {
-    let user = getOrCreateUser(
+    let user = loadExistingUser(
       votingContract.organization,
       event.params.voter,
       event.block.timestamp,

@@ -27,7 +27,7 @@ import {
   ProjectCapChange,
   BountyCapChange
 } from "../generated/schema";
-import { getUsernameForAddress, getOrCreateUser } from "./utils";
+import { getUsernameForAddress, loadExistingUser } from "./utils";
 
 /**
  * Helper function to create a composite Project ID.
@@ -105,7 +105,7 @@ export function handleTaskAssigned(event: TaskAssigned): void {
     // Get organization from TaskManager
     let taskManager = TaskManager.load(event.address);
     if (taskManager) {
-      let user = getOrCreateUser(
+      let user = loadExistingUser(
         taskManager.organization,
         event.params.assignee,
         event.block.timestamp,
@@ -164,7 +164,7 @@ export function handleTaskCompleted(event: TaskCompleted): void {
     // Get organization from TaskManager
     let taskManager = TaskManager.load(event.address);
     if (taskManager) {
-      let user = getOrCreateUser(
+      let user = loadExistingUser(
         taskManager.organization,
         event.params.completer,
         event.block.timestamp,
@@ -203,7 +203,7 @@ export function handleTaskCancelled(event: TaskCancelled): void {
     // Get organization from TaskManager
     let taskManager = TaskManager.load(event.address);
     if (taskManager) {
-      let user = getOrCreateUser(
+      let user = loadExistingUser(
         taskManager.organization,
         event.params.canceller,
         event.block.timestamp,
@@ -259,7 +259,7 @@ export function handleTaskApplicationSubmitted(event: TaskApplicationSubmitted):
   // Link to User entity
   let taskManager = TaskManager.load(event.address);
   if (taskManager) {
-    let user = getOrCreateUser(
+    let user = loadExistingUser(
       taskManager.organization,
       event.params.applicant,
       event.block.timestamp,
@@ -289,7 +289,7 @@ export function handleTaskApplicationApproved(event: TaskApplicationApproved): v
     // Link to User entity for approver
     let taskManager = TaskManager.load(event.address);
     if (taskManager) {
-      let user = getOrCreateUser(
+      let user = loadExistingUser(
         taskManager.organization,
         event.params.approver,
         event.block.timestamp,
@@ -357,7 +357,7 @@ export function handleProjectManagerUpdated(event: ProjectManagerUpdated): void 
     // Link to User entity if TaskManager has organization context
     let taskManager = TaskManager.load(event.address);
     if (taskManager) {
-      let user = getOrCreateUser(
+      let user = loadExistingUser(
         taskManager.organization,
         managerAddress,
         event.block.timestamp,

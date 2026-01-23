@@ -18,7 +18,7 @@ import {
   OwnershipTransfer,
   RevenueShareTokenChange
 } from "../generated/schema";
-import { getUsernameForAddress, getOrCreateUser } from "./utils";
+import { getUsernameForAddress, loadExistingUser } from "./utils";
 
 export function handleInitialized(event: InitializedEvent): void {
   // Initialization handled in org-deployer.ts
@@ -82,7 +82,7 @@ export function handleDistributionClaimed(event: DistributionClaimedEvent): void
   // Link to User entity and increment totalClaimsAmount
   let managerContract = PaymentManagerContract.load(contractAddress);
   if (managerContract) {
-    let user = getOrCreateUser(
+    let user = loadExistingUser(
       managerContract.organization,
       claimer,
       event.block.timestamp,
@@ -136,7 +136,7 @@ export function handlePaymentReceived(event: PaymentReceivedEvent): void {
   // Link to User entity and increment totalPaymentsAmount
   let managerContract = PaymentManagerContract.load(contractAddress);
   if (managerContract) {
-    let user = getOrCreateUser(
+    let user = loadExistingUser(
       managerContract.organization,
       event.params.payer,
       event.block.timestamp,

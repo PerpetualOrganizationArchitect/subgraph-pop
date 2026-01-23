@@ -28,14 +28,21 @@ export function getUsernameForAddress(address: Address): string | null {
 }
 
 /**
- * Get or create a User entity for a given organization and address
- * Updates the user's last active timestamp and username
- * Returns null for system contracts (Executor, EligibilityModule) to prevent
- * them from being indexed as members
+ * Create a User entity when someone officially joins an organization.
+ *
+ * ONLY call this from JOIN event handlers:
+ * - handleQuickJoined / handleQuickJoinedByMaster
+ * - handleQuickJoinedWithPasskey / handleQuickJoinedWithPasskeyByMaster
+ * - handleHatClaimed
+ *
+ * Returns null for system contracts (Executor, EligibilityModule).
+ *
+ * @param joinMethod - How the user joined: "QuickJoin" | "QuickJoinWithPasskey" | "HatClaim"
  */
-export function getOrCreateUser(
+export function createUserOnJoin(
   orgId: Bytes,
   userAddress: Address,
+  joinMethod: string,
   timestamp: BigInt,
   blockNumber: BigInt
 ): User | null {
@@ -61,21 +68,69 @@ export function getOrCreateUser(
     user.totalTokenRequestsAmount = BigInt.fromI32(0);
     user.firstSeenAt = timestamp;
     user.firstSeenAtBlock = blockNumber;
-    // Membership tracking fields
     user.currentHatIds = [];
     user.membershipStatus = "Active";
+    user.joinMethod = joinMethod;
   }
 
   // Update last active timestamp
   user.lastActiveAt = timestamp;
   user.lastActiveAtBlock = blockNumber;
 
-  // Always link User to Account by address
-  // Relationship resolves at query time - returns Account if it exists, null otherwise
+  // Link User to Account by address
   user.account = userAddress;
 
   user.save();
   return user;
+}
+
+/**
+ * Load an existing User entity for activity tracking.
+ *
+ * ONLY call this from ACTIVITY event handlers (voting, tasks, payments, etc.)
+ * Returns null if the user doesn't exist (hasn't joined yet) or is a system contract.
+ *
+ * This prevents creating phantom User entities for:
+ * - Contract addresses (deployment helpers like HatsTreeSetup)
+ * - Users who interact but haven't formally joined via QuickJoin or HatClaim
+ */
+export function loadExistingUser(
+  orgId: Bytes,
+  userAddress: Address,
+  timestamp: BigInt,
+  blockNumber: BigInt
+): User | null {
+  // Skip system contracts entirely
+  if (isSystemContract(orgId, userAddress)) {
+    return null;
+  }
+
+  let userId = orgId.toHexString() + "-" + userAddress.toHexString();
+  let user = User.load(userId);
+
+  if (user != null) {
+    // Update activity timestamp for existing users
+    user.lastActiveAt = timestamp;
+    user.lastActiveAtBlock = blockNumber;
+    user.save();
+  }
+
+  return user;
+}
+
+/**
+ * @deprecated Use createUserOnJoin() for join handlers or loadExistingUser() for activity handlers.
+ * This function is preserved for backward compatibility but delegates to loadExistingUser()
+ * to prevent creating phantom User entities.
+ */
+export function getOrCreateUser(
+  orgId: Bytes,
+  userAddress: Address,
+  timestamp: BigInt,
+  blockNumber: BigInt
+): User | null {
+  // Delegate to loadExistingUser for safety (don't create new users from activity handlers)
+  return loadExistingUser(orgId, userAddress, timestamp, blockNumber);
 }
 
 /**
@@ -342,15 +397,16 @@ export function getOrCreateRoleWearer(
     // Ensure Role exists
     let role = getOrCreateRole(orgId, hatId, event);
 
-    // Ensure User exists (will return null for system contracts)
-    let user = getOrCreateUser(
+    // Load existing User (will return null for system contracts or non-members)
+    // Users are created by JOIN handlers (QuickJoin, HatClaim), not here
+    let user = loadExistingUser(
       orgId,
       wearerAddress,
       event.block.timestamp,
       event.block.number
     );
 
-    // Skip creating RoleWearer if user is a system contract
+    // Skip creating RoleWearer if user doesn't exist (not a member)
     if (!user) {
       return null;
     }

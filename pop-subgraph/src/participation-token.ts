@@ -16,7 +16,7 @@ import {
   TokenRequest,
   TokenBalance
 } from "../generated/schema";
-import { getOrCreateRole, getOrCreateUser } from "./utils";
+import { getOrCreateRole, loadExistingUser } from "./utils";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -64,7 +64,7 @@ export function handleTransfer(event: TransferEvent): void {
 
     // Update User.participationTokenBalance for sender
     if (contract != null) {
-      let fromUser = getOrCreateUser(
+      let fromUser = loadExistingUser(
         contract.organization,
         fromAddress,
         event.block.timestamp,
@@ -102,7 +102,7 @@ export function handleTransfer(event: TransferEvent): void {
 
     // Update User.participationTokenBalance for receiver
     if (contract != null) {
-      let toUser = getOrCreateUser(
+      let toUser = loadExistingUser(
         contract.organization,
         toAddress,
         event.block.timestamp,

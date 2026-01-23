@@ -25,7 +25,7 @@ import {
   DDVProposal,
   Account
 } from "../generated/schema";
-import { getUsernameForAddress, getOrCreateUser, createPauseEvent, getOrCreateRoleWearer, recordUserHatChange, shouldCreateRoleWearer } from "./utils";
+import { getUsernameForAddress, loadExistingUser, createPauseEvent, getOrCreateRoleWearer, recordUserHatChange, shouldCreateRoleWearer } from "./utils";
 
 export function handleInitialized(event: InitializedEvent): void {
   // Initialization handled in org-deployer.ts
@@ -205,7 +205,7 @@ export function handleHatsMinted(event: HatsMintedEvent): void {
       return;
     }
 
-    let user = getOrCreateUser(
+    let user = loadExistingUser(
       executor.organization,
       recipient,
       event.block.timestamp,
