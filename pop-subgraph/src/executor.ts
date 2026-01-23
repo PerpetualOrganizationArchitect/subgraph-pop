@@ -25,7 +25,7 @@ import {
   DDVProposal,
   Account
 } from "../generated/schema";
-import { getUsernameForAddress, loadExistingUser, createPauseEvent, getOrCreateRoleWearer, recordUserHatChange, shouldCreateRoleWearer } from "./utils";
+import { getUsernameForAddress, loadExistingUser, createUserOnJoin, createPauseEvent, getOrCreateRoleWearer, recordUserHatChange, shouldCreateRoleWearer } from "./utils";
 
 export function handleInitialized(event: InitializedEvent): void {
   // Initialization handled in org-deployer.ts
@@ -205,12 +205,31 @@ export function handleHatsMinted(event: HatsMintedEvent): void {
       return;
     }
 
+    // Try to load existing user first
     let user = loadExistingUser(
       executor.organization,
       recipient,
       event.block.timestamp,
       event.block.number
     );
+
+    // If user doesn't exist, check if they have a registered Account
+    // This handles deployer mints during org deployment - deployers register their
+    // username before hats are minted, creating an Account entity
+    // System contracts won't have Account entities, so they're filtered out
+    if (user == null) {
+      let account = Account.load(recipient);
+      if (account != null) {
+        user = createUserOnJoin(
+          executor.organization,
+          recipient,
+          "HatMint",
+          event.block.timestamp,
+          event.block.number
+        );
+      }
+    }
+
     if (user) {
       mint.recipientUser = user.id;
 
