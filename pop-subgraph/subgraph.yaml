@@ -69,7 +69,7 @@ dataSources:
     source:
       address: "0x91ADe310CA1d78d8EE68F9619674b3A2a906148b"
       abi: PoaManager
-      startBlock: 2078486
+      startBlock: 2078000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
