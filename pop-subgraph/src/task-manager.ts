@@ -148,8 +148,8 @@ export function handleTaskSubmitted(event: TaskSubmitted): void {
   if (task) {
     task.status = "Submitted";
     task.submittedAt = event.block.timestamp;
-    // submissionHash is now bytes32 - store in metadataHash
-    task.metadataHash = event.params.submissionHash;
+    // Store submission hash separately - don't overwrite original task metadata
+    task.submissionHash = event.params.submissionHash;
     task.save();
   }
 }
