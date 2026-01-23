@@ -10,7 +10,8 @@ import {
   Beacon,
   BeaconUpgradeEvent,
   RegistryUpdate,
-  PasskeyAccountFactory
+  PasskeyAccountFactory,
+  UniversalAccountRegistry
 } from "../generated/schema";
 import { OrgDeployer as OrgDeployerTemplate } from "../generated/templates";
 import { OrgRegistry as OrgRegistryTemplate } from "../generated/templates";
@@ -138,6 +139,19 @@ export function handleInfrastructureDeployed(event: InfrastructureDeployedEvent)
   OrgRegistryTemplate.create(event.params.orgRegistry);
   PaymasterHubTemplate.create(event.params.paymasterHub);
   UniversalAccountRegistryTemplate.create(event.params.globalAccountRegistry);
+
+  // Create UniversalAccountRegistry entity
+  // Note: The Initialized event is emitted when the contract is deployed,
+  // which happens BEFORE InfrastructureDeployed. Since the template doesn't
+  // exist yet at that time, handleInitialized is never called. We create
+  // the entity here instead.
+  let registryAddress = event.params.globalAccountRegistry;
+  let registry = new UniversalAccountRegistry(registryAddress);
+  registry.owner = Address.zero(); // Will be updated if OwnershipTransferred event is captured
+  registry.totalAccounts = BigInt.fromI32(0);
+  registry.createdAt = event.block.timestamp;
+  registry.createdAtBlock = event.block.number;
+  registry.save();
 
   // Create PasskeyAccountFactory entity and data source template
   let passkeyFactoryAddress = event.params.passkeyAccountFactoryBeacon;
