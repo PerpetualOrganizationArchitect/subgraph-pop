@@ -204,14 +204,9 @@ export function handleTaskSubmitted(event: TaskSubmitted): void {
     task.submittedAt = event.block.timestamp;
     // Store submission hash separately - don't overwrite original task metadata
     task.submissionHash = event.params.submissionHash;
-
-    // Set submission metadata link (CID) for the TaskMetadata entity
-    let submissionCid = bytes32ToCid(event.params.submissionHash);
-    task.submissionMetadata = submissionCid;
-
     task.save();
 
-    // Create IPFS data source to fetch and index submission metadata
+    // Create IPFS data source to fetch and parse submission text
     createTaskMetadataSource(event.params.submissionHash, id, "submission");
   }
 }

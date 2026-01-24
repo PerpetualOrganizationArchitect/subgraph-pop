@@ -4,36 +4,20 @@ import { TaskMetadata, Task } from "../generated/schema";
 /**
  * Handler for IPFS file data source that parses task metadata JSON.
  *
- * Expected JSON structure for task creation:
- * {
- *   name: "Task name",
- *   description: "Task description",
- *   location: "Open",
- *   difficulty: "medium",
- *   estHours: 8,
- *   submission: ""
- * }
+ * For task creation metadata (metadataType == "task"):
+ *   - Creates a TaskMetadata entity with description, difficulty, etc.
+ *   - Links task.metadata to this entity
  *
- * Expected JSON structure for task submission:
- * {
- *   name: "Task name",
- *   description: "Task description",
- *   location: "In Review",
- *   difficulty: "medium",
- *   estHours: 8,
- *   submission: "Submission text from worker..."
- * }
+ * For task submission (metadataType == "submission"):
+ *   - Parses the submission text from JSON
+ *   - Stores it directly on the Task entity (task.submission)
+ *   - Does NOT create a TaskMetadata entity (no bloat)
  *
- * This handler is resilient to malformed data - if parsing fails or fields
- * are missing, the entity will be created with whatever data is available.
- * The subgraph will NOT brick if IPFS is slow or unavailable - the main
- * Task entity from on-chain events will still be indexed.
+ * This handler is resilient to malformed data - if parsing fails,
+ * entities are created with whatever data is available.
  */
 export function handleTaskMetadata(content: Bytes): void {
-  // The dataSource.stringParam() contains the IPFS hash (CID)
   let ipfsHash = dataSource.stringParam();
-
-  // Get context passed by the caller
   let context = dataSource.context();
   let taskId = context.getString("taskId");
   let metadataType = context.getString("metadataType"); // "task" or "submission"
@@ -41,24 +25,59 @@ export function handleTaskMetadata(content: Bytes): void {
   // Try to parse the JSON content
   let jsonResult = json.try_fromBytes(content);
   if (jsonResult.isError) {
-    // JSON parsing failed - create entity with just the ID and task link
-    let metadata = new TaskMetadata(ipfsHash);
-    metadata.task = taskId;
-    metadata.save();
+    // JSON parsing failed
+    if (metadataType == "task") {
+      // For task creation, create a minimal metadata entity
+      let metadata = new TaskMetadata(ipfsHash);
+      metadata.task = taskId;
+      metadata.save();
+
+      let task = Task.load(taskId);
+      if (task) {
+        task.metadata = ipfsHash;
+        task.save();
+      }
+    }
+    // For submission, nothing to do if JSON parsing fails
     return;
   }
 
   let jsonValue = jsonResult.value;
-  if (!jsonValue.isNull() && jsonValue.kind == JSONValueKind.OBJECT) {
-    let jsonObject = jsonValue.toObject();
+  if (jsonValue.isNull() || jsonValue.kind != JSONValueKind.OBJECT) {
+    // Not a JSON object
+    if (metadataType == "task") {
+      let metadata = new TaskMetadata(ipfsHash);
+      metadata.task = taskId;
+      metadata.save();
 
-    // Create or load the metadata entity
+      let task = Task.load(taskId);
+      if (task) {
+        task.metadata = ipfsHash;
+        task.save();
+      }
+    }
+    return;
+  }
+
+  let jsonObject = jsonValue.toObject();
+
+  if (metadataType == "submission") {
+    // For submission: extract submission text and store directly on Task
+    let task = Task.load(taskId);
+    if (task) {
+      let submissionValue = jsonObject.get("submission");
+      if (submissionValue != null && !submissionValue.isNull() && submissionValue.kind == JSONValueKind.STRING) {
+        task.submission = submissionValue.toString();
+        task.save();
+      }
+    }
+  } else {
+    // For task creation: create TaskMetadata entity
     let metadata = TaskMetadata.load(ipfsHash);
     if (metadata == null) {
       metadata = new TaskMetadata(ipfsHash);
     }
 
-    // Link to task
     metadata.task = taskId;
 
     // Parse name
@@ -85,41 +104,23 @@ export function handleTaskMetadata(content: Bytes): void {
       metadata.difficulty = difficultyValue.toString();
     }
 
-    // Parse estHours (estimated hours) - can be decimal like 0.5
+    // Parse estHours (can be decimal like 0.5)
     let estHoursValue = jsonObject.get("estHours");
     if (estHoursValue != null && !estHoursValue.isNull()) {
       if (estHoursValue.kind == JSONValueKind.NUMBER) {
-        // Use toF64() to handle decimal values, then round to nearest integer
         let floatValue = estHoursValue.toF64();
         metadata.estimatedHours = i32(Math.round(floatValue));
       }
     }
 
-    // Parse submission
-    let submissionValue = jsonObject.get("submission");
-    if (submissionValue != null && !submissionValue.isNull() && submissionValue.kind == JSONValueKind.STRING) {
-      metadata.submission = submissionValue.toString();
-    }
-
-    // Set indexed timestamp (file data sources don't have block context)
     metadata.indexedAt = BigInt.fromI32(0);
-
     metadata.save();
 
-    // Update parent task with metadata link
+    // Link task to metadata
     let task = Task.load(taskId);
     if (task) {
-      if (metadataType == "submission") {
-        task.submissionMetadata = ipfsHash;
-      } else {
-        task.metadata = ipfsHash;
-      }
+      task.metadata = ipfsHash;
       task.save();
     }
-  } else {
-    // Not a JSON object - create entity with just the ID and task link
-    let metadata = new TaskMetadata(ipfsHash);
-    metadata.task = taskId;
-    metadata.save();
   }
 }
