@@ -798,3 +798,17 @@ templates:
       abis:
         - name: EligibilityModule
           file: ./abis/EligibilityModule.json
+  # IPFS file data source for task metadata
+  - kind: file/ipfs
+    name: TaskMetadata
+    network: hoodi
+    mapping:
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      file: ./src/task-metadata.ts
+      handler: handleTaskMetadata
+      entities:
+        - TaskMetadata
+      abis:
+        - name: TaskManager
+          file: ./abis/TaskManager.json
