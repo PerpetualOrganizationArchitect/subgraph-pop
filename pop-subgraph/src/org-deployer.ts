@@ -1,5 +1,5 @@
 import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
-import { OrgDeployed, RolesCreated } from "../generated/templates/OrgDeployer/OrgDeployer";
+import { OrgDeployed, RolesCreated, InitialWearersAssigned } from "../generated/templates/OrgDeployer/OrgDeployer";
 import {
   Organization,
   TaskManager as TaskManagerEntity,
@@ -13,9 +13,17 @@ import {
   ExecutorContract,
   ToggleModuleContract,
   Role,
-  Hat
+  Hat,
+  WearerEligibility
 } from "../generated/schema";
-import { getOrCreateRole } from "./utils";
+import {
+  getOrCreateRole,
+  createUserOnJoin,
+  getOrCreateRoleWearer,
+  shouldCreateRoleWearer,
+  recordUserHatChange,
+  isSystemContract
+} from "./utils";
 import {
   TaskManager as TaskManagerTemplate,
   HybridVoting as HybridVotingTemplate,
@@ -268,6 +276,55 @@ export function handleRolesCreated(event: RolesCreated): void {
           }
         }
         hat.save();
+      }
+    }
+  }
+}
+
+/**
+ * Handles the InitialWearersAssigned event from the OrgDeployer contract.
+ * This event is emitted AFTER OrgDeployed, ensuring EligibilityModuleContract exists.
+ * Creates User entities for initial wearers (from mintToDeployer, mintToExecutor, additionalWearers).
+ */
+export function handleInitialWearersAssigned(event: InitialWearersAssigned): void {
+  let orgId = event.params.orgId;
+  let eligibilityModuleAddr = event.params.eligibilityModule;
+  let wearers = event.params.wearers;
+  let hatIds = event.params.hatIds;
+
+  for (let i = 0; i < wearers.length; i++) {
+    let wearerAddress = wearers[i];
+    let hatId = hatIds[i];
+
+    // Skip system contracts (executor, etc.)
+    if (isSystemContract(orgId, wearerAddress)) {
+      continue;
+    }
+
+    // Create User entity using the join handler (this is a deployment mint)
+    let user = createUserOnJoin(
+      orgId,
+      wearerAddress,
+      "DeploymentMint",
+      event.block.timestamp,
+      event.block.number
+    );
+
+    if (user) {
+      // Update WearerEligibility with User link (if it exists from earlier WearerEligibilityUpdated event)
+      let wearerEligibilityId = eligibilityModuleAddr.toHexString() + "-" +
+        hatId.toString() + "-" + wearerAddress.toHexString();
+      let wearerEligibility = WearerEligibility.load(wearerEligibilityId);
+
+      if (wearerEligibility && !wearerEligibility.wearerUser) {
+        wearerEligibility.wearerUser = user.id;
+        wearerEligibility.save();
+      }
+
+      // Create RoleWearer if appropriate
+      if (shouldCreateRoleWearer(orgId, hatId, wearerAddress)) {
+        getOrCreateRoleWearer(orgId, hatId, wearerAddress, event);
+        recordUserHatChange(user, hatId, true, event);
       }
     }
   }
