@@ -113,6 +113,8 @@ templates:
           handler: handleOrgDeployed
         - event: RolesCreated(indexed bytes32,uint256[],string[],string[],bytes32[],bool[])
           handler: handleRolesCreated
+        - event: InitialWearersAssigned(indexed bytes32,indexed address,address[],uint256[])
+          handler: handleInitialWearersAssigned
       file: ./src/org-deployer.ts
   - kind: ethereum
     name: OrgRegistry
