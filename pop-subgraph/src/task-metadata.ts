@@ -85,11 +85,13 @@ export function handleTaskMetadata(content: Bytes): void {
       metadata.difficulty = difficultyValue.toString();
     }
 
-    // Parse estHours (estimated hours)
+    // Parse estHours (estimated hours) - can be decimal like 0.5
     let estHoursValue = jsonObject.get("estHours");
     if (estHoursValue != null && !estHoursValue.isNull()) {
       if (estHoursValue.kind == JSONValueKind.NUMBER) {
-        metadata.estimatedHours = estHoursValue.toI64() as i32;
+        // Use toF64() to handle decimal values, then round to nearest integer
+        let floatValue = estHoursValue.toF64();
+        metadata.estimatedHours = i32(Math.round(floatValue));
       }
     }
 
