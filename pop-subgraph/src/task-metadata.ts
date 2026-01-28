@@ -35,6 +35,16 @@ export function handleTaskMetadata(content: Bytes): void {
   let taskId = context.getString("taskId");
   let metadataType = context.getString("metadataType"); // "task" or "submission"
 
+  // ALWAYS create an entity with the IPFS hash to verify handler is running
+  // This helps debug whether the handler is being triggered at all
+  let debugEntity = TaskMetadata.load(ipfsHash);
+  if (debugEntity == null) {
+    debugEntity = new TaskMetadata(ipfsHash);
+    debugEntity.task = taskId;
+    debugEntity.indexedAt = BigInt.fromI32(0);
+    debugEntity.save();
+  }
+
   // Try to parse the JSON content
   let jsonResult = json.try_fromBytes(content);
   if (jsonResult.isError) {
