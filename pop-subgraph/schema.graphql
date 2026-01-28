@@ -257,8 +257,7 @@ type Task @entity(immutable: false) {
   title: String! # task title
   metadataHash: Bytes! # task metadata hash (description, difficulty, estHours)
   submissionHash: Bytes # submission metadata hash (set when task is submitted)
-  metadata: TaskMetadata # Link to indexed task creation metadata from IPFS
-  submissionMetadata: TaskMetadata # Link to indexed submission metadata from IPFS
+  metadata: TaskMetadata # Link to indexed metadata from IPFS (includes submission when submitted)
   assignee: Bytes
   assigneeUsername: String
   assigneeUser: User
