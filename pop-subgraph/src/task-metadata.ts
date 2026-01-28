@@ -35,16 +35,6 @@ export function handleTaskMetadata(content: Bytes): void {
   let taskId = context.getString("taskId");
   let metadataType = context.getString("metadataType"); // "task" or "submission"
 
-  // ALWAYS create an entity with the IPFS hash to verify handler is running
-  // This helps debug whether the handler is being triggered at all
-  let debugEntity = TaskMetadata.load(ipfsHash);
-  if (debugEntity == null) {
-    debugEntity = new TaskMetadata(ipfsHash);
-    debugEntity.task = taskId;
-    debugEntity.indexedAt = BigInt.fromI32(0);
-    debugEntity.save();
-  }
-
   // Try to parse the JSON content
   let jsonResult = json.try_fromBytes(content);
   if (jsonResult.isError) {
@@ -84,92 +74,39 @@ export function handleTaskMetadata(content: Bytes): void {
 
   let jsonObject = jsonValue.toObject();
 
-  if (metadataType == "submission") {
-    // For submission: extract submission text
-    let submissionText: string | null = null;
-    let submissionValue = jsonObject.get("submission");
-    if (submissionValue != null && !submissionValue.isNull() && submissionValue.kind == JSONValueKind.STRING) {
-      submissionText = submissionValue.toString();
+  // Parse submission text from JSON (present in both task creation and submission JSONs)
+  let submissionText: string | null = null;
+  let submissionValue = jsonObject.get("submission");
+  if (submissionValue != null && !submissionValue.isNull() && submissionValue.kind == JSONValueKind.STRING) {
+    let text = submissionValue.toString();
+    // Only consider it a valid submission if it's non-empty
+    if (text.length > 0) {
+      submissionText = text;
     }
+  }
 
-    if (submissionText == null) {
-      // No submission text found in JSON, nothing to do
-      return;
-    }
-
+  // If this JSON has submission content, update the task's metadata entity
+  // This handles BOTH:
+  // 1. Submission IPFS (metadataType == "submission") - the primary case
+  // 2. Task creation IPFS where submission is included - rare but handle it
+  if (submissionText != null) {
     let task = Task.load(taskId);
-    if (task) {
-      if (task.metadata) {
-        // Task has metadata link set - try to load and update the entity
-        let metadata = TaskMetadata.load(task.metadata!);
-        if (metadata) {
-          // Entity exists - update it with submission
-          metadata.submission = submissionText;
-          metadata.save();
-        } else {
-          // Entity doesn't exist yet (task creation IPFS hasn't run)
-          // Create the entity now with the task's metadata CID as ID
-          let newMetadata = new TaskMetadata(task.metadata!);
-          newMetadata.task = taskId;
-          newMetadata.submission = submissionText;
-
-          // Parse other fields from submission JSON as fallback
-          let nameValue = jsonObject.get("name");
-          if (nameValue != null && !nameValue.isNull() && nameValue.kind == JSONValueKind.STRING) {
-            newMetadata.name = nameValue.toString();
-          }
-          let descValue = jsonObject.get("description");
-          if (descValue != null && !descValue.isNull() && descValue.kind == JSONValueKind.STRING) {
-            newMetadata.description = descValue.toString();
-          }
-          let diffValue = jsonObject.get("difficulty");
-          if (diffValue != null && !diffValue.isNull() && diffValue.kind == JSONValueKind.STRING) {
-            newMetadata.difficulty = diffValue.toString();
-          }
-          let estHoursValue = jsonObject.get("estHours");
-          if (estHoursValue != null && !estHoursValue.isNull() && estHoursValue.kind == JSONValueKind.NUMBER) {
-            newMetadata.estimatedHours = i32(Math.round(estHoursValue.toF64()));
-          }
-
-          newMetadata.indexedAt = BigInt.fromI32(0);
-          newMetadata.save();
-        }
-      } else {
-        // Race condition: submission processed before task creation metadata
-        // Create a new TaskMetadata entity using the submission IPFS hash as ID
-        // When task creation metadata arrives, it will be a separate entity
-        // but we link this one to the task so submission is not lost
-        let metadata = new TaskMetadata(ipfsHash);
+    if (task && task.metadata) {
+      // Load the task's canonical metadata entity (or create if doesn't exist yet)
+      let metadata = TaskMetadata.load(task.metadata!);
+      if (metadata == null) {
+        metadata = new TaskMetadata(task.metadata!);
         metadata.task = taskId;
-        metadata.submission = submissionText;
-
-        // Also parse other fields from submission JSON in case they're useful
-        let nameValue = jsonObject.get("name");
-        if (nameValue != null && !nameValue.isNull() && nameValue.kind == JSONValueKind.STRING) {
-          metadata.name = nameValue.toString();
-        }
-        let descValue = jsonObject.get("description");
-        if (descValue != null && !descValue.isNull() && descValue.kind == JSONValueKind.STRING) {
-          metadata.description = descValue.toString();
-        }
-        let diffValue = jsonObject.get("difficulty");
-        if (diffValue != null && !diffValue.isNull() && diffValue.kind == JSONValueKind.STRING) {
-          metadata.difficulty = diffValue.toString();
-        }
-        let estHoursValue = jsonObject.get("estHours");
-        if (estHoursValue != null && !estHoursValue.isNull() && estHoursValue.kind == JSONValueKind.NUMBER) {
-          metadata.estimatedHours = i32(Math.round(estHoursValue.toF64()));
-        }
-
         metadata.indexedAt = BigInt.fromI32(0);
-        metadata.save();
-
-        // Link task to this metadata entity
-        task.metadata = ipfsHash;
-        task.save();
       }
+      // Set submission text
+      metadata.submission = submissionText;
+      metadata.save();
     }
-  } else {
+  }
+
+  // For task creation metadata type, also create/update the full metadata entity
+  if (metadataType != "submission") {
     // For task creation: create TaskMetadata entity with all fields
     let task = Task.load(taskId);
 
