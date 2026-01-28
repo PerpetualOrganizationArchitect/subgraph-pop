@@ -90,11 +90,39 @@ export function handleTaskMetadata(content: Bytes): void {
     let task = Task.load(taskId);
     if (task) {
       if (task.metadata) {
-        // Happy path: task.metadata already exists, just update it
+        // Task has metadata link set - try to load and update the entity
         let metadata = TaskMetadata.load(task.metadata!);
         if (metadata) {
+          // Entity exists - update it with submission
           metadata.submission = submissionText;
           metadata.save();
+        } else {
+          // Entity doesn't exist yet (task creation IPFS hasn't run)
+          // Create the entity now with the task's metadata CID as ID
+          let newMetadata = new TaskMetadata(task.metadata!);
+          newMetadata.task = taskId;
+          newMetadata.submission = submissionText;
+
+          // Parse other fields from submission JSON as fallback
+          let nameValue = jsonObject.get("name");
+          if (nameValue != null && !nameValue.isNull() && nameValue.kind == JSONValueKind.STRING) {
+            newMetadata.name = nameValue.toString();
+          }
+          let descValue = jsonObject.get("description");
+          if (descValue != null && !descValue.isNull() && descValue.kind == JSONValueKind.STRING) {
+            newMetadata.description = descValue.toString();
+          }
+          let diffValue = jsonObject.get("difficulty");
+          if (diffValue != null && !diffValue.isNull() && diffValue.kind == JSONValueKind.STRING) {
+            newMetadata.difficulty = diffValue.toString();
+          }
+          let estHoursValue = jsonObject.get("estHours");
+          if (estHoursValue != null && !estHoursValue.isNull() && estHoursValue.kind == JSONValueKind.NUMBER) {
+            newMetadata.estimatedHours = i32(Math.round(estHoursValue.toF64()));
+          }
+
+          newMetadata.indexedAt = BigInt.fromI32(0);
+          newMetadata.save();
         }
       } else {
         // Race condition: submission processed before task creation metadata
