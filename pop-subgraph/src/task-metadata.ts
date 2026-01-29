@@ -66,5 +66,11 @@ export function handleTaskMetadata(content: Bytes): void {
     metadata.estimatedHours = i32(Math.round(estHoursValue.toF64()));
   }
 
+  // Parse submission content (populated when task is submitted)
+  let submissionValue = jsonObject.get("submission");
+  if (submissionValue != null && !submissionValue.isNull() && submissionValue.kind == JSONValueKind.STRING) {
+    metadata.submission = submissionValue.toString();
+  }
+
   metadata.save();
 }
