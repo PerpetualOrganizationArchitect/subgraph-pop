@@ -115,12 +115,28 @@ function linkMetadataToTask(
     let isSubmission = metadataType == "submission" || hasSubmissionContent;
 
     if (isSubmission) {
+      // Only set submissionMetadata, preserve existing metadata link
       task.submissionMetadata = ipfsHash;
-      log.info("Linked submission metadata {} to task {}", [ipfsHash, taskId]);
+      log.info("Linked submission metadata {} to task {} (context={}, hasContent={})", [
+        ipfsHash,
+        taskId,
+        metadataType,
+        hasSubmissionContent ? "true" : "false"
+      ]);
     } else {
-      task.metadata = ipfsHash;
-      log.info("Linked task metadata {} to task {}", [ipfsHash, taskId]);
+      // Only set metadata if not already set (task creation handler pre-sets it)
+      if (task.metadata == null) {
+        task.metadata = ipfsHash;
+      }
+      log.info("Linked task metadata {} to task {} (context={}, hasContent={})", [
+        ipfsHash,
+        taskId,
+        metadataType,
+        hasSubmissionContent ? "true" : "false"
+      ]);
     }
     task.save();
+  } else {
+    log.warning("Task {} not found when trying to link metadata {}", [taskId, ipfsHash]);
   }
 }
