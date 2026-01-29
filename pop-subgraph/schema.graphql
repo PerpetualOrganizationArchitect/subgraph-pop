@@ -256,6 +256,9 @@ type Task @entity(immutable: false) {
   requiresApplication: Boolean!
   title: String! # task title
   metadataHash: Bytes! # task metadata hash
+  metadata: TaskMetadata # Link to indexed task creation metadata from IPFS
+  submissionHash: Bytes # hash of submission data
+  submissionMetadata: SubmissionMetadata # Link to indexed submission metadata from IPFS
   assignee: Bytes
   assigneeUsername: String
   assigneeUser: User
@@ -274,6 +277,32 @@ type Task @entity(immutable: false) {
   cancelledAt: BigInt
   updatedAt: BigInt
   applications: [TaskApplication!]! @derivedFrom(field: "task")
+}
+
+"""
+Task metadata fetched from IPFS.
+Contains task description, difficulty, and estimated hours.
+"""
+type TaskMetadata @entity(immutable: false) {
+  id: String! # IPFS CID (Qm...)
+  task: Task
+  name: String # Task name from IPFS JSON
+  description: String # Task description from IPFS JSON
+  location: String # Task location/status from IPFS JSON
+  difficulty: String # Task difficulty (easy, medium, hard, etc.)
+  estimatedHours: Int # Estimated hours to complete
+  indexedAt: BigInt
+}
+
+"""
+Submission metadata fetched from IPFS.
+Contains the raw submission text for a completed task.
+"""
+type SubmissionMetadata @entity(immutable: false) {
+  id: String! # IPFS CID (Qm...)
+  task: Task
+  submission: String # Raw submission text from IPFS JSON
+  indexedAt: BigInt
 }
 
 type TaskApplication @entity(immutable: false) {

@@ -1,4 +1,5 @@
-import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes, DataSourceContext } from "@graphprotocol/graph-ts";
+import { TaskMetadata as TaskMetadataTemplate, SubmissionMetadata as SubmissionMetadataTemplate } from "../generated/templates";
 import {
   ProjectCreated,
   ProjectDeleted,
@@ -36,6 +37,74 @@ import { getUsernameForAddress, getOrCreateUser } from "./utils";
  */
 function getProjectEntityId(taskManagerAddress: Address, projectId: Bytes): string {
   return taskManagerAddress.toHexString() + "-" + projectId.toHexString();
+}
+
+/**
+ * Convert bytes32 sha256 digest to IPFS CIDv0 string.
+ * The contract stores only the 32-byte hash, we need to prepend
+ * the multihash prefix (0x1220) and base58 encode.
+ */
+function bytes32ToCid(hash: Bytes): string {
+  // Create the multihash by prepending 0x1220 header
+  let prefix = Bytes.fromHexString("0x1220");
+
+  // Concatenate prefix + hash (34 bytes total)
+  let multihash = new Bytes(34);
+  for (let i = 0; i < 2; i++) {
+    multihash[i] = prefix[i];
+  }
+  for (let i = 0; i < 32; i++) {
+    multihash[i + 2] = hash[i];
+  }
+
+  // Base58 encode to get CIDv0 (starts with "Qm")
+  return multihash.toBase58();
+}
+
+/**
+ * Helper function to create an IPFS file data source for task metadata.
+ * Uses DataSourceContext to pass the taskId to the handler
+ * so it can link the metadata back to the task.
+ */
+function createTaskMetadataSource(metadataHash: Bytes, taskId: string): void {
+  // Skip if metadataHash is empty (all zeros)
+  let zeroHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000");
+  if (metadataHash.equals(zeroHash)) {
+    return;
+  }
+
+  // Convert bytes32 sha256 digest to IPFS CIDv0 string
+  let ipfsCid = bytes32ToCid(metadataHash);
+
+  // Create context to pass taskId to the IPFS handler
+  let context = new DataSourceContext();
+  context.setString("taskId", taskId);
+
+  // Create the file data source with context
+  TaskMetadataTemplate.createWithContext(ipfsCid, context);
+}
+
+/**
+ * Helper function to create an IPFS file data source for submission metadata.
+ * Uses DataSourceContext to pass the taskId to the handler
+ * so it can link the submission back to the task.
+ */
+function createSubmissionMetadataSource(submissionHash: Bytes, taskId: string): void {
+  // Skip if submissionHash is empty (all zeros)
+  let zeroHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000");
+  if (submissionHash.equals(zeroHash)) {
+    return;
+  }
+
+  // Convert bytes32 sha256 digest to IPFS CIDv0 string
+  let ipfsCid = bytes32ToCid(submissionHash);
+
+  // Create context to pass taskId to the IPFS handler
+  let context = new DataSourceContext();
+  context.setString("taskId", taskId);
+
+  // Create the file data source with context
+  SubmissionMetadataTemplate.createWithContext(ipfsCid, context);
 }
 
 /**
@@ -92,7 +161,14 @@ export function handleTaskCreated(event: TaskCreated): void {
   task.createdAt = event.block.timestamp;
   task.createdAtBlock = event.block.number;
 
+  // Set metadata link (CID) for the TaskMetadata entity that will be created by IPFS handler
+  let metadataCid = bytes32ToCid(event.params.metadataHash);
+  task.metadata = metadataCid;
+
   task.save();
+
+  // Create IPFS data source to fetch and index task metadata
+  createTaskMetadataSource(event.params.metadataHash, id);
 }
 
 export function handleTaskAssigned(event: TaskAssigned): void {
@@ -148,9 +224,18 @@ export function handleTaskSubmitted(event: TaskSubmitted): void {
   if (task) {
     task.status = "Submitted";
     task.submittedAt = event.block.timestamp;
-    // submissionHash is now bytes32 - store in metadataHash
-    task.metadataHash = event.params.submissionHash;
+    // Store submission hash separately - don't overwrite original task metadata
+    task.submissionHash = event.params.submissionHash;
+
+    // Pre-set the submissionMetadata link (mirrors handleTaskCreated which pre-sets metadata)
+    // The IPFS handler will create the SubmissionMetadata entity with this CID as its ID
+    let submissionCid = bytes32ToCid(event.params.submissionHash);
+    task.submissionMetadata = submissionCid;
+
     task.save();
+
+    // Create IPFS data source to fetch and parse submission text
+    createSubmissionMetadataSource(event.params.submissionHash, id);
   }
 }
 
@@ -233,13 +318,28 @@ export function handleTaskUpdated(event: TaskUpdated): void {
 
   let task = Task.load(id);
   if (task) {
+    // Check if metadata changed before updating
+    let metadataChanged = !task.metadataHash.equals(event.params.metadataHash);
+
     task.payout = event.params.payout;
     task.bountyToken = event.params.bountyToken;
     task.bountyPayout = event.params.bountyPayout;
     task.title = event.params.title.toString();
     task.metadataHash = event.params.metadataHash;
     task.updatedAt = event.block.timestamp;
+
+    // Update metadata link if changed
+    if (metadataChanged) {
+      let metadataCid = bytes32ToCid(event.params.metadataHash);
+      task.metadata = metadataCid;
+    }
+
     task.save();
+
+    // Re-fetch metadata from IPFS if it changed
+    if (metadataChanged) {
+      createTaskMetadataSource(event.params.metadataHash, id);
+    }
   }
 }
 
