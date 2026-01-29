@@ -3,13 +3,18 @@ import { TaskMetadata, Task } from "../generated/schema";
 
 /**
  * Handler for IPFS file data source that parses task metadata JSON.
- * Processes both task creation and submission metadata, storing all data
- * in a single TaskMetadata entity linked to the task.
+ *
+ * Each IPFS hash creates its own TaskMetadata entity. The handler uses the
+ * metadataType context ("task" or "submission") to link the entity to the
+ * correct field on the Task:
+ * - "task" -> task.metadata (description, difficulty, etc.)
+ * - "submission" -> task.submissionMetadata (submission text)
  */
 export function handleTaskMetadata(content: Bytes): void {
   let ipfsHash = dataSource.stringParam();
   let context = dataSource.context();
   let taskId = context.getString("taskId");
+  let metadataType = context.getString("metadataType");
 
   // Load or create the TaskMetadata entity using the IPFS hash as ID
   let metadata = TaskMetadata.load(ipfsHash);
@@ -22,27 +27,16 @@ export function handleTaskMetadata(content: Bytes): void {
   // Try to parse the JSON content
   let jsonResult = json.try_fromBytes(content);
   if (jsonResult.isError) {
-    // Even if JSON parsing fails, save the entity so it exists
+    // Even if JSON parsing fails, save the entity and link to task
     metadata.save();
-
-    // Link task to this metadata
-    let task = Task.load(taskId);
-    if (task) {
-      task.metadata = ipfsHash;
-      task.save();
-    }
+    linkMetadataToTask(taskId, ipfsHash, metadataType);
     return;
   }
 
   let jsonValue = jsonResult.value;
   if (jsonValue.isNull() || jsonValue.kind != JSONValueKind.OBJECT) {
     metadata.save();
-
-    let task = Task.load(taskId);
-    if (task) {
-      task.metadata = ipfsHash;
-      task.save();
-    }
+    linkMetadataToTask(taskId, ipfsHash, metadataType);
     return;
   }
 
@@ -88,26 +82,23 @@ export function handleTaskMetadata(content: Bytes): void {
   }
 
   metadata.save();
+  linkMetadataToTask(taskId, ipfsHash, metadataType);
+}
 
-  // Link task to this metadata entity
+/**
+ * Links the TaskMetadata entity to the Task based on metadata type.
+ * - "task" links to task.metadata
+ * - "submission" links to task.submissionMetadata
+ */
+function linkMetadataToTask(taskId: string, ipfsHash: string, metadataType: string): void {
   let task = Task.load(taskId);
   if (task) {
-    // For task creation IPFS, set task.metadata to this entity
-    // For submission IPFS, we also need to update the task's metadata entity with submission
-    if (!task.metadata || task.metadata == ipfsHash) {
-      // This is task creation IPFS or updating existing
-      task.metadata = ipfsHash;
-      task.save();
+    if (metadataType == "submission") {
+      task.submissionMetadata = ipfsHash;
     } else {
-      // This is submission IPFS - need to update the TASK's metadata entity
-      // task.metadata points to task creation CID, we need to copy submission there
-      let taskMetadata = TaskMetadata.load(task.metadata!);
-      if (taskMetadata) {
-        if (metadata.submission) {
-          taskMetadata.submission = metadata.submission;
-          taskMetadata.save();
-        }
-      }
+      // Default to task metadata for "task" type or any other value
+      task.metadata = ipfsHash;
     }
+    task.save();
   }
 }
