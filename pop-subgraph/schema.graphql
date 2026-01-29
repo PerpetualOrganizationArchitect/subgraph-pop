@@ -281,8 +281,7 @@ type Task @entity(immutable: false) {
 
 """
 Task metadata fetched from IPFS.
-Contains task description, difficulty, estimated hours, and submission text.
-Used for both task creation metadata and submission metadata.
+Contains task description, difficulty, and estimated hours.
 """
 type TaskMetadata @entity(immutable: false) {
   id: String! # IPFS CID (Qm...)
@@ -292,7 +291,6 @@ type TaskMetadata @entity(immutable: false) {
   location: String # Task location/status from IPFS JSON
   difficulty: String # Task difficulty (easy, medium, hard, etc.)
   estimatedHours: Int # Estimated hours to complete
-  submission: String # Submission text (populated for submission metadata)
   indexedAt: BigInt
 }
 
