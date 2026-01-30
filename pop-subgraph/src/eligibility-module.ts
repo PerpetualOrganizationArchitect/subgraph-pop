@@ -331,19 +331,41 @@ export function handleDefaultEligibilityUpdated(
       linkHatToRole(eligibilityModule.organization, hatId, hatEntityId, event);
     }
   }
+
+  // Also update VouchConfig if it exists for this hat
+  let vouchConfigId = contractAddress.toHexString() + "-" + hatId.toString();
+  let vouchConfig = VouchConfig.load(vouchConfigId);
+  if (vouchConfig) {
+    vouchConfig.defaultEligible = event.params.eligible;
+    vouchConfig.defaultStanding = event.params.standing;
+    vouchConfig.updatedAt = event.block.timestamp;
+    vouchConfig.updatedAtBlock = event.block.number;
+    vouchConfig.save();
+  }
 }
 
 export function handleVouchConfigSet(event: VouchConfigSetEvent): void {
   let contractAddress = event.address;
   let hatId = event.params.hatId;
   let vouchConfigId = contractAddress.toHexString() + "-" + hatId.toString();
+  let hatEntityId = contractAddress.toHexString() + "-" + hatId.toString();
 
   let vouchConfig = VouchConfig.load(vouchConfigId);
   if (vouchConfig == null) {
     vouchConfig = new VouchConfig(vouchConfigId);
     vouchConfig.eligibilityModule = contractAddress;
-    vouchConfig.hat = contractAddress.toHexString() + "-" + hatId.toString();
+    vouchConfig.hat = hatEntityId;
     vouchConfig.hatId = hatId;
+    // Initialize defaults from Hat entity if it exists
+    let hat = Hat.load(hatEntityId);
+    if (hat) {
+      vouchConfig.defaultEligible = hat.defaultEligible;
+      vouchConfig.defaultStanding = hat.defaultStanding;
+    } else {
+      // Fallback defaults if Hat doesn't exist yet
+      vouchConfig.defaultEligible = true;
+      vouchConfig.defaultStanding = true;
+    }
   }
 
   vouchConfig.quorum = i32(event.params.quorum.toI32());

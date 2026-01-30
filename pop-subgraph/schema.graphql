@@ -634,6 +634,9 @@ type VouchConfig @entity(immutable: false) {
   membershipHatId: BigInt!
   enabled: Boolean!
   combinesWithHierarchy: Boolean!
+  # Default eligibility settings (synced from Hat entity via DefaultEligibilityUpdated event)
+  defaultEligible: Boolean!
+  defaultStanding: Boolean!
   updatedAt: BigInt!
   updatedAtBlock: BigInt!
   transactionHash: Bytes!
