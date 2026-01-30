@@ -261,6 +261,11 @@ export function recordUserHatChange(
     if (!found) {
       currentHats.push(hatId);
       user.currentHatIds = currentHats;
+
+      // Reactivate user if they were inactive
+      if (user.membershipStatus == "Inactive") {
+        user.membershipStatus = "Active";
+      }
     }
   } else {
     // Remove hat if present
@@ -271,6 +276,11 @@ export function recordUserHatChange(
       }
     }
     user.currentHatIds = newHats;
+
+    // Update membershipStatus if user has no more active hats
+    if (newHats.length == 0) {
+      user.membershipStatus = "Inactive";
+    }
   }
 
   user.save();
