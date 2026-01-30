@@ -38,6 +38,7 @@ import {
   linkHatToRole,
   getOrCreateRoleWearer,
   linkWearerEligibilityToRoleWearer,
+  updateRoleWearerStatus,
   recordUserHatChange,
   shouldCreateRoleWearer
 } from "./utils";
@@ -210,6 +211,27 @@ export function handleWearerEligibilityUpdated(
   wearerEligibility.transactionHash = event.transaction.hash;
 
   wearerEligibility.save();
+
+  // Sync RoleWearer.isActive with eligibility status
+  if (eligibilityModule) {
+    // A wearer is active if they are both eligible AND in good standing
+    let isActive = event.params.eligible && event.params.standing;
+    updateRoleWearerStatus(
+      eligibilityModule.organization,
+      hatId,
+      wearer,
+      isActive,
+      event
+    );
+
+    // Link wearerEligibility to RoleWearer
+    linkWearerEligibilityToRoleWearer(
+      eligibilityModule.organization,
+      hatId,
+      wearer,
+      wearerEligibilityId
+    );
+  }
 }
 
 export function handleBulkWearerEligibilityUpdated(
@@ -275,6 +297,27 @@ export function handleBulkWearerEligibilityUpdated(
     wearerEligibility.transactionHash = event.transaction.hash;
 
     wearerEligibility.save();
+
+    // Sync RoleWearer.isActive with eligibility status
+    if (eligibilityModule) {
+      // A wearer is active if they are both eligible AND in good standing
+      let isActive = eligible && standing;
+      updateRoleWearerStatus(
+        eligibilityModule.organization,
+        hatId,
+        wearer,
+        isActive,
+        event
+      );
+
+      // Link wearerEligibility to RoleWearer
+      linkWearerEligibilityToRoleWearer(
+        eligibilityModule.organization,
+        hatId,
+        wearer,
+        wearerEligibilityId
+      );
+    }
   }
 }
 
