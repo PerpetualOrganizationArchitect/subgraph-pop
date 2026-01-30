@@ -231,6 +231,18 @@ export function handleWearerEligibilityUpdated(
       wearer,
       wearerEligibilityId
     );
+
+    // Update User.currentHatIds based on eligibility
+    let wearerUser = loadExistingUser(
+      eligibilityModule.organization,
+      wearer,
+      event.block.timestamp,
+      event.block.number
+    );
+    if (wearerUser) {
+      // Add or remove hat from currentHatIds based on active status
+      recordUserHatChange(wearerUser, hatId, isActive, event);
+    }
   }
 }
 
@@ -317,6 +329,18 @@ export function handleBulkWearerEligibilityUpdated(
         wearer,
         wearerEligibilityId
       );
+
+      // Update User.currentHatIds based on eligibility
+      let wearerUser = loadExistingUser(
+        eligibilityModule.organization,
+        wearer,
+        event.block.timestamp,
+        event.block.number
+      );
+      if (wearerUser) {
+        // Add or remove hat from currentHatIds based on active status
+        recordUserHatChange(wearerUser, hatId, isActive, event);
+      }
     }
   }
 }
