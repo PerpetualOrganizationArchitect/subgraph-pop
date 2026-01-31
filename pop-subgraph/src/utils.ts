@@ -262,9 +262,15 @@ export function recordUserHatChange(
       currentHats.push(hatId);
       user.currentHatIds = currentHats;
 
-      // Reactivate user if they were inactive
+      // Reactivate user if they were inactive and relink to org
       if (user.membershipStatus == "Inactive") {
         user.membershipStatus = "Active";
+        // Restore organization link - extract orgId from user.id (format: orgId-userAddress)
+        let parts = user.id.split("-");
+        if (parts.length >= 1) {
+          let orgId = Bytes.fromHexString(parts[0]);
+          user.organization = orgId;
+        }
       }
     }
   } else {
@@ -277,9 +283,10 @@ export function recordUserHatChange(
     }
     user.currentHatIds = newHats;
 
-    // Update membershipStatus if user has no more active hats
+    // If user has no more active hats, mark inactive and unlink from org
     if (newHats.length == 0) {
       user.membershipStatus = "Inactive";
+      user.organization = null;
     }
   }
 
