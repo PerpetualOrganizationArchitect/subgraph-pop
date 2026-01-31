@@ -39,7 +39,7 @@ type Organization @entity(immutable: false) {
 
 type User @entity(immutable: false) {
   id: String! # orgId-userAddress
-  organization: Organization!
+  organization: Organization # Nullable - unlinked when user has no active roles
   address: Bytes!
   account: Account # Link to global Account for username
 
