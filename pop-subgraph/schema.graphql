@@ -399,7 +399,8 @@ type Proposal @entity(immutable: false) {
   creatorUsername: String
   creatorUser: User
   title: String! # proposal title
-  descriptionHash: Bytes! # hash of proposal description
+  descriptionHash: Bytes! # hash of proposal description (IPFS CID as bytes32)
+  metadata: ProposalMetadata # Fetched from IPFS - contains description and option names
   numOptions: Int!
   startTimestamp: BigInt!
   endTimestamp: BigInt!
@@ -478,7 +479,8 @@ type DDVProposal @entity(immutable: false) {
   proposalId: BigInt!
   directDemocracyVoting: DirectDemocracyVotingContract!
   title: String! # proposal title
-  descriptionHash: Bytes! # hash of proposal description
+  descriptionHash: Bytes! # hash of proposal description (IPFS CID as bytes32)
+  metadata: ProposalMetadata # Fetched from IPFS - contains description and option names
   numOptions: Int!
   startTimestamp: BigInt!
   endTimestamp: BigInt!
@@ -1637,6 +1639,18 @@ type HatMetadata @entity(immutable: false) {
   name: String # Role name fetched from IPFS JSON
   description: String # Fetched from IPFS JSON
   indexedAt: BigInt
+}
+
+"""
+IPFS-indexed proposal metadata content.
+This entity is populated by a file data source that fetches from IPFS.
+Contains the proposal description and option names that were uploaded when creating the proposal.
+"""
+type ProposalMetadata @entity(immutable: true) {
+  id: String! # IPFS CID (Qm...)
+  description: String! # Full proposal description text
+  optionNames: [String!]! # Names for each voting option
+  createdAt: BigInt # Timestamp from IPFS metadata
 }
 
 type RegisteredContract @entity(immutable: false) {

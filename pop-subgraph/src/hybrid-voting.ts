@@ -1,4 +1,4 @@
-import { Address, Bytes, BigInt } from "@graphprotocol/graph-ts";
+import { Address, Bytes, BigInt, DataSourceContext } from "@graphprotocol/graph-ts";
 import {
   Initialized,
   ExecutorUpdated,
@@ -23,7 +23,48 @@ import {
   VotingClass,
   VotingClassChange
 } from "../generated/schema";
+import { ProposalMetadata as ProposalMetadataTemplate } from "../generated/templates";
 import { getUsernameForAddress, loadExistingUser, createHatPermission, createExecutorChange, getOrCreateRole } from "./utils";
+
+// Zero hash constant for comparison
+const ZERO_HASH = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000");
+
+/**
+ * Convert bytes32 sha256 digest to IPFS CIDv0.
+ * CIDv0 = base58( 0x1220 + sha256_digest )
+ */
+function bytes32ToCid(hash: Bytes): string {
+  let prefix = Bytes.fromHexString("0x1220");
+  let multihash = new Bytes(34);
+  for (let i = 0; i < 2; i++) {
+    multihash[i] = prefix[i];
+  }
+  for (let i = 0; i < 32; i++) {
+    multihash[i + 2] = hash[i];
+  }
+  return multihash.toBase58();
+}
+
+/**
+ * Create IPFS data source for proposal metadata.
+ */
+function createProposalMetadataDataSource(descriptionHash: Bytes, proposalEntityId: string): void {
+  // Skip if hash is empty (all zeros)
+  if (descriptionHash.equals(ZERO_HASH)) {
+    return;
+  }
+
+  // Convert bytes32 to IPFS CIDv0
+  let ipfsCid = bytes32ToCid(descriptionHash);
+
+  // Create context to pass proposal info to the IPFS handler
+  let context = new DataSourceContext();
+  context.setString("proposalEntityId", proposalEntityId);
+  context.setString("proposalType", "hybrid");
+
+  // Create the file data source
+  ProposalMetadataTemplate.createWithContext(ipfsCid, context);
+}
 
 /**
  * Handler for Initialized event
@@ -258,6 +299,9 @@ export function handleNewProposal(event: NewProposal): void {
   proposal.transactionHash = event.transaction.hash;
 
   proposal.save();
+
+  // Trigger IPFS fetch for proposal metadata (description and option names)
+  createProposalMetadataDataSource(event.params.descriptionHash, proposalId);
 }
 
 /**
@@ -303,6 +347,9 @@ export function handleNewHatProposal(event: NewHatProposal): void {
   proposal.transactionHash = event.transaction.hash;
 
   proposal.save();
+
+  // Trigger IPFS fetch for proposal metadata (description and option names)
+  createProposalMetadataDataSource(event.params.descriptionHash, proposalId);
 }
 
 /**

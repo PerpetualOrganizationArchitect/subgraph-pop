@@ -815,3 +815,19 @@ templates:
       abis:
         - name: TaskManager
           file: ./abis/TaskManager.json
+  # IPFS file data source for proposal metadata
+  - kind: file/ipfs
+    name: ProposalMetadata
+    network: hoodi
+    mapping:
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      file: ./src/proposal-metadata.ts
+      handler: handleProposalMetadata
+      entities:
+        - ProposalMetadata
+        - Proposal
+        - DDVProposal
+      abis:
+        - name: HybridVoting
+          file: ./abis/HybridVoting.json
