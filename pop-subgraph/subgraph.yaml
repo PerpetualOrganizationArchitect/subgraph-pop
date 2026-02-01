@@ -815,6 +815,21 @@ templates:
       abis:
         - name: TaskManager
           file: ./abis/TaskManager.json
+  # IPFS file data source for project metadata
+  - kind: file/ipfs
+    name: ProjectMetadata
+    network: hoodi
+    mapping:
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      file: ./src/project-metadata.ts
+      handler: handleProjectMetadata
+      entities:
+        - ProjectMetadata
+        - Project
+      abis:
+        - name: TaskManager
+          file: ./abis/TaskManager.json
   # IPFS file data source for proposal metadata
   - kind: file/ipfs
     name: ProposalMetadata

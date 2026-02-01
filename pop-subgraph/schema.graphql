@@ -129,6 +129,7 @@ type Project @entity(immutable: false) {
   taskManager: TaskManager! # Relationship to TaskManager entity
   title: String! # project title
   metadataHash: Bytes! # project metadata hash
+  metadata: ProjectMetadata # Link to indexed metadata from IPFS
   cap: BigInt!
   createdAt: BigInt!
   createdAtBlock: BigInt!
@@ -140,6 +141,17 @@ type Project @entity(immutable: false) {
   rolePermissions: [ProjectRolePermission!]! @derivedFrom(field: "project")
   bountyCaps: [ProjectBountyCap!]! @derivedFrom(field: "project")
   capChanges: [ProjectCapChange!]! @derivedFrom(field: "project")
+}
+
+"""
+Project metadata fetched from IPFS.
+Contains project description.
+"""
+type ProjectMetadata @entity(immutable: false) {
+  id: String! # IPFS CID (Qm...)
+  project: Project
+  description: String # Project description from IPFS JSON
+  indexedAt: BigInt
 }
 
 # ========================================

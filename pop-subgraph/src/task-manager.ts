@@ -1,5 +1,5 @@
 import { Address, BigInt, Bytes, DataSourceContext } from "@graphprotocol/graph-ts";
-import { TaskMetadata as TaskMetadataTemplate } from "../generated/templates";
+import { TaskMetadata as TaskMetadataTemplate, ProjectMetadata as ProjectMetadataTemplate } from "../generated/templates";
 import {
   ProjectCreated,
   ProjectDeleted,
@@ -86,6 +86,29 @@ function createTaskMetadataSource(metadataHash: Bytes, taskId: string, metadataT
 }
 
 /**
+ * Helper function to create an IPFS file data source for project metadata.
+ * Uses DataSourceContext to pass the projectId to the handler
+ * so it can link the metadata back to the project.
+ */
+function createProjectMetadataSource(metadataHash: Bytes, projectId: string): void {
+  // Skip if metadataHash is empty (all zeros)
+  let zeroHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000");
+  if (metadataHash.equals(zeroHash)) {
+    return;
+  }
+
+  // Convert bytes32 sha256 digest to IPFS CIDv0 string
+  let ipfsCid = bytes32ToCid(metadataHash);
+
+  // Create context to pass projectId to the IPFS handler
+  let context = new DataSourceContext();
+  context.setString("projectId", projectId);
+
+  // Create the file data source with context
+  ProjectMetadataTemplate.createWithContext(ipfsCid, context);
+}
+
+/**
  * Handles the ProjectCreated event from a TaskManager contract.
  * Creates a Project entity and links it to the TaskManager.
  * Uses composite ID (taskManager-projectId) to ensure cross-org isolation.
@@ -105,7 +128,14 @@ export function handleProjectCreated(event: ProjectCreated): void {
   project.createdAtBlock = event.block.number;
   project.deleted = false;
 
+  // Set metadata link (CID) for the ProjectMetadata entity that will be created by IPFS handler
+  let metadataCid = bytes32ToCid(event.params.metadataHash);
+  project.metadata = metadataCid;
+
   project.save();
+
+  // Create IPFS data source to fetch and index project metadata
+  createProjectMetadataSource(event.params.metadataHash, projectEntityId);
 }
 
 export function handleProjectDeleted(event: ProjectDeleted): void {
