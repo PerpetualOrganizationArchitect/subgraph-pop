@@ -830,4 +830,4 @@ templates:
         - DDVProposal
       abis:
         - name: HybridVoting
-          file: ./abis/HybridVotingNew.json
+          file: ./abis/HybridVoting.json
