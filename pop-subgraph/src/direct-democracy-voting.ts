@@ -307,6 +307,13 @@ export function handleNewProposal(event: NewProposal): void {
   proposal.createdAtBlock = event.block.number;
   proposal.transactionHash = event.transaction.hash;
 
+  // Pre-set metadata link before saving (following task-manager and org-registry pattern)
+  // This ensures the relationship exists even before IPFS content is fetched
+  if (!event.params.descriptionHash.equals(ZERO_HASH)) {
+    let metadataCid = bytes32ToCid(event.params.descriptionHash);
+    proposal.metadata = metadataCid;
+  }
+
   proposal.save();
 
   // Trigger IPFS fetch for proposal metadata (description and option names)
@@ -335,6 +342,13 @@ export function handleNewHatProposal(event: NewHatProposal): void {
   proposal.status = "Active";
   proposal.createdAtBlock = event.block.number;
   proposal.transactionHash = event.transaction.hash;
+
+  // Pre-set metadata link before saving (following task-manager and org-registry pattern)
+  // This ensures the relationship exists even before IPFS content is fetched
+  if (!event.params.descriptionHash.equals(ZERO_HASH)) {
+    let metadataCid = bytes32ToCid(event.params.descriptionHash);
+    proposal.metadata = metadataCid;
+  }
 
   proposal.save();
 

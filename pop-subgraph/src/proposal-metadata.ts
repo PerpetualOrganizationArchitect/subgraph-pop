@@ -1,5 +1,5 @@
 import { Bytes, dataSource, json, BigInt, JSONValueKind, log } from "@graphprotocol/graph-ts";
-import { ProposalMetadata, Proposal, DDVProposal } from "../generated/schema";
+import { ProposalMetadata } from "../generated/schema";
 
 /**
  * Handler for IPFS file data source that parses proposal metadata JSON.
@@ -11,6 +11,11 @@ import { ProposalMetadata, Proposal, DDVProposal } from "../generated/schema";
  *   createdAt: 1706812800000
  * }
  *
+ * This handler creates/populates the ProposalMetadata entity. The link from
+ * Proposal/DDVProposal to ProposalMetadata is pre-set in the event handlers
+ * (handleNewProposal, handleNewHatProposal) following the task-manager and
+ * org-registry pattern.
+ *
  * This handler is resilient to malformed data - if parsing fails or fields
  * are missing, the entity will be created with whatever data is available.
  * The subgraph will NOT brick if IPFS is slow or unavailable - the main
@@ -20,7 +25,7 @@ export function handleProposalMetadata(content: Bytes): void {
   // The dataSource.stringParam() contains the IPFS hash (CID)
   let ipfsCid = dataSource.stringParam();
 
-  // Get context passed by the caller
+  // Get context passed by the caller (for logging purposes)
   let context = dataSource.context();
   let proposalEntityId = context.getString("proposalEntityId");
   let proposalType = context.getString("proposalType"); // "hybrid" or "ddv"
@@ -35,12 +40,11 @@ export function handleProposalMetadata(content: Bytes): void {
   let jsonResult = json.try_fromBytes(content);
   if (jsonResult.isError) {
     log.warning("[ProposalMetadata] Failed to parse JSON for CID: {}", [ipfsCid]);
-    // Create entity with defaults
+    // Create entity with defaults so the relationship still works
     let metadata = new ProposalMetadata(ipfsCid);
     metadata.description = "";
     metadata.optionNames = [];
     metadata.save();
-    linkMetadataToProposal(ipfsCid, proposalEntityId, proposalType);
     return;
   }
 
@@ -90,9 +94,6 @@ export function handleProposalMetadata(content: Bytes): void {
       metadata.optionNames.length.toString(),
       ipfsCid
     ]);
-
-    // Link metadata back to proposal
-    linkMetadataToProposal(ipfsCid, proposalEntityId, proposalType);
   } else {
     // Not a JSON object - create entity with defaults
     log.warning("[ProposalMetadata] Content is not a JSON object for CID: {}", [ipfsCid]);
@@ -100,33 +101,5 @@ export function handleProposalMetadata(content: Bytes): void {
     metadata.description = "";
     metadata.optionNames = [];
     metadata.save();
-    linkMetadataToProposal(ipfsCid, proposalEntityId, proposalType);
-  }
-}
-
-/**
- * Links the metadata entity back to the proposal entity
- */
-function linkMetadataToProposal(ipfsCid: string, proposalEntityId: string, proposalType: string): void {
-  if (proposalType == "hybrid") {
-    let proposal = Proposal.load(proposalEntityId);
-    if (proposal != null) {
-      proposal.metadata = ipfsCid;
-      proposal.save();
-      log.info("[ProposalMetadata] Linked metadata to Hybrid proposal: {}", [proposalEntityId]);
-    } else {
-      log.warning("[ProposalMetadata] Could not find Hybrid proposal: {}", [proposalEntityId]);
-    }
-  } else if (proposalType == "ddv") {
-    let proposal = DDVProposal.load(proposalEntityId);
-    if (proposal != null) {
-      proposal.metadata = ipfsCid;
-      proposal.save();
-      log.info("[ProposalMetadata] Linked metadata to DDV proposal: {}", [proposalEntityId]);
-    } else {
-      log.warning("[ProposalMetadata] Could not find DDV proposal: {}", [proposalEntityId]);
-    }
-  } else {
-    log.warning("[ProposalMetadata] Unknown proposal type: {}", [proposalType]);
   }
 }
