@@ -115,7 +115,13 @@ function createProjectMetadataSource(metadataHash: Bytes, projectId: string): vo
  */
 export function handleProjectCreated(event: ProjectCreated): void {
   let projectEntityId = getProjectEntityId(event.address, event.params.id);
-  let project = new Project(projectEntityId);
+
+  // Load existing project (may have been created as stub by ProjectManagerUpdated
+  // if that event was processed first in the same transaction) or create new
+  let project = Project.load(projectEntityId);
+  if (project == null) {
+    project = new Project(projectEntityId);
+  }
 
   // Store raw project ID for reference
   project.projectId = event.params.id;
@@ -443,6 +449,10 @@ export function handleProjectCapUpdated(event: ProjectCapUpdated): void {
 /**
  * Handles the ProjectManagerUpdated event from a TaskManager contract.
  * Creates or updates a ProjectManager entity to track manager assignments.
+ *
+ * Note: This event may be emitted BEFORE ProjectCreated in the same transaction
+ * (due to event ordering). If the Project doesn't exist yet, we create a stub
+ * that will be properly filled in when handleProjectCreated runs.
  */
 export function handleProjectManagerUpdated(event: ProjectManagerUpdated): void {
   let projectId = event.params.id;
@@ -451,6 +461,23 @@ export function handleProjectManagerUpdated(event: ProjectManagerUpdated): void 
 
   // Use composite Project ID for cross-org isolation
   let projectEntityId = getProjectEntityId(event.address, projectId);
+
+  // Ensure Project exists (may not if ProjectManagerUpdated fires before ProjectCreated)
+  let project = Project.load(projectEntityId);
+  if (project == null) {
+    // Create stub Project - will be properly filled in by handleProjectCreated
+    project = new Project(projectEntityId);
+    project.projectId = projectId;
+    project.taskManager = event.address;
+    project.title = ""; // Placeholder - will be set by ProjectCreated
+    project.metadataHash = Bytes.empty(); // Placeholder
+    project.cap = BigInt.fromI32(0); // Placeholder
+    project.createdAt = event.block.timestamp;
+    project.createdAtBlock = event.block.number;
+    project.deleted = false;
+    project.save();
+  }
+
   let id = projectEntityId + "-" + managerAddress.toHexString();
   let manager = ProjectManager.load(id);
 
@@ -492,6 +519,8 @@ export function handleProjectManagerUpdated(event: ProjectManagerUpdated): void 
  * Handles the ProjectRolePermSet event from a TaskManager contract.
  * Creates or updates a ProjectRolePermission entity to track hat-based permissions.
  * Permission bitmask: CREATE=1, CLAIM=2, REVIEW=4, ASSIGN=8
+ *
+ * Note: This event may be emitted BEFORE ProjectCreated in the same transaction.
  */
 export function handleProjectRolePermSet(event: ProjectRolePermSet): void {
   let projectId = event.params.id;
@@ -500,6 +529,22 @@ export function handleProjectRolePermSet(event: ProjectRolePermSet): void {
 
   // Use composite Project ID for cross-org isolation
   let projectEntityId = getProjectEntityId(event.address, projectId);
+
+  // Ensure Project exists (may not if this event fires before ProjectCreated)
+  let project = Project.load(projectEntityId);
+  if (project == null) {
+    project = new Project(projectEntityId);
+    project.projectId = projectId;
+    project.taskManager = event.address;
+    project.title = "";
+    project.metadataHash = Bytes.empty();
+    project.cap = BigInt.fromI32(0);
+    project.createdAt = event.block.timestamp;
+    project.createdAtBlock = event.block.number;
+    project.deleted = false;
+    project.save();
+  }
+
   let id = projectEntityId + "-" + hatId.toString();
   let perm = ProjectRolePermission.load(id);
 
@@ -525,6 +570,8 @@ export function handleProjectRolePermSet(event: ProjectRolePermSet): void {
 /**
  * Handles the BountyCapSet event from a TaskManager contract.
  * Creates or updates a ProjectBountyCap entity and creates a historical record.
+ *
+ * Note: This event may be emitted BEFORE ProjectCreated in the same transaction.
  */
 export function handleBountyCapSet(event: BountyCapSet): void {
   let projectId = event.params.projectId;
@@ -532,6 +579,22 @@ export function handleBountyCapSet(event: BountyCapSet): void {
 
   // Use composite Project ID for cross-org isolation
   let projectEntityId = getProjectEntityId(event.address, projectId);
+
+  // Ensure Project exists (may not if this event fires before ProjectCreated)
+  let project = Project.load(projectEntityId);
+  if (project == null) {
+    project = new Project(projectEntityId);
+    project.projectId = projectId;
+    project.taskManager = event.address;
+    project.title = "";
+    project.metadataHash = Bytes.empty();
+    project.cap = BigInt.fromI32(0);
+    project.createdAt = event.block.timestamp;
+    project.createdAtBlock = event.block.number;
+    project.deleted = false;
+    project.save();
+  }
+
   let capId = projectEntityId + "-" + token.toHexString();
   let bountyCap = ProjectBountyCap.load(capId);
 
