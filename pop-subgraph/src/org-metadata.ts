@@ -41,11 +41,14 @@ export function handleOrgMetadata(content: Bytes): void {
   if (!jsonValue.isNull() && jsonValue.kind == JSONValueKind.OBJECT) {
     let jsonObject = jsonValue.toObject();
 
-    // Create or load the metadata entity
-    let metadata = OrgMetadata.load(ipfsHash);
-    if (metadata == null) {
-      metadata = new OrgMetadata(ipfsHash);
+    // Check if metadata already exists - if so, skip to avoid re-creating immutable OrgMetadataLink entities
+    let existingMetadata = OrgMetadata.load(ipfsHash);
+    if (existingMetadata != null) {
+      return;
     }
+
+    // Create new metadata entity
+    let metadata = new OrgMetadata(ipfsHash);
 
     // Link to organization
     metadata.organization = orgId;
@@ -68,7 +71,7 @@ export function handleOrgMetadata(content: Bytes): void {
 
     metadata.save();
 
-    // Parse links array
+    // Parse links array - OrgMetadataLink is immutable so only create once
     let linksValue = jsonObject.get("links");
     if (linksValue != null && !linksValue.isNull() && linksValue.kind == JSONValueKind.ARRAY) {
       let linksArray = linksValue.toArray();
