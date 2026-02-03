@@ -27,10 +27,13 @@ export function handleOrgMetadata(content: Bytes): void {
   // Try to parse the JSON content
   let jsonResult = json.try_fromBytes(content);
   if (jsonResult.isError) {
-    // JSON parsing failed - create entity with just the ID and org link
-    let metadata = new OrgMetadata(ipfsHash);
-    metadata.organization = orgId;
-    metadata.save();
+    // JSON parsing failed - load or create entity with just the ID and org link
+    let metadata = OrgMetadata.load(ipfsHash);
+    if (metadata == null) {
+      metadata = new OrgMetadata(ipfsHash);
+      metadata.organization = orgId;
+      metadata.save();
+    }
     return;
   }
 
@@ -95,9 +98,12 @@ export function handleOrgMetadata(content: Bytes): void {
       }
     }
   } else {
-    // Not a JSON object - create entity with just the ID and org link
-    let metadata = new OrgMetadata(ipfsHash);
-    metadata.organization = orgId;
-    metadata.save();
+    // Not a JSON object - load or create entity with just the ID and org link
+    let metadata = OrgMetadata.load(ipfsHash);
+    if (metadata == null) {
+      metadata = new OrgMetadata(ipfsHash);
+      metadata.organization = orgId;
+      metadata.save();
+    }
   }
 }
