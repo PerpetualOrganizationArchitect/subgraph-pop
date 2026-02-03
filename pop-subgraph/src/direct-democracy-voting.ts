@@ -366,6 +366,12 @@ export function handleVoteCast(event: VoteCast): void {
   let voterAddress = event.params.voter.toHexString();
   let voteId = proposalId + "-" + voterAddress;
 
+  // DDVVote is immutable - check if already exists to prevent duplicate creation
+  let existingVote = DDVVote.load(voteId);
+  if (existingVote != null) {
+    return;
+  }
+
   let vote = new DDVVote(voteId);
 
   vote.proposal = proposalId;
