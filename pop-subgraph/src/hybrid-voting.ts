@@ -376,6 +376,12 @@ export function handleVoteCast(event: VoteCast): void {
   let voterAddress = event.params.voter.toHexString();
   let voteId = proposalId + "-" + voterAddress;
 
+  // Vote is immutable - check if already exists to prevent duplicate creation
+  let existingVote = Vote.load(voteId);
+  if (existingVote != null) {
+    return;
+  }
+
   let vote = new Vote(voteId);
 
   vote.proposal = proposalId;
