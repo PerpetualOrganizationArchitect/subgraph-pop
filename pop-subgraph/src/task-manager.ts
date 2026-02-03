@@ -49,7 +49,7 @@ function getProjectEntityId(taskManagerAddress: Address, projectId: Bytes): stri
  *
  * TODO: This is a workaround for smart contract event ordering. The proper fix is
  * to emit ProjectCreated before other project-related events in the contract.
- * See: https://github.com/PerpetualOrganizationArchitect/POP/issues/XXX
+ * See: https://github.com/PerpetualOrganizationArchitect/POP/issues/84
  */
 function ensureProjectExists(
   taskManagerAddress: Address,
