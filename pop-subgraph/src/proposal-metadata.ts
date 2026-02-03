@@ -40,11 +40,14 @@ export function handleProposalMetadata(content: Bytes): void {
   let jsonResult = json.try_fromBytes(content);
   if (jsonResult.isError) {
     log.warning("[ProposalMetadata] Failed to parse JSON for CID: {}", [ipfsCid]);
-    // Create entity with defaults so the relationship still works
-    let metadata = new ProposalMetadata(ipfsCid);
-    metadata.description = "";
-    metadata.optionNames = [];
-    metadata.save();
+    // Load or create entity with defaults so the relationship still works
+    let metadata = ProposalMetadata.load(ipfsCid);
+    if (metadata == null) {
+      metadata = new ProposalMetadata(ipfsCid);
+      metadata.description = "";
+      metadata.optionNames = [];
+      metadata.save();
+    }
     return;
   }
 
@@ -52,8 +55,11 @@ export function handleProposalMetadata(content: Bytes): void {
   if (!jsonValue.isNull() && jsonValue.kind == JSONValueKind.OBJECT) {
     let jsonObject = jsonValue.toObject();
 
-    // Create the metadata entity
-    let metadata = new ProposalMetadata(ipfsCid);
+    // Load or create the metadata entity
+    let metadata = ProposalMetadata.load(ipfsCid);
+    if (metadata == null) {
+      metadata = new ProposalMetadata(ipfsCid);
+    }
 
     // Parse description
     let descriptionValue = jsonObject.get("description");
@@ -95,11 +101,14 @@ export function handleProposalMetadata(content: Bytes): void {
       ipfsCid
     ]);
   } else {
-    // Not a JSON object - create entity with defaults
+    // Not a JSON object - load or create entity with defaults
     log.warning("[ProposalMetadata] Content is not a JSON object for CID: {}", [ipfsCid]);
-    let metadata = new ProposalMetadata(ipfsCid);
-    metadata.description = "";
-    metadata.optionNames = [];
-    metadata.save();
+    let metadata = ProposalMetadata.load(ipfsCid);
+    if (metadata == null) {
+      metadata = new ProposalMetadata(ipfsCid);
+      metadata.description = "";
+      metadata.optionNames = [];
+      metadata.save();
+    }
   }
 }
