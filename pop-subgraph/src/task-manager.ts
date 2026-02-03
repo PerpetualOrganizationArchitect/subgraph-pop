@@ -40,6 +40,43 @@ function getProjectEntityId(taskManagerAddress: Address, projectId: Bytes): stri
 }
 
 /**
+ * Ensures a Project entity exists, creating a stub if necessary.
+ *
+ * This handles event ordering issues where ProjectManagerUpdated, ProjectRolePermSet,
+ * or BountyCapSet events may fire BEFORE ProjectCreated in the same transaction.
+ * The stub contains placeholder values that will be properly filled in when
+ * handleProjectCreated runs.
+ *
+ * TODO: This is a workaround for smart contract event ordering. The proper fix is
+ * to emit ProjectCreated before other project-related events in the contract.
+ * See: https://github.com/PerpetualOrganizationArchitect/POP/issues/XXX
+ */
+function ensureProjectExists(
+  taskManagerAddress: Address,
+  projectId: Bytes,
+  timestamp: BigInt,
+  blockNumber: BigInt
+): Project {
+  let projectEntityId = getProjectEntityId(taskManagerAddress, projectId);
+  let project = Project.load(projectEntityId);
+
+  if (project == null) {
+    project = new Project(projectEntityId);
+    project.projectId = projectId;
+    project.taskManager = taskManagerAddress;
+    project.title = ""; // Placeholder - will be set by ProjectCreated
+    project.metadataHash = Bytes.empty();
+    project.cap = BigInt.fromI32(0);
+    project.createdAt = timestamp;
+    project.createdAtBlock = blockNumber;
+    project.deleted = false;
+    project.save();
+  }
+
+  return project;
+}
+
+/**
  * Convert bytes32 sha256 digest to IPFS CIDv0 string.
  * The contract stores only the 32-byte hash, we need to prepend
  * the multihash prefix (0x1220) and base58 encode.
@@ -463,20 +500,7 @@ export function handleProjectManagerUpdated(event: ProjectManagerUpdated): void 
   let projectEntityId = getProjectEntityId(event.address, projectId);
 
   // Ensure Project exists (may not if ProjectManagerUpdated fires before ProjectCreated)
-  let project = Project.load(projectEntityId);
-  if (project == null) {
-    // Create stub Project - will be properly filled in by handleProjectCreated
-    project = new Project(projectEntityId);
-    project.projectId = projectId;
-    project.taskManager = event.address;
-    project.title = ""; // Placeholder - will be set by ProjectCreated
-    project.metadataHash = Bytes.empty(); // Placeholder
-    project.cap = BigInt.fromI32(0); // Placeholder
-    project.createdAt = event.block.timestamp;
-    project.createdAtBlock = event.block.number;
-    project.deleted = false;
-    project.save();
-  }
+  ensureProjectExists(event.address, projectId, event.block.timestamp, event.block.number);
 
   let id = projectEntityId + "-" + managerAddress.toHexString();
   let manager = ProjectManager.load(id);
@@ -531,19 +555,7 @@ export function handleProjectRolePermSet(event: ProjectRolePermSet): void {
   let projectEntityId = getProjectEntityId(event.address, projectId);
 
   // Ensure Project exists (may not if this event fires before ProjectCreated)
-  let project = Project.load(projectEntityId);
-  if (project == null) {
-    project = new Project(projectEntityId);
-    project.projectId = projectId;
-    project.taskManager = event.address;
-    project.title = "";
-    project.metadataHash = Bytes.empty();
-    project.cap = BigInt.fromI32(0);
-    project.createdAt = event.block.timestamp;
-    project.createdAtBlock = event.block.number;
-    project.deleted = false;
-    project.save();
-  }
+  ensureProjectExists(event.address, projectId, event.block.timestamp, event.block.number);
 
   let id = projectEntityId + "-" + hatId.toString();
   let perm = ProjectRolePermission.load(id);
@@ -581,19 +593,7 @@ export function handleBountyCapSet(event: BountyCapSet): void {
   let projectEntityId = getProjectEntityId(event.address, projectId);
 
   // Ensure Project exists (may not if this event fires before ProjectCreated)
-  let project = Project.load(projectEntityId);
-  if (project == null) {
-    project = new Project(projectEntityId);
-    project.projectId = projectId;
-    project.taskManager = event.address;
-    project.title = "";
-    project.metadataHash = Bytes.empty();
-    project.cap = BigInt.fromI32(0);
-    project.createdAt = event.block.timestamp;
-    project.createdAtBlock = event.block.number;
-    project.deleted = false;
-    project.save();
-  }
+  ensureProjectExists(event.address, projectId, event.block.timestamp, event.block.number);
 
   let capId = projectEntityId + "-" + token.toHexString();
   let bountyCap = ProjectBountyCap.load(capId);
