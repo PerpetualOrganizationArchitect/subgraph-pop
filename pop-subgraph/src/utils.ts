@@ -237,7 +237,13 @@ export function recordUserHatChange(
   added: boolean,
   event: ethereum.Event
 ): UserHatChange {
-  let id = event.transaction.hash.concatI32(event.logIndex.toI32());
+  // Include user.id AND hatId in the ID to ensure uniqueness when:
+  // - Bulk events update multiple users (same hatId, different users)
+  // - Single user receives multiple hats (same user, different hatIds)
+  // UserHatChange is immutable, so duplicate IDs would cause "Failed to transact block operations"
+  let id = event.transaction.hash.concatI32(event.logIndex.toI32())
+    .concat(Bytes.fromUTF8(user.id))
+    .concat(Bytes.fromByteArray(Bytes.fromBigInt(hatId)));
   let hatChange = new UserHatChange(id);
   hatChange.user = user.id;
   hatChange.hatId = hatId;
