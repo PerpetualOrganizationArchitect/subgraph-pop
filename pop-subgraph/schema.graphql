@@ -269,7 +269,8 @@ type Task @entity(immutable: false) {
   title: String! # task title
   metadataHash: Bytes! # task metadata hash (description, difficulty, estHours)
   submissionHash: Bytes # submission metadata hash (set when task is submitted)
-  metadata: TaskMetadata # Link to indexed metadata from IPFS (updates to submission CID when task is submitted)
+  metadata: TaskMetadata # Link to task description metadata from IPFS
+  submissionMetadata: TaskMetadata # Link to submission content metadata from IPFS
   assignee: Bytes
   assigneeUsername: String
   assigneeUser: User
@@ -293,19 +294,16 @@ type Task @entity(immutable: false) {
 """
 Task metadata fetched from IPFS.
 Contains task description, difficulty, estimated hours, and submission content.
-The entity ID changes to the submission hash when a task is submitted.
+Uses IPFS CID as ID - multiple tasks can share the same metadata if they have the same content hash.
 """
-type TaskMetadata @entity(immutable: false) {
-  id: String! # taskId-ipfsCID format (e.g. "0x123-456-QmAbc...") - unique per task
-  task: Task
-  ipfsCid: String # The IPFS CID (Qm...) for reference
+type TaskMetadata @entity(immutable: true) {
+  id: String! # IPFS CID (Qm...) - same CID = same content, shared across tasks
   name: String # Task name from IPFS JSON
   description: String # Task description from IPFS JSON
   location: String # Task location/status from IPFS JSON
   difficulty: String # Task difficulty (easy, medium, hard, etc.)
   estimatedHours: Int # Estimated hours to complete
-  submission: String # Submission content from IPFS JSON (populated when task is submitted)
-  indexedAt: BigInt
+  submission: String # Submission content from IPFS JSON (for submission metadata)
 }
 
 type TaskApplication @entity(immutable: false) {
