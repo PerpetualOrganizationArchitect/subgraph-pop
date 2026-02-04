@@ -21,7 +21,8 @@ import {
   Proposal,
   Vote,
   VotingClass,
-  VotingClassChange
+  VotingClassChange,
+  ProposalMetadata
 } from "../generated/schema";
 import { ProposalMetadata as ProposalMetadataTemplate } from "../generated/templates";
 import { getUsernameForAddress, loadExistingUser, createHatPermission, createExecutorChange, getOrCreateRole } from "./utils";
@@ -56,6 +57,12 @@ function createProposalMetadataDataSource(descriptionHash: Bytes, proposalEntity
 
   // Convert bytes32 to IPFS CIDv0
   let ipfsCid = bytes32ToCid(descriptionHash);
+
+  // Skip if ProposalMetadata already exists - prevents duplicate file data sources
+  let existingMetadata = ProposalMetadata.load(ipfsCid);
+  if (existingMetadata != null) {
+    return;
+  }
 
   // Create context to pass proposal info to the IPFS handler
   let context = new DataSourceContext();

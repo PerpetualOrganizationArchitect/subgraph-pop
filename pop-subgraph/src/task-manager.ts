@@ -26,7 +26,9 @@ import {
   ProjectRolePermission,
   ProjectBountyCap,
   ProjectCapChange,
-  BountyCapChange
+  BountyCapChange,
+  TaskMetadata,
+  ProjectMetadata
 } from "../generated/schema";
 import { getUsernameForAddress, loadExistingUser } from "./utils";
 
@@ -113,6 +115,14 @@ function createTaskMetadataSource(metadataHash: Bytes, taskId: string, metadataT
   // Convert bytes32 sha256 digest to IPFS CIDv0 string
   let ipfsCid = bytes32ToCid(metadataHash);
 
+  // Skip if TaskMetadata already exists - prevents duplicate file data sources
+  // which can cause causality region conflicts when multiple sources for the
+  // same CID try to create the same entity
+  let existingMetadata = TaskMetadata.load(ipfsCid);
+  if (existingMetadata != null) {
+    return;
+  }
+
   // Create context to pass taskId and type to the IPFS handler
   let context = new DataSourceContext();
   context.setString("taskId", taskId);
@@ -136,6 +146,12 @@ function createProjectMetadataSource(metadataHash: Bytes, projectId: string): vo
 
   // Convert bytes32 sha256 digest to IPFS CIDv0 string
   let ipfsCid = bytes32ToCid(metadataHash);
+
+  // Skip if ProjectMetadata already exists - prevents duplicate file data sources
+  let existingMetadata = ProjectMetadata.load(ipfsCid);
+  if (existingMetadata != null) {
+    return;
+  }
 
   // Create context to pass projectId to the IPFS handler
   let context = new DataSourceContext();
