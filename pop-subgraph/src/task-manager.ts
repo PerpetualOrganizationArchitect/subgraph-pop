@@ -26,8 +26,7 @@ import {
   ProjectRolePermission,
   ProjectBountyCap,
   ProjectCapChange,
-  BountyCapChange,
-  TaskMetadata
+  BountyCapChange
 } from "../generated/schema";
 import { getUsernameForAddress, loadExistingUser } from "./utils";
 
@@ -213,17 +212,12 @@ export function handleTaskCreated(event: TaskCreated): void {
   task.createdAt = event.block.timestamp;
   task.createdAtBlock = event.block.number;
 
-  // Set metadata link and create stub TaskMetadata to handle IPFS unavailability
+  // Set metadata link (CID) for the TaskMetadata entity that will be created by IPFS handler
+  // Note: We don't create a stub here because file data sources run in a separate causality
+  // region, and both would try to Insert in the same block causing conflicts.
+  // If IPFS content doesn't exist (404), the metadata entity simply won't be created.
   let metadataCid = bytes32ToCid(event.params.metadataHash);
   task.metadata = metadataCid;
-
-  // Create stub TaskMetadata with defaults - will be updated by IPFS handler if content exists
-  let metadata = TaskMetadata.load(metadataCid);
-  if (metadata == null) {
-    metadata = new TaskMetadata(metadataCid);
-    metadata.task = id;
-    metadata.save();
-  }
 
   task.save();
 

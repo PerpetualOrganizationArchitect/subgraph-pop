@@ -55,11 +55,15 @@ export function handleProposalMetadata(content: Bytes): void {
   if (!jsonValue.isNull() && jsonValue.kind == JSONValueKind.OBJECT) {
     let jsonObject = jsonValue.toObject();
 
-    // Load existing stub (created by proposal handler) or create new entity
-    let metadata = ProposalMetadata.load(ipfsCid);
-    if (metadata == null) {
-      metadata = new ProposalMetadata(ipfsCid);
+    // ProposalMetadata is immutable - skip if already exists
+    let existingMetadata = ProposalMetadata.load(ipfsCid);
+    if (existingMetadata != null) {
+      log.info("[ProposalMetadata] Entity already exists for CID: {}, skipping (immutable)", [ipfsCid]);
+      return;
     }
+
+    // Create new metadata entity
+    let metadata = new ProposalMetadata(ipfsCid);
 
     // Parse description
     let descriptionValue = jsonObject.get("description");

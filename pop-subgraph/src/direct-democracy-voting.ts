@@ -19,8 +19,7 @@ import {
   DirectDemocracyVotingQuorumChange,
   HatPermission,
   DDVProposal,
-  DDVVote,
-  ProposalMetadata
+  DDVVote
 } from "../generated/schema";
 import { ProposalMetadata as ProposalMetadataTemplate } from "../generated/templates";
 import { getUsernameForAddress, loadExistingUser, createExecutorChange, getOrCreateRole } from "./utils";
@@ -308,19 +307,10 @@ export function handleNewProposal(event: NewProposal): void {
   proposal.createdAtBlock = event.block.number;
   proposal.transactionHash = event.transaction.hash;
 
-  // Create stub ProposalMetadata immediately to ensure entity exists even if IPFS fails
+  // Set metadata link - entity will be created by IPFS handler if content exists
   if (!event.params.descriptionHash.equals(ZERO_HASH)) {
     let metadataCid = bytes32ToCid(event.params.descriptionHash);
     proposal.metadata = metadataCid;
-
-    // Create stub metadata entity with defaults - will be updated by IPFS handler if content exists
-    let metadata = ProposalMetadata.load(metadataCid);
-    if (metadata == null) {
-      metadata = new ProposalMetadata(metadataCid);
-      metadata.description = "";
-      metadata.optionNames = [];
-      metadata.save();
-    }
   }
 
   proposal.save();
@@ -352,19 +342,10 @@ export function handleNewHatProposal(event: NewHatProposal): void {
   proposal.createdAtBlock = event.block.number;
   proposal.transactionHash = event.transaction.hash;
 
-  // Create stub ProposalMetadata immediately to ensure entity exists even if IPFS fails
+  // Set metadata link - entity will be created by IPFS handler if content exists
   if (!event.params.descriptionHash.equals(ZERO_HASH)) {
     let metadataCid = bytes32ToCid(event.params.descriptionHash);
     proposal.metadata = metadataCid;
-
-    // Create stub metadata entity with defaults - will be updated by IPFS handler if content exists
-    let metadata = ProposalMetadata.load(metadataCid);
-    if (metadata == null) {
-      metadata = new ProposalMetadata(metadataCid);
-      metadata.description = "";
-      metadata.optionNames = [];
-      metadata.save();
-    }
   }
 
   proposal.save();

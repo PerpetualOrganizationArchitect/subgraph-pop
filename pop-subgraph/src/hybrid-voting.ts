@@ -21,8 +21,7 @@ import {
   Proposal,
   Vote,
   VotingClass,
-  VotingClassChange,
-  ProposalMetadata
+  VotingClassChange
 } from "../generated/schema";
 import { ProposalMetadata as ProposalMetadataTemplate } from "../generated/templates";
 import { getUsernameForAddress, loadExistingUser, createHatPermission, createExecutorChange, getOrCreateRole } from "./utils";
@@ -299,26 +298,17 @@ export function handleNewProposal(event: NewProposal): void {
   proposal.createdAtBlock = event.block.number;
   proposal.transactionHash = event.transaction.hash;
 
-  // Create stub ProposalMetadata immediately to ensure entity exists even if IPFS fails
-  // This prevents dangling references and "Failed to transact block operations" errors
+  // Set metadata link - entity will be created by IPFS handler if content exists
+  // Note: We don't create a stub here because file data sources run in a separate causality
+  // region, and both would try to Insert in the same block causing conflicts.
   if (!event.params.descriptionHash.equals(ZERO_HASH)) {
     let metadataCid = bytes32ToCid(event.params.descriptionHash);
     proposal.metadata = metadataCid;
-
-    // Create stub metadata entity with defaults - will be updated by IPFS handler if content exists
-    let metadata = ProposalMetadata.load(metadataCid);
-    if (metadata == null) {
-      metadata = new ProposalMetadata(metadataCid);
-      metadata.description = "";
-      metadata.optionNames = [];
-      metadata.save();
-    }
   }
 
   proposal.save();
 
   // Trigger IPFS fetch for proposal metadata (description and option names)
-  // If IPFS content exists, it will update the stub with actual data
   createProposalMetadataDataSource(event.params.descriptionHash, proposalId);
 }
 
@@ -364,19 +354,10 @@ export function handleNewHatProposal(event: NewHatProposal): void {
   proposal.createdAtBlock = event.block.number;
   proposal.transactionHash = event.transaction.hash;
 
-  // Create stub ProposalMetadata immediately to ensure entity exists even if IPFS fails
+  // Set metadata link - entity will be created by IPFS handler if content exists
   if (!event.params.descriptionHash.equals(ZERO_HASH)) {
     let metadataCid = bytes32ToCid(event.params.descriptionHash);
     proposal.metadata = metadataCid;
-
-    // Create stub metadata entity with defaults - will be updated by IPFS handler if content exists
-    let metadata = ProposalMetadata.load(metadataCid);
-    if (metadata == null) {
-      metadata = new ProposalMetadata(metadataCid);
-      metadata.description = "";
-      metadata.optionNames = [];
-      metadata.save();
-    }
   }
 
   proposal.save();
