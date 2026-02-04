@@ -1,45 +1,45 @@
-import { Bytes, dataSource, json, BigInt, JSONValueKind } from "@graphprotocol/graph-ts";
-import { TaskMetadata, Task } from "../generated/schema";
+import { Bytes, dataSource, json, JSONValueKind } from "@graphprotocol/graph-ts";
+import { TaskMetadata } from "../generated/schema";
 
 /**
  * Handler for IPFS file data source that parses task metadata JSON.
  *
- * Creates a TaskMetadata entity with parsed fields from the IPFS JSON content.
- * The Task entity links are pre-set by the event handlers (handleTaskCreated
- * and handleTaskSubmitted), so this handler only needs to populate the metadata.
+ * Creates an immutable TaskMetadata entity keyed by IPFS CID.
+ * Multiple tasks can share the same metadata entity if they have the same content hash.
+ * This prevents duplicate key constraint violations when multiple events reference
+ * the same IPFS CID in the same block.
  */
 export function handleTaskMetadata(content: Bytes): void {
   let ipfsCid = dataSource.stringParam();
-  let context = dataSource.context();
-  let taskId = context.getString("taskId");
 
-  // Use taskId-ipfsCID as the entity ID to ensure uniqueness per task
-  // This prevents collisions when multiple tasks share the same metadata CID
-  let entityId = taskId + "-" + ipfsCid;
-
-  // Load or create the TaskMetadata entity
-  let metadata = TaskMetadata.load(entityId);
-  if (metadata == null) {
-    metadata = new TaskMetadata(entityId);
-    metadata.task = taskId;
-    metadata.ipfsCid = ipfsCid;
-    metadata.indexedAt = BigInt.fromI32(0);
+  // TaskMetadata is immutable - skip if already exists
+  // This is critical for preventing "duplicate key value violates unique constraint" errors
+  let existingMetadata = TaskMetadata.load(ipfsCid);
+  if (existingMetadata != null) {
+    return;
   }
 
   // Try to parse the JSON content
   let jsonResult = json.try_fromBytes(content);
   if (jsonResult.isError) {
+    // Create minimal entity even on parse error so the link resolves
+    let metadata = new TaskMetadata(ipfsCid);
     metadata.save();
     return;
   }
 
   let jsonValue = jsonResult.value;
   if (jsonValue.isNull() || jsonValue.kind != JSONValueKind.OBJECT) {
+    // Create minimal entity for non-object JSON
+    let metadata = new TaskMetadata(ipfsCid);
     metadata.save();
     return;
   }
 
   let jsonObject = jsonValue.toObject();
+
+  // Create new metadata entity
+  let metadata = new TaskMetadata(ipfsCid);
 
   // Parse name
   let nameValue = jsonObject.get("name");
@@ -71,7 +71,7 @@ export function handleTaskMetadata(content: Bytes): void {
     metadata.estimatedHours = i32(Math.round(estHoursValue.toF64()));
   }
 
-  // Parse submission content (populated when task is submitted)
+  // Parse submission content (for submission metadata entities)
   let submissionValue = jsonObject.get("submission");
   if (submissionValue != null && !submissionValue.isNull() && submissionValue.kind == JSONValueKind.STRING) {
     metadata.submission = submissionValue.toString();
