@@ -115,10 +115,11 @@ function createTaskMetadataSource(metadataHash: Bytes, taskId: string, metadataT
   // Convert bytes32 sha256 digest to IPFS CIDv0 string
   let ipfsCid = bytes32ToCid(metadataHash);
 
+  // Use taskId-ipfsCID as the entity ID to ensure uniqueness per task
+  let entityId = taskId + "-" + ipfsCid;
+
   // Skip if TaskMetadata already exists - prevents duplicate file data sources
-  // which can cause causality region conflicts when multiple sources for the
-  // same CID try to create the same entity
-  let existingMetadata = TaskMetadata.load(ipfsCid);
+  let existingMetadata = TaskMetadata.load(entityId);
   if (existingMetadata != null) {
     return;
   }
@@ -228,12 +229,13 @@ export function handleTaskCreated(event: TaskCreated): void {
   task.createdAt = event.block.timestamp;
   task.createdAtBlock = event.block.number;
 
-  // Set metadata link (CID) for the TaskMetadata entity that will be created by IPFS handler
+  // Set metadata link for the TaskMetadata entity that will be created by IPFS handler
+  // Uses taskId-ipfsCID format to ensure uniqueness per task
   // Note: We don't create a stub here because file data sources run in a separate causality
   // region, and both would try to Insert in the same block causing conflicts.
   // If IPFS content doesn't exist (404), the metadata entity simply won't be created.
   let metadataCid = bytes32ToCid(event.params.metadataHash);
-  task.metadata = metadataCid;
+  task.metadata = id + "-" + metadataCid;
 
   task.save();
 
@@ -296,10 +298,10 @@ export function handleTaskSubmitted(event: TaskSubmitted): void {
     task.submittedAt = event.block.timestamp;
     task.submissionHash = event.params.submissionHash;
 
-    // Update metadata link to submission CID - the IPFS handler will create
-    // a new TaskMetadata entity with submission content included
+    // Update metadata link to submission CID - uses taskId-ipfsCID format
+    // The IPFS handler will create a new TaskMetadata entity with submission content
     let submissionCid = bytes32ToCid(event.params.submissionHash);
-    task.metadata = submissionCid;
+    task.metadata = id + "-" + submissionCid;
 
     task.save();
 
@@ -397,10 +399,10 @@ export function handleTaskUpdated(event: TaskUpdated): void {
     task.metadataHash = event.params.metadataHash;
     task.updatedAt = event.block.timestamp;
 
-    // Update metadata link if changed
+    // Update metadata link if changed - uses taskId-ipfsCID format
     if (metadataChanged) {
       let metadataCid = bytes32ToCid(event.params.metadataHash);
-      task.metadata = metadataCid;
+      task.metadata = id + "-" + metadataCid;
     }
 
     task.save();

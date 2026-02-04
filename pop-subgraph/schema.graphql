@@ -296,8 +296,9 @@ Contains task description, difficulty, estimated hours, and submission content.
 The entity ID changes to the submission hash when a task is submitted.
 """
 type TaskMetadata @entity(immutable: false) {
-  id: String! # IPFS CID (Qm...) - changes to submission CID when task is submitted
+  id: String! # taskId-ipfsCID format (e.g. "0x123-456-QmAbc...") - unique per task
   task: Task
+  ipfsCid: String # The IPFS CID (Qm...) for reference
   name: String # Task name from IPFS JSON
   description: String # Task description from IPFS JSON
   location: String # Task location/status from IPFS JSON

@@ -9,15 +9,20 @@ import { TaskMetadata, Task } from "../generated/schema";
  * and handleTaskSubmitted), so this handler only needs to populate the metadata.
  */
 export function handleTaskMetadata(content: Bytes): void {
-  let ipfsHash = dataSource.stringParam();
+  let ipfsCid = dataSource.stringParam();
   let context = dataSource.context();
   let taskId = context.getString("taskId");
 
-  // Load or create the TaskMetadata entity using the IPFS hash as ID
-  let metadata = TaskMetadata.load(ipfsHash);
+  // Use taskId-ipfsCID as the entity ID to ensure uniqueness per task
+  // This prevents collisions when multiple tasks share the same metadata CID
+  let entityId = taskId + "-" + ipfsCid;
+
+  // Load or create the TaskMetadata entity
+  let metadata = TaskMetadata.load(entityId);
   if (metadata == null) {
-    metadata = new TaskMetadata(ipfsHash);
+    metadata = new TaskMetadata(entityId);
     metadata.task = taskId;
+    metadata.ipfsCid = ipfsCid;
     metadata.indexedAt = BigInt.fromI32(0);
   }
 
