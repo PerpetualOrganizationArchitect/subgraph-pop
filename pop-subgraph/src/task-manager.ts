@@ -28,7 +28,8 @@ import {
   ProjectCapChange,
   BountyCapChange,
   TaskMetadata,
-  ProjectMetadata
+  ProjectMetadata,
+  IPFSFileRequest
 } from "../generated/schema";
 import { getUsernameForAddress, loadExistingUser } from "./utils";
 
@@ -104,8 +105,10 @@ function bytes32ToCid(hash: Bytes): string {
  * Helper function to create an IPFS file data source for task metadata.
  *
  * IMPORTANT: Only creates ONE file data source per unique IPFS CID to prevent
- * duplicate key constraint violations. Multiple tasks sharing the same metadata
- * content will share the same TaskMetadata entity (keyed by CID).
+ * duplicate key constraint violations. Uses IPFSFileRequest as a tracker entity
+ * that's created immediately in the main handler to prevent duplicate file
+ * data source creation even when multiple events in the same block reference
+ * the same CID.
  */
 function createTaskMetadataSource(metadataHash: Bytes): void {
   // Skip if metadataHash is empty (all zeros)
@@ -117,15 +120,26 @@ function createTaskMetadataSource(metadataHash: Bytes): void {
   // Convert bytes32 sha256 digest to IPFS CIDv0 string
   let ipfsCid = bytes32ToCid(metadataHash);
 
-  // Skip if TaskMetadata already exists - prevents duplicate file data sources
-  // which cause "duplicate key value violates unique constraint" errors
-  // when multiple events reference the same IPFS CID in the same block
+  // Check if we've already requested a file data source for this CID
+  // IPFSFileRequest is created in the main handler before the file data source,
+  // so it will exist even if the file data source handler hasn't run yet
+  let existingRequest = IPFSFileRequest.load(ipfsCid);
+  if (existingRequest != null) {
+    return;
+  }
+
+  // Also check if TaskMetadata already exists (from previous blocks)
   let existingMetadata = TaskMetadata.load(ipfsCid);
   if (existingMetadata != null) {
     return;
   }
 
-  // Create the file data source (no context needed since entity ID is just the CID)
+  // Create tracker entity FIRST to prevent duplicate file data source requests
+  // from other events in the same block
+  let request = new IPFSFileRequest(ipfsCid);
+  request.save();
+
+  // Now create the file data source
   TaskMetadataTemplate.create(ipfsCid);
 }
 

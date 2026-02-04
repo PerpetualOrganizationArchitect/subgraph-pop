@@ -292,6 +292,16 @@ type Task @entity(immutable: false) {
 }
 
 """
+Tracks IPFS file data source requests to prevent duplicate creation.
+Created in the main handler before calling Template.create() to ensure
+only one file data source is created per CID, even when multiple events
+in the same block reference the same IPFS content.
+"""
+type IPFSFileRequest @entity(immutable: true) {
+  id: String! # IPFS CID (Qm...)
+}
+
+"""
 Task metadata fetched from IPFS.
 Contains task description, difficulty, estimated hours, and submission content.
 Uses IPFS CID as ID - multiple tasks can share the same metadata if they have the same content hash.
