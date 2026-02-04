@@ -28,8 +28,7 @@ import {
   ProjectCapChange,
   BountyCapChange,
   TaskMetadata,
-  ProjectMetadata,
-  IPFSFileRequest
+  ProjectMetadata
 } from "../generated/schema";
 import { getUsernameForAddress, loadExistingUser } from "./utils";
 
@@ -104,13 +103,10 @@ function bytes32ToCid(hash: Bytes): string {
 /**
  * Helper function to create an IPFS file data source for task metadata.
  *
- * IMPORTANT: Only creates ONE file data source per unique IPFS CID to prevent
- * duplicate key constraint violations. Uses IPFSFileRequest as a tracker entity
- * that's created immediately in the main handler to prevent duplicate file
- * data source creation even when multiple events in the same block reference
- * the same CID.
+ * Uses DataSourceContext to pass taskId and timestamp to the handler so it can
+ * link the metadata back to the task and record when it was indexed.
  */
-function createTaskMetadataSource(metadataHash: Bytes): void {
+function createTaskMetadataSource(metadataHash: Bytes, taskId: string, timestamp: BigInt): void {
   // Skip if metadataHash is empty (all zeros)
   let zeroHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000");
   if (metadataHash.equals(zeroHash)) {
@@ -120,27 +116,19 @@ function createTaskMetadataSource(metadataHash: Bytes): void {
   // Convert bytes32 sha256 digest to IPFS CIDv0 string
   let ipfsCid = bytes32ToCid(metadataHash);
 
-  // Check if we've already requested a file data source for this CID
-  // IPFSFileRequest is created in the main handler before the file data source,
-  // so it will exist even if the file data source handler hasn't run yet
-  let existingRequest = IPFSFileRequest.load(ipfsCid);
-  if (existingRequest != null) {
-    return;
-  }
-
-  // Also check if TaskMetadata already exists (from previous blocks)
+  // Skip if TaskMetadata already exists (from previous blocks)
   let existingMetadata = TaskMetadata.load(ipfsCid);
   if (existingMetadata != null) {
     return;
   }
 
-  // Create tracker entity FIRST to prevent duplicate file data source requests
-  // from other events in the same block
-  let request = new IPFSFileRequest(ipfsCid);
-  request.save();
+  // Create context to pass taskId and timestamp to the IPFS handler
+  let context = new DataSourceContext();
+  context.setString("taskId", taskId);
+  context.setBigInt("timestamp", timestamp);
 
-  // Now create the file data source
-  TaskMetadataTemplate.create(ipfsCid);
+  // Create the file data source with context
+  TaskMetadataTemplate.createWithContext(ipfsCid, context);
 }
 
 /**
@@ -239,15 +227,14 @@ export function handleTaskCreated(event: TaskCreated): void {
   task.createdAt = event.block.timestamp;
   task.createdAtBlock = event.block.number;
 
-  // Set metadata link to the IPFS CID - multiple tasks can share the same metadata
-  // if they have the same content hash. The TaskMetadata entity uses CID as ID.
+  // Set metadata link to the IPFS CID
   let metadataCid = bytes32ToCid(event.params.metadataHash);
   task.metadata = metadataCid;
 
   task.save();
 
   // Create IPFS data source to fetch and index task metadata
-  createTaskMetadataSource(event.params.metadataHash);
+  createTaskMetadataSource(event.params.metadataHash, id, event.block.timestamp);
 }
 
 export function handleTaskAssigned(event: TaskAssigned): void {
@@ -305,15 +292,14 @@ export function handleTaskSubmitted(event: TaskSubmitted): void {
     task.submittedAt = event.block.timestamp;
     task.submissionHash = event.params.submissionHash;
 
-    // Update metadata link to submission CID - the submission content is stored
-    // in a separate TaskMetadata entity keyed by its CID
+    // Update metadata link to submission content
     let submissionCid = bytes32ToCid(event.params.submissionHash);
-    task.submissionMetadata = submissionCid;
+    task.metadata = submissionCid;
 
     task.save();
 
     // Create IPFS data source to fetch and parse submission metadata
-    createTaskMetadataSource(event.params.submissionHash);
+    createTaskMetadataSource(event.params.submissionHash, id, event.block.timestamp);
   }
 }
 
@@ -416,7 +402,7 @@ export function handleTaskUpdated(event: TaskUpdated): void {
 
     // Re-fetch metadata from IPFS if it changed
     if (metadataChanged) {
-      createTaskMetadataSource(event.params.metadataHash);
+      createTaskMetadataSource(event.params.metadataHash, id, event.block.timestamp);
     }
   }
 }

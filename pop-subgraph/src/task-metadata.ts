@@ -1,45 +1,43 @@
-import { Bytes, dataSource, json, JSONValueKind } from "@graphprotocol/graph-ts";
+import { BigInt, Bytes, dataSource, json, JSONValueKind } from "@graphprotocol/graph-ts";
 import { TaskMetadata } from "../generated/schema";
 
 /**
  * Handler for IPFS file data source that parses task metadata JSON.
  *
- * Creates an immutable TaskMetadata entity keyed by IPFS CID.
- * Multiple tasks can share the same metadata entity if they have the same content hash.
- * This prevents duplicate key constraint violations when multiple events reference
- * the same IPFS CID in the same block.
+ * Creates a mutable TaskMetadata entity keyed by IPFS CID.
+ * Uses "load or create" pattern which is safe for mutable entities and
+ * handles retries gracefully without triggering duplicate key constraint violations.
  */
 export function handleTaskMetadata(content: Bytes): void {
   let ipfsCid = dataSource.stringParam();
+  let context = dataSource.context();
+  let taskId = context.getString("taskId");
+  let timestamp = context.getBigInt("timestamp");
 
-  // TaskMetadata is immutable - skip if already exists
-  // This is critical for preventing "duplicate key value violates unique constraint" errors
-  let existingMetadata = TaskMetadata.load(ipfsCid);
-  if (existingMetadata != null) {
-    return;
+  // Load or create metadata entity (mutable entity - safe to update)
+  let metadata = TaskMetadata.load(ipfsCid);
+  if (metadata == null) {
+    metadata = new TaskMetadata(ipfsCid);
+    metadata.task = taskId;
+    metadata.indexedAt = timestamp;
   }
 
   // Try to parse the JSON content
   let jsonResult = json.try_fromBytes(content);
   if (jsonResult.isError) {
-    // Create minimal entity even on parse error so the link resolves
-    let metadata = new TaskMetadata(ipfsCid);
+    // Save minimal entity even on parse error so the link resolves
     metadata.save();
     return;
   }
 
   let jsonValue = jsonResult.value;
   if (jsonValue.isNull() || jsonValue.kind != JSONValueKind.OBJECT) {
-    // Create minimal entity for non-object JSON
-    let metadata = new TaskMetadata(ipfsCid);
+    // Save minimal entity for non-object JSON
     metadata.save();
     return;
   }
 
   let jsonObject = jsonValue.toObject();
-
-  // Create new metadata entity
-  let metadata = new TaskMetadata(ipfsCid);
 
   // Parse name
   let nameValue = jsonObject.get("name");
