@@ -292,9 +292,9 @@ export function handleTaskSubmitted(event: TaskSubmitted): void {
     task.submittedAt = event.block.timestamp;
     task.submissionHash = event.params.submissionHash;
 
-    // Set submission metadata link (separate from task description metadata)
+    // Update metadata link to submission content
     let submissionCid = bytes32ToCid(event.params.submissionHash);
-    task.submissionMetadata = submissionCid;
+    task.metadata = submissionCid;
 
     task.save();
 
