@@ -26,7 +26,8 @@ import {
   ProjectRolePermission,
   ProjectBountyCap,
   ProjectCapChange,
-  BountyCapChange
+  BountyCapChange,
+  TaskMetadata
 } from "../generated/schema";
 import { getUsernameForAddress, loadExistingUser } from "./utils";
 
@@ -212,9 +213,17 @@ export function handleTaskCreated(event: TaskCreated): void {
   task.createdAt = event.block.timestamp;
   task.createdAtBlock = event.block.number;
 
-  // Set metadata link (CID) for the TaskMetadata entity that will be created by IPFS handler
+  // Set metadata link and create stub TaskMetadata to handle IPFS unavailability
   let metadataCid = bytes32ToCid(event.params.metadataHash);
   task.metadata = metadataCid;
+
+  // Create stub TaskMetadata with defaults - will be updated by IPFS handler if content exists
+  let metadata = TaskMetadata.load(metadataCid);
+  if (metadata == null) {
+    metadata = new TaskMetadata(metadataCid);
+    metadata.task = id;
+    metadata.save();
+  }
 
   task.save();
 
