@@ -1657,11 +1657,13 @@ type HatMetadata @entity(immutable: false) {
 IPFS-indexed proposal metadata content.
 This entity is populated by a file data source that fetches from IPFS.
 Contains the proposal description and option names that were uploaded when creating the proposal.
+A stub entity with defaults is created immediately when the proposal is created, then updated
+when IPFS content is fetched. This ensures the entity exists even if IPFS is unavailable.
 """
-type ProposalMetadata @entity(immutable: true) {
+type ProposalMetadata @entity(immutable: false) {
   id: String! # IPFS CID (Qm...)
-  description: String! # Full proposal description text
-  optionNames: [String!]! # Names for each voting option
+  description: String! # Full proposal description text (empty if IPFS unavailable)
+  optionNames: [String!]! # Names for each voting option (empty if IPFS unavailable)
   createdAt: BigInt # Timestamp from IPFS metadata
 }
 
