@@ -295,7 +295,7 @@ Task metadata fetched from IPFS.
 Contains task description, difficulty, estimated hours, and submission content.
 """
 type TaskMetadata @entity(immutable: false) {
-  id: String! # txHash-ipfsCid (e.g. 0xabc...-Qm...)
+  id: String! # IPFS CID (Qm...)
   task: Task # Link back to the task
   name: String # Task name from IPFS JSON
   description: String # Task description from IPFS JSON
