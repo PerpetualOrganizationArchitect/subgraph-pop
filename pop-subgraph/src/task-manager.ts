@@ -215,7 +215,10 @@ export function handleTaskCreated(event: TaskCreated): void {
   let taskManagerAddress = event.address.toHexString();
   let id = taskManagerAddress + "-" + taskId;
 
-  let task = new Task(id);
+  let task = Task.load(id);
+  if (task == null) {
+    task = new Task(id);
+  }
 
   task.taskId = event.params.id;
   task.taskManager = event.address;
@@ -418,7 +421,10 @@ export function handleTaskApplicationSubmitted(event: TaskApplicationSubmitted):
   let applicantAddress = event.params.applicant.toHexString();
   let id = taskManagerAddress + "-" + taskId + "-" + applicantAddress;
 
-  let application = new TaskApplication(id);
+  let application = TaskApplication.load(id);
+  if (application == null) {
+    application = new TaskApplication(id);
+  }
 
   application.task = taskEntityId;
   application.applicant = event.params.applicant;
