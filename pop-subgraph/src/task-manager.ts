@@ -27,7 +27,7 @@ import {
   ProjectBountyCap,
   ProjectCapChange,
   BountyCapChange,
-  TaskMetadata,
+  TaskMetadataRequest,
   ProjectMetadata
 } from "../generated/schema";
 import { getUsernameForAddress, loadExistingUser } from "./utils";
@@ -103,13 +103,22 @@ function bytes32ToCid(hash: Bytes): string {
 /**
  * Helper function to create an IPFS file data source for task metadata.
  *
- * Pre-creates a stub TaskMetadata entity in the event handler context to serve
- * as a dedup guard. This prevents duplicate file data sources when multiple
- * events in the same batch reference the same CID. The stub is mutable so it
- * avoids the graph-node memoization bug (#6313) that affects immutable entities.
- * The IPFS handler will later fill in the actual content fields.
+ * Uses a separate TaskMetadataRequest tracker entity (mutable, onchain-only)
+ * to prevent duplicate createWithContext() calls for the same CID. This avoids
+ * two graph-node bugs:
  *
- * This is the same pattern as ensureProjectExists() used elsewhere in this file.
+ * 1. VID COLLISION: Each file data source handler gets a fresh EntityCache with
+ *    vid_seq starting at 100. Two handlers for the same CID in the same block
+ *    compute identical vid = (block_number << 32) + 100, violating the pkey.
+ *
+ * 2. CAUSALITY REGION CONFLICT: Can't pre-create the TaskMetadata entity itself
+ *    as a stub because onchain writes (cr=0) and offchain IPFS handler writes
+ *    (cr=N) for the same entity ID cause "impossible combination" errors.
+ *
+ * The tracker entity lives only in the onchain context (cr=0) and is a different
+ * entity type from TaskMetadata, so it never conflicts with the IPFS handler.
+ * It must be MUTABLE — immutable entities hit the #6313 memoization bug where
+ * load() fails across batched blocks.
  */
 function createTaskMetadataSource(metadataHash: Bytes, taskId: string, timestamp: BigInt): void {
   // Skip if metadataHash is empty (all zeros)
@@ -121,29 +130,25 @@ function createTaskMetadataSource(metadataHash: Bytes, taskId: string, timestamp
   // Convert bytes32 sha256 digest to IPFS CIDv0 string
   let ipfsCid = bytes32ToCid(metadataHash);
 
-  // Skip if TaskMetadata already exists — either from a previous IPFS handler
-  // or from a stub created by an earlier event in this batch.
-  // Because TaskMetadata is mutable, load() works correctly across batched
-  // blocks (the #6313 memoization bug only affects immutable entities).
-  let existingMetadata = TaskMetadata.load(ipfsCid);
-  if (existingMetadata != null) {
+  // Check the mutable tracker entity to see if we already created a file data
+  // source for this CID. Because it's mutable, load() works correctly across
+  // batched blocks (the #6313 memoization bug only affects immutable entities).
+  let existingRequest = TaskMetadataRequest.load(ipfsCid);
+  if (existingRequest != null) {
     return;
   }
 
-  // Pre-create a stub entity NOW (in event handler context) before the file
-  // data source. This ensures subsequent event handlers in the same batch
-  // will find it via load() and skip, preventing duplicate file data sources.
-  let stub = new TaskMetadata(ipfsCid);
-  stub.task = taskId;
-  stub.indexedAt = timestamp;
-  stub.save();
+  // Create tracker entity FIRST to prevent duplicate file data sources from
+  // other events in the same batch that reference the same CID.
+  let request = new TaskMetadataRequest(ipfsCid);
+  request.save();
 
   // Create context to pass taskId and timestamp to the IPFS handler
   let context = new DataSourceContext();
   context.setString("taskId", taskId);
   context.setBigInt("timestamp", timestamp);
 
-  // Create the file data source with context — handler will fill in IPFS content
+  // Create the file data source with context — handler will create TaskMetadata
   TaskMetadataTemplate.createWithContext(ipfsCid, context);
 }
 
