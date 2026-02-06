@@ -4,7 +4,7 @@ import { TaskMetadata } from "../generated/schema";
 /**
  * Handler for IPFS file data source that parses task metadata JSON.
  *
- * Creates a mutable TaskMetadata entity keyed by IPFS CID.
+ * Creates a mutable TaskMetadata entity keyed by txHash-CID for uniqueness.
  * Uses "load or create" pattern which is safe for mutable entities and
  * handles retries gracefully without triggering duplicate key constraint violations.
  */
@@ -13,11 +13,15 @@ export function handleTaskMetadata(content: Bytes): void {
   let context = dataSource.context();
   let taskId = context.getString("taskId");
   let timestamp = context.getBigInt("timestamp");
+  let txHash = context.getBytes("txHash");
+
+  // Entity ID includes tx hash for uniqueness
+  let entityId = txHash.toHexString() + "-" + ipfsCid;
 
   // Load or create metadata entity (mutable entity - safe to update)
-  let metadata = TaskMetadata.load(ipfsCid);
+  let metadata = TaskMetadata.load(entityId);
   if (metadata == null) {
-    metadata = new TaskMetadata(ipfsCid);
+    metadata = new TaskMetadata(entityId);
     metadata.task = taskId;
     metadata.indexedAt = timestamp;
   }
