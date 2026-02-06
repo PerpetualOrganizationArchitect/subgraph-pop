@@ -291,21 +291,11 @@ type Task @entity(immutable: false) {
 }
 
 """
-Tracks IPFS file data source requests to prevent duplicate creation.
-Created in the onchain event handler before calling createWithContext().
-Must be MUTABLE — immutable entities hit the graph-node #6313 memoization
-bug where load() fails across batched blocks.
-"""
-type TaskMetadataRequest @entity(immutable: false) {
-  id: String! # IPFS CID (Qm...)
-}
-
-"""
 Task metadata fetched from IPFS.
 Contains task description, difficulty, estimated hours, and submission content.
 """
 type TaskMetadata @entity(immutable: false) {
-  id: String! # IPFS CID (Qm...)
+  id: String! # txHash-ipfsCid (e.g. 0xabc...-Qm...)
   task: Task # Link back to the task
   name: String # Task name from IPFS JSON
   description: String # Task description from IPFS JSON
