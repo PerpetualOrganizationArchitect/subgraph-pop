@@ -1,7 +1,9 @@
+import { log } from "@graphprotocol/graph-ts";
 import { ModuleDeployed } from "../generated/GovernanceFactory/GovernanceFactory";
 import { GovernanceModule } from "../generated/schema";
 
 export function handleModuleDeployed(event: ModuleDeployed): void {
+  log.info("handleModuleDeployed v2", []);
   let module = new GovernanceModule(event.params.proxy);
 
   module.orgId = event.params.orgId;
