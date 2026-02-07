@@ -1,3 +1,4 @@
+# Redeploy trigger
 specVersion: 1.3.0
 indexerHints:
   prune: auto
