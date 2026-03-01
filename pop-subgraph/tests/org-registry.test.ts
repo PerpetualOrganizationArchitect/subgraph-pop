@@ -12,14 +12,14 @@ import {
   handleOrgRegistered,
   handleMetaUpdated,
   handleContractRegistered,
-  handleAutoUpgradeSet,
+  handleOrgMetadataAdminHatSet,
   handleHatsTreeRegistered
 } from "../src/org-registry";
 import {
   createOrgRegisteredEvent,
   createMetaUpdatedEvent,
   createContractRegisteredEvent,
-  createAutoUpgradeSetEvent,
+  createOrgMetadataAdminHatSetEvent,
   createHatsTreeRegisteredEvent
 } from "./org-registry-utils";
 import {
@@ -444,8 +444,8 @@ describe("OrgRegistry", () => {
     });
   });
 
-  describe("handleAutoUpgradeSet", () => {
-    test("updates contract autoUpgrade status and creates history", () => {
+  describe("handleOrgMetadataAdminHatSet", () => {
+    test("sets metadataAdminHatId on Organization", () => {
       let orgId = Bytes.fromHexString(
         "0x1111111111111111111111111111111111111111111111111111111111111111"
       );
@@ -456,55 +456,28 @@ describe("OrgRegistry", () => {
       let regEvent = createOrgRegisteredEvent(orgId, executor, name);
       handleOrgRegistered(regEvent);
 
-      let contractId = Bytes.fromHexString(
-        "0x3333333333333333333333333333333333333333333333333333333333333333"
-      );
-      let typeId = Bytes.fromHexString(
-        "0x4444444444444444444444444444444444444444444444444444444444444444"
-      );
-      let proxy = Address.fromString("0x0000000000000000000000000000000000000002");
-      let beacon = Address.fromString("0x0000000000000000000000000000000000000003");
-      let owner = Address.fromString("0x0000000000000000000000000000000000000004");
+      let hatId = BigInt.fromI32(5001);
+      let event = createOrgMetadataAdminHatSetEvent(orgId, hatId);
+      handleOrgMetadataAdminHatSet(event);
 
-      let contractEvent = createContractRegisteredEvent(
-        contractId,
-        orgId,
-        typeId,
-        proxy,
-        beacon,
-        true, // initially true
-        owner
-      );
-      contractEvent.logIndex = BigInt.fromI32(2);
-      handleContractRegistered(contractEvent);
-
-      // Now disable auto-upgrade
-      let autoUpgradeEvent = createAutoUpgradeSetEvent(contractId, false);
-      autoUpgradeEvent.logIndex = BigInt.fromI32(3);
-      handleAutoUpgradeSet(autoUpgradeEvent);
-
-      // Verify contract was updated
       assert.fieldEquals(
-        "RegisteredContract",
-        contractId.toHexString(),
-        "autoUpgrade",
-        "false"
+        "Organization",
+        orgId.toHexString(),
+        "metadataAdminHatId",
+        "5001"
       );
-
-      // Verify history record was created
-      assert.entityCount("AutoUpgradeChange", 1);
     });
 
-    test("creates history record even if contract not found", () => {
-      let contractId = Bytes.fromHexString(
-        "0x3333333333333333333333333333333333333333333333333333333333333333"
+    test("handles org not found gracefully", () => {
+      let orgId = Bytes.fromHexString(
+        "0x9999999999999999999999999999999999999999999999999999999999999999"
       );
+      let hatId = BigInt.fromI32(5001);
+      let event = createOrgMetadataAdminHatSetEvent(orgId, hatId);
+      handleOrgMetadataAdminHatSet(event);
 
-      let event = createAutoUpgradeSetEvent(contractId, true);
-      handleAutoUpgradeSet(event);
-
-      // History record should still be created
-      assert.entityCount("AutoUpgradeChange", 1);
+      // Should not throw - just a no-op
+      assert.entityCount("Organization", 0);
     });
   });
 
@@ -607,17 +580,11 @@ describe("OrgRegistry", () => {
       metaEvent.logIndex = BigInt.fromI32(4);
       handleMetaUpdated(metaEvent);
 
-      // 5. Toggle auto-upgrade
-      let autoUpgradeEvent = createAutoUpgradeSetEvent(contractId, false);
-      autoUpgradeEvent.logIndex = BigInt.fromI32(5);
-      handleAutoUpgradeSet(autoUpgradeEvent);
-
       // Verify final state
       assert.entityCount("OrgRegistryContract", 1);
       assert.entityCount("Organization", 1);
       assert.entityCount("RegisteredContract", 1);
       assert.entityCount("OrgMetaUpdate", 1);
-      assert.entityCount("AutoUpgradeChange", 1);
 
       assert.fieldEquals(
         "OrgRegistryContract",
@@ -642,12 +609,6 @@ describe("OrgRegistry", () => {
         orgId.toHexString(),
         "topHatId",
         "1000"
-      );
-      assert.fieldEquals(
-        "RegisteredContract",
-        contractId.toHexString(),
-        "autoUpgrade",
-        "false"
       );
     });
   });

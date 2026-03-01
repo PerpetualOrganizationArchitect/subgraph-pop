@@ -2,6 +2,8 @@ import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import {
   Initialized as InitializedEvent,
   CallerSet as CallerSetEvent,
+  CallerChangeProposed as CallerChangeProposedEvent,
+  CallerChangeCancelled as CallerChangeCancelledEvent,
   BatchExecuted as BatchExecutedEvent,
   CallExecuted as CallExecutedEvent,
   Swept as SweptEvent,
@@ -39,6 +41,9 @@ export function handleCallerSet(event: CallerSetEvent): void {
   let executor = ExecutorContract.load(contractAddress);
   if (executor) {
     executor.allowedCaller = event.params.caller;
+    // Clear pending caller change state when caller is actually set
+    executor.pendingCaller = null;
+    executor.callerChangeEffectiveAt = null;
     executor.save();
   }
 
@@ -53,6 +58,24 @@ export function handleCallerSet(event: CallerSetEvent): void {
   change.transactionHash = event.transaction.hash;
 
   change.save();
+}
+
+export function handleCallerChangeProposed(event: CallerChangeProposedEvent): void {
+  let executor = ExecutorContract.load(event.address);
+  if (executor) {
+    executor.pendingCaller = event.params.newCaller;
+    executor.callerChangeEffectiveAt = event.params.effectiveAt;
+    executor.save();
+  }
+}
+
+export function handleCallerChangeCancelled(event: CallerChangeCancelledEvent): void {
+  let executor = ExecutorContract.load(event.address);
+  if (executor) {
+    executor.pendingCaller = null;
+    executor.callerChangeEffectiveAt = null;
+    executor.save();
+  }
 }
 
 export function handleBatchExecuted(event: BatchExecutedEvent): void {

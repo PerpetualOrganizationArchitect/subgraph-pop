@@ -4,7 +4,7 @@ import {
   OrgRegistered,
   MetaUpdated,
   ContractRegistered,
-  AutoUpgradeSet,
+  OrgMetadataAdminHatSet,
   HatsTreeRegistered
 } from "../generated/templates/OrgRegistry/OrgRegistry";
 
@@ -91,18 +91,18 @@ export function createContractRegisteredEvent(
   return event;
 }
 
-export function createAutoUpgradeSetEvent(
-  contractId: Bytes,
-  enabled: boolean
-): AutoUpgradeSet {
-  let event = changetype<AutoUpgradeSet>(newMockEvent());
+export function createOrgMetadataAdminHatSetEvent(
+  orgId: Bytes,
+  hatId: BigInt
+): OrgMetadataAdminHatSet {
+  let event = changetype<OrgMetadataAdminHatSet>(newMockEvent());
 
   event.parameters = new Array();
   event.parameters.push(
-    new ethereum.EventParam("contractId", ethereum.Value.fromFixedBytes(contractId))
+    new ethereum.EventParam("orgId", ethereum.Value.fromFixedBytes(orgId))
   );
   event.parameters.push(
-    new ethereum.EventParam("enabled", ethereum.Value.fromBoolean(enabled))
+    new ethereum.EventParam("hatId", ethereum.Value.fromUnsignedBigInt(hatId))
   );
 
   return event;

@@ -29,6 +29,7 @@ type Organization @entity(immutable: false) {
   metadata: OrgMetadata # IPFS-indexed metadata content (may be null if IPFS unavailable)
   lastUpdatedAt: BigInt
   metaUpdates: [OrgMetaUpdate!]! @derivedFrom(field: "organization")
+  metadataAdminHatId: BigInt
   registeredContracts: [RegisteredContract!]! @derivedFrom(field: "organization")
   roles: [Role!]! @derivedFrom(field: "organization")
 }
@@ -287,7 +288,10 @@ type Task @entity(immutable: false) {
   completedAt: BigInt
   cancelledAt: BigInt
   updatedAt: BigInt
+  rejectionHash: Bytes # latest rejection metadata hash
+  rejectionCount: Int!
   applications: [TaskApplication!]! @derivedFrom(field: "task")
+  rejections: [TaskRejection!]! @derivedFrom(field: "task")
 }
 
 """
@@ -303,6 +307,7 @@ type TaskMetadata @entity(immutable: false) {
   difficulty: String # Task difficulty (easy, medium, hard, etc.)
   estimatedHours: Int # Estimated hours to complete
   submission: String # Submission content from IPFS JSON (for submission metadata)
+  rejection: String # Rejection reason from IPFS JSON (for rejection metadata)
   indexedAt: BigInt # When this metadata was indexed
 }
 
@@ -320,6 +325,18 @@ type TaskApplication @entity(immutable: false) {
   appliedAt: BigInt!
   appliedAtBlock: BigInt!
   approvedAt: BigInt
+}
+
+type TaskRejection @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  task: Task!
+  rejector: Bytes!
+  rejectorUsername: String
+  rejectorUser: User
+  rejectionHash: Bytes! # IPFS hash of rejection reason
+  rejectedAt: BigInt!
+  rejectedAtBlock: BigInt!
+  transactionHash: Bytes!
 }
 
 # HybridVoting Entities
@@ -541,6 +558,7 @@ type EligibilityModuleContract @entity(immutable: false) {
   vouchingRestrictions: [VouchingRestrictionEvent!]! @derivedFrom(field: "eligibilityModule")
   hatAutoMints: [HatAutoMintEvent!]! @derivedFrom(field: "eligibilityModule")
   hatClaims: [HatClaimEvent!]! @derivedFrom(field: "eligibilityModule")
+  roleApplications: [RoleApplication!]! @derivedFrom(field: "eligibilityModule")
 }
 
 type Hat @entity(immutable: false) {
@@ -731,6 +749,21 @@ type HatClaimEvent @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
+type RoleApplication @entity(immutable: false) {
+  id: String! # eligibilityModule-hatId-applicant
+  eligibilityModule: EligibilityModuleContract!
+  hatId: BigInt!
+  hat: Hat
+  applicant: Bytes!
+  applicantUsername: String
+  applicationHash: Bytes! # IPFS hash of application details
+  active: Boolean!
+  appliedAt: BigInt!
+  appliedAtBlock: BigInt!
+  withdrawnAt: BigInt
+  transactionHash: Bytes!
+}
+
 type HatMetadataUpdateEvent @entity(immutable: true) {
   id: Bytes! # txHash-logIndex
   eligibilityModule: EligibilityModuleContract!
@@ -823,7 +856,6 @@ type QuickJoinEvent @entity(immutable: true) {
   userUsername: String
   master: Bytes # only set for QuickJoinedByMaster events
   masterUsername: String
-  usernameCreated: Boolean!
   hatIds: [BigInt!]!
   isMasterDeployJoin: Boolean! # true if joined by master, false if self-join
   joinedAt: BigInt!
@@ -1109,6 +1141,8 @@ type ExecutorContract @entity(immutable: false) {
   organization: Organization! # Organization this ExecutorContract belongs to
   owner: Bytes!
   allowedCaller: Bytes # The governance contract authorized to call execute
+  pendingCaller: Bytes # Pending caller change (timelock)
+  callerChangeEffectiveAt: BigInt # Timestamp when pending caller change can be accepted
   hatsContract: Bytes!
   isPaused: Boolean!
   createdAt: BigInt!
@@ -1364,8 +1398,10 @@ type PaymasterHubContract @entity(immutable: false) {
   bountyEvents: [BountyEvent!]! @derivedFrom(field: "paymasterHub")
   userOpEvents: [UserOpEvent!]! @derivedFrom(field: "paymasterHub")
   solidarityEvents: [SolidarityEvent!]! @derivedFrom(field: "paymasterHub")
+  solidarityDistributionPaused: Boolean!
   configChanges: [PaymasterConfigChange!]! @derivedFrom(field: "paymasterHub")
   gracePeriodChanges: [GracePeriodChange!]! @derivedFrom(field: "paymasterHub")
+  onboardingAccounts: [OnboardingAccount!]! @derivedFrom(field: "paymasterHub")
 }
 
 # 2. PaymasterOrgConfig - Per-organization configuration
@@ -1674,23 +1710,54 @@ type RegisteredContract @entity(immutable: false) {
   typeId: Bytes! # module type identifier
   proxy: Bytes! # BeaconProxy address
   beacon: Bytes! # Beacon address
-  autoUpgrade: Boolean! # current auto-upgrade status
+  autoUpgrade: Boolean! # auto-upgrade status (immutable, set at registration)
   owner: Bytes! # module owner
   registeredAt: BigInt!
   registeredAtBlock: BigInt!
   lastUpdatedAt: BigInt!
   transactionHash: Bytes!
-  autoUpgradeChanges: [AutoUpgradeChange!]! @derivedFrom(field: "contract")
 }
 
-type AutoUpgradeChange @entity(immutable: true) {
+# ========================================
+# SwitchableBeacon Contract and Related Entities
+# Per-module upgrade beacons (Mirror = auto-upgrade, Static = pinned)
+# ========================================
+
+type SwitchableBeaconContract @entity(immutable: false) {
+  id: Bytes! # beacon address
+  registeredContract: RegisteredContract! # the module this beacon controls
+  organization: Organization!
+  typeId: Bytes! # contract type identifier
+  owner: Bytes!
+  pendingOwner: Bytes
+  mode: String! # "Mirror" or "Static"
+  mirrorBeacon: Bytes # POA beacon being mirrored (Mirror mode)
+  pinnedImplementation: Bytes # pinned implementation address (Static mode)
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  modeChanges: [BeaconModeChange!]! @derivedFrom(field: "beacon")
+  ownershipChanges: [BeaconOwnershipChange!]! @derivedFrom(field: "beacon")
+}
+
+type BeaconModeChange @entity(immutable: true) {
   id: Bytes! # txHash-logIndex
-  orgRegistry: OrgRegistryContract!
-  contract: RegisteredContract!
-  contractId: Bytes!
-  enabled: Boolean!
+  beacon: SwitchableBeaconContract!
+  newMode: String!
+  mirrorBeacon: Bytes
+  pinnedImplementation: Bytes
   changedAt: BigInt!
   changedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type BeaconOwnershipChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  beacon: SwitchableBeaconContract!
+  changeType: String! # "Started", "Completed", "Cancelled"
+  previousOwner: Bytes
+  newOwner: Bytes
+  timestamp: BigInt!
+  blockNumber: BigInt!
   transactionHash: Bytes!
 }
 
@@ -1863,7 +1930,6 @@ type PasskeyQuickJoin @entity(immutable: true) {
   id: Bytes! # txHash.concatI32(logIndex)
   quickJoinContract: QuickJoinContract!
   account: PasskeyAccount!
-  username: String!
   credentialId: Bytes!
   hatIds: [BigInt!]!
   master: Bytes # Only set for master deploy path
@@ -1873,22 +1939,25 @@ type PasskeyQuickJoin @entity(immutable: true) {
 }
 
 # ═══════════════════════════════════════════════════════════════════════
-#                    PAYMASTER VOUCHER ENTITIES
+#                    PAYMASTER ONBOARDING ENTITIES
 # ═══════════════════════════════════════════════════════════════════════
 
-type PaymasterVouchConfig @entity(immutable: false) {
-  id: String! # orgId as hex string
-  orgId: Bytes!
-  voucherHatId: BigInt!
+type OnboardingConfig @entity(immutable: false) {
+  id: Bytes! # paymasterHub address
+  paymasterHub: PaymasterHubContract!
+  maxGasPerCreation: BigInt!
+  dailyCreationLimit: BigInt!
+  enabled: Boolean!
   updatedAt: BigInt!
   blockNumber: BigInt!
+  transactionHash: Bytes!
 }
 
-type PaymasterVouch @entity(immutable: true) {
+type OnboardingAccount @entity(immutable: true) {
   id: Bytes! # txHash.concatI32(logIndex)
-  orgId: Bytes!
+  paymasterHub: PaymasterHubContract!
   account: Bytes!
-  voucher: Bytes!
+  gasCost: BigInt!
   timestamp: BigInt!
   blockNumber: BigInt!
   transactionHash: Bytes!

@@ -15,7 +15,8 @@ import {
   TaskCancelled,
   TaskUpdated,
   TaskApplicationSubmitted,
-  TaskApplicationApproved
+  TaskApplicationApproved,
+  TaskRejected
 } from "../generated/templates/TaskManager/TaskManager";
 import {
   Project,
@@ -28,7 +29,8 @@ import {
   ProjectCapChange,
   BountyCapChange,
   TaskMetadata,
-  ProjectMetadata
+  ProjectMetadata,
+  TaskRejection
 } from "../generated/schema";
 import { getUsernameForAddress, loadExistingUser } from "./utils";
 
@@ -39,43 +41,6 @@ import { getUsernameForAddress, loadExistingUser } from "./utils";
  */
 function getProjectEntityId(taskManagerAddress: Address, projectId: Bytes): string {
   return taskManagerAddress.toHexString() + "-" + projectId.toHexString();
-}
-
-/**
- * Ensures a Project entity exists, creating a stub if necessary.
- *
- * This handles event ordering issues where ProjectManagerUpdated, ProjectRolePermSet,
- * or BountyCapSet events may fire BEFORE ProjectCreated in the same transaction.
- * The stub contains placeholder values that will be properly filled in when
- * handleProjectCreated runs.
- *
- * TODO: This is a workaround for smart contract event ordering. The proper fix is
- * to emit ProjectCreated before other project-related events in the contract.
- * See: https://github.com/PerpetualOrganizationArchitect/POP/issues/84
- */
-function ensureProjectExists(
-  taskManagerAddress: Address,
-  projectId: Bytes,
-  timestamp: BigInt,
-  blockNumber: BigInt
-): Project {
-  let projectEntityId = getProjectEntityId(taskManagerAddress, projectId);
-  let project = Project.load(projectEntityId);
-
-  if (project == null) {
-    project = new Project(projectEntityId);
-    project.projectId = projectId;
-    project.taskManager = taskManagerAddress;
-    project.title = ""; // Placeholder - will be set by ProjectCreated
-    project.metadataHash = Bytes.empty();
-    project.cap = BigInt.fromI32(0);
-    project.createdAt = timestamp;
-    project.createdAtBlock = blockNumber;
-    project.deleted = false;
-    project.save();
-  }
-
-  return project;
 }
 
 /**
@@ -231,6 +196,7 @@ export function handleTaskCreated(event: TaskCreated): void {
   task.title = event.params.title.toString();
   task.metadataHash = event.params.metadataHash;
   task.status = "Open";
+  task.rejectionCount = 0;
   task.createdAt = event.block.timestamp;
   task.createdAtBlock = event.block.number;
 
@@ -523,8 +489,9 @@ export function handleProjectManagerUpdated(event: ProjectManagerUpdated): void 
   // Use composite Project ID for cross-org isolation
   let projectEntityId = getProjectEntityId(event.address, projectId);
 
-  // Ensure Project exists (may not if ProjectManagerUpdated fires before ProjectCreated)
-  ensureProjectExists(event.address, projectId, event.block.timestamp, event.block.number);
+  // ProjectCreated now fires before ProjectManagerUpdated (event ordering fixed in contract)
+  let project = Project.load(projectEntityId);
+  if (!project) return;
 
   let id = projectEntityId + "-" + managerAddress.toHexString();
   let manager = ProjectManager.load(id);
@@ -578,8 +545,9 @@ export function handleProjectRolePermSet(event: ProjectRolePermSet): void {
   // Use composite Project ID for cross-org isolation
   let projectEntityId = getProjectEntityId(event.address, projectId);
 
-  // Ensure Project exists (may not if this event fires before ProjectCreated)
-  ensureProjectExists(event.address, projectId, event.block.timestamp, event.block.number);
+  // ProjectCreated now fires before ProjectRolePermSet (event ordering fixed in contract)
+  let project = Project.load(projectEntityId);
+  if (!project) return;
 
   let id = projectEntityId + "-" + hatId.toString();
   let perm = ProjectRolePermission.load(id);
@@ -616,8 +584,9 @@ export function handleBountyCapSet(event: BountyCapSet): void {
   // Use composite Project ID for cross-org isolation
   let projectEntityId = getProjectEntityId(event.address, projectId);
 
-  // Ensure Project exists (may not if this event fires before ProjectCreated)
-  ensureProjectExists(event.address, projectId, event.block.timestamp, event.block.number);
+  // ProjectCreated now fires before BountyCapSet (event ordering fixed in contract)
+  let project = Project.load(projectEntityId);
+  if (!project) return;
 
   let capId = projectEntityId + "-" + token.toHexString();
   let bountyCap = ProjectBountyCap.load(capId);
@@ -646,4 +615,50 @@ export function handleBountyCapSet(event: BountyCapSet): void {
   change.changedAtBlock = event.block.number;
   change.transactionHash = event.transaction.hash;
   change.save();
+}
+
+/**
+ * Handles the TaskRejected event from a TaskManager contract.
+ * Updates the task status back to Assigned and creates a rejection record.
+ */
+export function handleTaskRejected(event: TaskRejected): void {
+  let taskEntityId = event.address.toHexString() + "-" + event.params.id.toString();
+  let task = Task.load(taskEntityId);
+  if (!task) return;
+
+  task.status = "Assigned";
+  task.rejectionHash = event.params.rejectionHash;
+  task.rejectionCount = task.rejectionCount + 1;
+  task.updatedAt = event.block.timestamp;
+  task.save();
+
+  // Create IPFS data source to fetch and parse rejection metadata
+  createTaskMetadataSource(event.params.rejectionHash, taskEntityId, event.block.timestamp, event.transaction.hash);
+
+  // Create rejection record
+  let rejectionId = event.transaction.hash.concatI32(event.logIndex.toI32());
+  let rejection = new TaskRejection(rejectionId);
+  rejection.task = taskEntityId;
+  rejection.rejector = event.params.rejector;
+  rejection.rejectorUsername = getUsernameForAddress(event.params.rejector);
+  rejection.rejectionHash = event.params.rejectionHash;
+  rejection.rejectedAt = event.block.timestamp;
+  rejection.rejectedAtBlock = event.block.number;
+  rejection.transactionHash = event.transaction.hash;
+
+  // Link to User entity
+  let taskManager = TaskManager.load(event.address);
+  if (taskManager) {
+    let user = loadExistingUser(
+      taskManager.organization,
+      event.params.rejector,
+      event.block.timestamp,
+      event.block.number
+    );
+    if (user) {
+      rejection.rejectorUser = user.id;
+    }
+  }
+
+  rejection.save();
 }

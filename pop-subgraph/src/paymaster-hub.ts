@@ -21,7 +21,11 @@ import {
   SolidarityDonationReceived as SolidarityDonationReceivedEvent,
   OrgBannedFromSolidarity as OrgBannedFromSolidarityEvent,
   EmergencyWithdraw as EmergencyWithdrawEvent,
-  GracePeriodConfigUpdated as GracePeriodConfigUpdatedEvent
+  GracePeriodConfigUpdated as GracePeriodConfigUpdatedEvent,
+  SolidarityDistributionPaused as SolidarityDistributionPausedEvent,
+  SolidarityDistributionUnpaused as SolidarityDistributionUnpausedEvent,
+  OnboardingAccountCreated as OnboardingAccountCreatedEvent,
+  OnboardingConfigUpdated as OnboardingConfigUpdatedEvent
 } from "../generated/templates/PaymasterHub/PaymasterHub";
 import {
   PaymasterHubContract,
@@ -40,7 +44,9 @@ import {
   GracePeriodChange,
   PauseToggle,
   OrgBanRecord,
-  Organization
+  Organization,
+  OnboardingConfig,
+  OnboardingAccount
 } from "../generated/schema";
 
 // Helper to get or create PaymasterHubContract singleton
@@ -57,6 +63,7 @@ function getOrCreateHub(contractAddress: Bytes): PaymasterHubContract {
     hub.gracePeriodDays = 90;
     hub.maxSpendDuringGrace = BigInt.fromString("10000000000000000"); // 0.01 ETH
     hub.minDepositRequired = BigInt.fromString("3000000000000000"); // 0.003 ETH
+    hub.solidarityDistributionPaused = false;
     hub.createdAt = BigInt.fromI32(0);
     hub.createdAtBlock = BigInt.fromI32(0);
     hub.transactionHash = Bytes.empty();
@@ -725,4 +732,47 @@ export function handleGracePeriodConfigUpdated(event: GracePeriodConfigUpdatedEv
   change.changedAtBlock = event.block.number;
   change.transactionHash = event.transaction.hash;
   change.save();
+}
+
+// 23. SolidarityDistributionPaused - Collection-only mode enabled
+export function handleSolidarityDistributionPaused(event: SolidarityDistributionPausedEvent): void {
+  let hub = getOrCreateHub(event.address);
+  hub.solidarityDistributionPaused = true;
+  hub.save();
+}
+
+// 24. SolidarityDistributionUnpaused - Normal distribution resumed
+export function handleSolidarityDistributionUnpaused(event: SolidarityDistributionUnpausedEvent): void {
+  let hub = getOrCreateHub(event.address);
+  hub.solidarityDistributionPaused = false;
+  hub.save();
+}
+
+// 25. OnboardingAccountCreated - Successful account onboarding
+export function handleOnboardingAccountCreated(event: OnboardingAccountCreatedEvent): void {
+  let entityId = event.transaction.hash.concatI32(event.logIndex.toI32());
+  let entity = new OnboardingAccount(entityId);
+  entity.paymasterHub = event.address;
+  entity.account = event.params.account;
+  entity.gasCost = event.params.gasCost;
+  entity.timestamp = event.block.timestamp;
+  entity.blockNumber = event.block.number;
+  entity.transactionHash = event.transaction.hash;
+  entity.save();
+}
+
+// 26. OnboardingConfigUpdated - Onboarding limits changed
+export function handleOnboardingConfigUpdated(event: OnboardingConfigUpdatedEvent): void {
+  let config = OnboardingConfig.load(event.address);
+  if (!config) {
+    config = new OnboardingConfig(event.address);
+    config.paymasterHub = event.address;
+  }
+  config.maxGasPerCreation = event.params.maxGasPerCreation;
+  config.dailyCreationLimit = event.params.dailyCreationLimit;
+  config.enabled = event.params.enabled;
+  config.updatedAt = event.block.timestamp;
+  config.blockNumber = event.block.number;
+  config.transactionHash = event.transaction.hash;
+  config.save();
 }

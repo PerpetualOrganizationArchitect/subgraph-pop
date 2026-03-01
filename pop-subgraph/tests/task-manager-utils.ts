@@ -9,7 +9,8 @@ import {
   BountyCapSet,
   TaskCreated,
   TaskAssigned,
-  TaskCompleted
+  TaskCompleted,
+  TaskRejected
 } from "../generated/templates/TaskManager/TaskManager";
 
 export function createProjectCreatedEvent(
@@ -174,6 +175,27 @@ export function createProjectRolePermSetEvent(
   );
   event.parameters.push(
     new ethereum.EventParam("mask", ethereum.Value.fromI32(mask))
+  );
+
+  return event;
+}
+
+export function createTaskRejectedEvent(
+  id: BigInt,
+  rejector: Address,
+  rejectionHash: Bytes
+): TaskRejected {
+  let event = changetype<TaskRejected>(newMockEvent());
+
+  event.parameters = new Array();
+  event.parameters.push(
+    new ethereum.EventParam("id", ethereum.Value.fromUnsignedBigInt(id))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("rejector", ethereum.Value.fromAddress(rejector))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("rejectionHash", ethereum.Value.fromFixedBytes(rejectionHash))
   );
 
   return event;

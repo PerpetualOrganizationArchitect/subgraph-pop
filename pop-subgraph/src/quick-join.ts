@@ -44,7 +44,6 @@ export function handleQuickJoined(event: QuickJoinedEvent): void {
   let joinEvent = new QuickJoinEvent(joinEventId);
   joinEvent.quickJoin = contractAddress;
   joinEvent.user = event.params.user;
-  joinEvent.usernameCreated = event.params.usernameCreated;
   joinEvent.hatIds = event.params.hatIds;
   joinEvent.isMasterDeployJoin = false;
   joinEvent.joinedAt = event.block.timestamp;
@@ -85,7 +84,6 @@ export function handleQuickJoinedByMaster(event: QuickJoinedByMasterEvent): void
   joinEvent.quickJoin = contractAddress;
   joinEvent.user = event.params.user;
   joinEvent.master = event.params.master;
-  joinEvent.usernameCreated = event.params.usernameCreated;
   joinEvent.hatIds = event.params.hatIds;
   joinEvent.isMasterDeployJoin = true;
   joinEvent.joinedAt = event.block.timestamp;
@@ -268,7 +266,6 @@ export function handleQuickJoinedWithPasskey(event: QuickJoinedWithPasskeyEvent)
   let eventId = event.transaction.hash.concatI32(event.logIndex.toI32());
   let passkeyJoin = new PasskeyQuickJoin(eventId);
   passkeyJoin.quickJoinContract = contractAddress;
-  passkeyJoin.username = event.params.username;
   passkeyJoin.credentialId = event.params.credentialId;
   passkeyJoin.hatIds = event.params.hatIds;
   passkeyJoin.timestamp = event.block.timestamp;
@@ -314,7 +311,6 @@ export function handleQuickJoinedWithPasskeyByMaster(event: QuickJoinedWithPassk
   let passkeyJoin = new PasskeyQuickJoin(eventId);
   passkeyJoin.quickJoinContract = contractAddress;
   passkeyJoin.master = event.params.master;
-  passkeyJoin.username = event.params.username;
   passkeyJoin.credentialId = event.params.credentialId;
   passkeyJoin.hatIds = event.params.hatIds;
   passkeyJoin.timestamp = event.block.timestamp;

@@ -11,7 +11,9 @@ import {
   HatsMinted,
   Paused,
   Unpaused,
-  OwnershipTransferred
+  OwnershipTransferred,
+  CallerChangeProposed,
+  CallerChangeCancelled
 } from "../generated/templates/Executor/Executor";
 
 export function createInitializedEvent(version: BigInt): Initialized {
@@ -172,6 +174,31 @@ export function createOwnershipTransferredEvent(
   event.parameters.push(
     new ethereum.EventParam("newOwner", ethereum.Value.fromAddress(newOwner))
   );
+
+  return event;
+}
+
+export function createCallerChangeProposedEvent(
+  newCaller: Address,
+  effectiveAt: BigInt
+): CallerChangeProposed {
+  let event = changetype<CallerChangeProposed>(newMockEvent());
+
+  event.parameters = new Array();
+  event.parameters.push(
+    new ethereum.EventParam("newCaller", ethereum.Value.fromAddress(newCaller))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("effectiveAt", ethereum.Value.fromUnsignedBigInt(effectiveAt))
+  );
+
+  return event;
+}
+
+export function createCallerChangeCancelledEvent(): CallerChangeCancelled {
+  let event = changetype<CallerChangeCancelled>(newMockEvent());
+
+  event.parameters = new Array();
 
   return event;
 }
