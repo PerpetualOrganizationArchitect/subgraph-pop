@@ -3,7 +3,7 @@ import {
   OrgRegistered as OrgRegisteredEvent,
   MetaUpdated as MetaUpdatedEvent,
   ContractRegistered as ContractRegisteredEvent,
-  AutoUpgradeSet as AutoUpgradeSetEvent,
+  OrgMetadataAdminHatSet as OrgMetadataAdminHatSetEvent,
   HatsTreeRegistered as HatsTreeRegisteredEvent
 } from "../generated/templates/OrgRegistry/OrgRegistry";
 import {
@@ -11,8 +11,9 @@ import {
   Organization,
   OrgMetaUpdate,
   RegisteredContract,
-  AutoUpgradeChange
+  SwitchableBeaconContract
 } from "../generated/schema";
+import { SwitchableBeacon as SwitchableBeaconTemplate } from "../generated/templates";
 import { OrgMetadata as OrgMetadataTemplate } from "../generated/templates";
 import { getOrCreateRole } from "./utils";
 
@@ -219,38 +220,33 @@ export function handleContractRegistered(event: ContractRegisteredEvent): void {
   // Update registry total contracts
   registry.totalContracts = registry.totalContracts.plus(BigInt.fromI32(1));
   registry.save();
+
+  // Create SwitchableBeaconContract entity and dynamic data source
+  let beaconEntity = new SwitchableBeaconContract(beacon);
+  beaconEntity.registeredContract = contractId;
+  beaconEntity.organization = orgId;
+  beaconEntity.typeId = typeId;
+  beaconEntity.owner = owner;
+  beaconEntity.mode = autoUpgrade ? "Mirror" : "Static";
+  beaconEntity.createdAt = event.block.timestamp;
+  beaconEntity.createdAtBlock = event.block.number;
+  beaconEntity.save();
+
+  // Create dynamic data source to index SwitchableBeacon events
+  SwitchableBeaconTemplate.create(beacon);
 }
 
 /**
- * Handles AutoUpgradeSet event
- * Updates the contract's autoUpgrade status and creates a history record
+ * Handles OrgMetadataAdminHatSet event
+ * Updates the organization's metadata admin hat ID
  */
-export function handleAutoUpgradeSet(event: AutoUpgradeSetEvent): void {
-  let contractAddress = event.address;
-  let contractId = event.params.contractId;
-  let enabled = event.params.enabled;
-
-  // Load and update registered contract
-  let registeredContract = RegisteredContract.load(contractId);
-  if (registeredContract) {
-    registeredContract.autoUpgrade = enabled;
-    registeredContract.lastUpdatedAt = event.block.timestamp;
-    registeredContract.save();
+export function handleOrgMetadataAdminHatSet(event: OrgMetadataAdminHatSetEvent): void {
+  let org = Organization.load(event.params.orgId);
+  if (org) {
+    org.metadataAdminHatId = event.params.hatId;
+    org.lastUpdatedAt = event.block.timestamp;
+    org.save();
   }
-
-  // Create history record
-  let changeId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let change = new AutoUpgradeChange(changeId);
-
-  change.orgRegistry = contractAddress;
-  change.contract = contractId;
-  change.contractId = contractId;
-  change.enabled = enabled;
-  change.changedAt = event.block.timestamp;
-  change.changedAtBlock = event.block.number;
-  change.transactionHash = event.transaction.hash;
-
-  change.save();
 }
 
 /**

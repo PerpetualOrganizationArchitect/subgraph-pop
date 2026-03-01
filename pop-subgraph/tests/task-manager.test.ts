@@ -15,7 +15,8 @@ import {
   handleProjectCapUpdated,
   handleProjectManagerUpdated,
   handleProjectRolePermSet,
-  handleBountyCapSet
+  handleBountyCapSet,
+  handleTaskRejected
 } from "../src/task-manager";
 import {
   createProjectCreatedEvent,
@@ -25,7 +26,8 @@ import {
   createProjectCapUpdatedEvent,
   createProjectManagerUpdatedEvent,
   createProjectRolePermSetEvent,
-  createBountyCapSetEvent
+  createBountyCapSetEvent,
+  createTaskRejectedEvent
 } from "./task-manager-utils";
 import { Organization, TaskManager, HybridVotingContract, DirectDemocracyVotingContract, EligibilityModuleContract, ParticipationTokenContract, QuickJoinContract, EducationHubContract, PaymentManagerContract, ExecutorContract, ToggleModuleContract } from "../generated/schema";
 
@@ -359,6 +361,63 @@ describe("TaskManager", () => {
 
     let expectedId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1";
     assert.fieldEquals("Task", expectedId, "status", "Completed");
+  });
+
+  test("Task rejected updates status and creates rejection record", () => {
+    setupTaskManagerEntities();
+
+    // Create project and task
+    let projectId = Bytes.fromHexString(
+      "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+    );
+    let projectTitle = Bytes.fromHexString("0xabcd");
+    let projectMetadataHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000001234");
+    let cap = BigInt.fromI32(1000);
+    let projectEvent = createProjectCreatedEvent(projectId, projectTitle, projectMetadataHash, cap);
+    handleProjectCreated(projectEvent);
+
+    let taskId = BigInt.fromI32(1);
+    let payout = BigInt.fromI32(100);
+    let bountyToken = Address.fromString("0x0000000000000000000000000000000000000001");
+    let bountyPayout = BigInt.fromI32(50);
+    let title = Bytes.fromHexString("0x1234");
+
+    let createEvent = createTaskCreatedEvent(
+      taskId,
+      projectId,
+      payout,
+      bountyToken,
+      bountyPayout,
+      false,
+      title
+    );
+    handleTaskCreated(createEvent);
+
+    // Assign the task first
+    let assignee = Address.fromString("0x0000000000000000000000000000000000000002");
+    let assigner = Address.fromString("0x0000000000000000000000000000000000000003");
+    let assignEvent = createTaskAssignedEvent(taskId, assignee, assigner);
+    handleTaskAssigned(assignEvent);
+
+    // Reject the task
+    let rejector = Address.fromString("0x0000000000000000000000000000000000000003");
+    let rejectionHash = Bytes.fromHexString(
+      "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+    );
+    let rejectEvent = createTaskRejectedEvent(taskId, rejector, rejectionHash);
+    rejectEvent.logIndex = BigInt.fromI32(3);
+    handleTaskRejected(rejectEvent);
+
+    let expectedId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1";
+    assert.fieldEquals("Task", expectedId, "status", "Assigned");
+    assert.fieldEquals("Task", expectedId, "rejectionCount", "1");
+    assert.fieldEquals(
+      "Task",
+      expectedId,
+      "rejectionHash",
+      "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+    );
+    assert.entityCount("TaskRejection", 1);
   });
 
   // ========================================

@@ -3,7 +3,9 @@ import { ethereum, Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import {
   HatMetadataUpdated,
   HatCreatedWithEligibility,
-  DefaultEligibilityUpdated
+  DefaultEligibilityUpdated,
+  RoleApplicationSubmitted,
+  RoleApplicationWithdrawn
 } from "../generated/templates/EligibilityModule/EligibilityModule";
 
 export function createHatMetadataUpdatedEvent(
@@ -80,6 +82,44 @@ export function createDefaultEligibilityUpdatedEvent(
   );
   event.parameters.push(
     new ethereum.EventParam("admin", ethereum.Value.fromAddress(admin))
+  );
+
+  return event;
+}
+
+export function createRoleApplicationSubmittedEvent(
+  hatId: BigInt,
+  applicant: Address,
+  applicationHash: Bytes
+): RoleApplicationSubmitted {
+  let event = changetype<RoleApplicationSubmitted>(newMockEvent());
+
+  event.parameters = new Array();
+  event.parameters.push(
+    new ethereum.EventParam("hatId", ethereum.Value.fromUnsignedBigInt(hatId))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("applicant", ethereum.Value.fromAddress(applicant))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("applicationHash", ethereum.Value.fromFixedBytes(applicationHash))
+  );
+
+  return event;
+}
+
+export function createRoleApplicationWithdrawnEvent(
+  hatId: BigInt,
+  applicant: Address
+): RoleApplicationWithdrawn {
+  let event = changetype<RoleApplicationWithdrawn>(newMockEvent());
+
+  event.parameters = new Array();
+  event.parameters.push(
+    new ethereum.EventParam("hatId", ethereum.Value.fromUnsignedBigInt(hatId))
+  );
+  event.parameters.push(
+    new ethereum.EventParam("applicant", ethereum.Value.fromAddress(applicant))
   );
 
   return event;

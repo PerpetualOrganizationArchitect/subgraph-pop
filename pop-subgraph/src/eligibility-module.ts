@@ -17,7 +17,9 @@ import {
   Paused as PausedEvent,
   Unpaused as UnpausedEvent,
   VouchingRateLimitExceededEvent as VouchingRateLimitExceededEventEvent,
-  NewUserVouchingRestrictedEvent as NewUserVouchingRestrictedEventEvent
+  NewUserVouchingRestrictedEvent as NewUserVouchingRestrictedEventEvent,
+  RoleApplicationSubmitted as RoleApplicationSubmittedEvent,
+  RoleApplicationWithdrawn as RoleApplicationWithdrawnEvent
 } from "../generated/templates/EligibilityModule/EligibilityModule";
 import {
   EligibilityModuleContract,
@@ -29,7 +31,8 @@ import {
   VouchingRestrictionEvent,
   HatAutoMintEvent,
   HatClaimEvent,
-  HatMetadataUpdateEvent
+  HatMetadataUpdateEvent,
+  RoleApplication
 } from "../generated/schema";
 import {
   getUsernameForAddress,
@@ -547,6 +550,14 @@ export function handleHatClaimed(event: HatClaimedEvent): void {
       return;
     }
 
+    // Clear any active role application for this hat+wearer
+    let applicationId = contractAddress.toHexString() + "-" + hatId.toString() + "-" + event.params.wearer.toHexString();
+    let application = RoleApplication.load(applicationId);
+    if (application && application.active) {
+      application.active = false;
+      application.save();
+    }
+
     let user = createUserOnJoin(
       eligibilityModule.organization,
       event.params.wearer,
@@ -758,4 +769,45 @@ export function handleHatMetadataUpdated(
 
   // Trigger IPFS fetch for metadata content
   createHatIpfsDataSource(metadataCID, hatEntityId);
+}
+
+export function handleRoleApplicationSubmitted(event: RoleApplicationSubmittedEvent): void {
+  let contractAddress = event.address;
+  let hatId = event.params.hatId;
+  let applicant = event.params.applicant;
+
+  let applicationId = contractAddress.toHexString() + "-" + hatId.toString() + "-" + applicant.toHexString();
+  let application = new RoleApplication(applicationId);
+  application.eligibilityModule = contractAddress;
+  application.hatId = hatId;
+  application.applicant = applicant;
+  application.applicantUsername = getUsernameForAddress(applicant);
+  application.applicationHash = event.params.applicationHash;
+  application.active = true;
+  application.appliedAt = event.block.timestamp;
+  application.appliedAtBlock = event.block.number;
+  application.transactionHash = event.transaction.hash;
+
+  // Link to Hat entity if it exists
+  let hatEntityId = contractAddress.toHexString() + "-" + hatId.toString();
+  let hat = Hat.load(hatEntityId);
+  if (hat) {
+    application.hat = hatEntityId;
+  }
+
+  application.save();
+}
+
+export function handleRoleApplicationWithdrawn(event: RoleApplicationWithdrawnEvent): void {
+  let contractAddress = event.address;
+  let hatId = event.params.hatId;
+  let applicant = event.params.applicant;
+
+  let applicationId = contractAddress.toHexString() + "-" + hatId.toString() + "-" + applicant.toHexString();
+  let application = RoleApplication.load(applicationId);
+  if (application) {
+    application.active = false;
+    application.withdrawnAt = event.block.timestamp;
+    application.save();
+  }
 }

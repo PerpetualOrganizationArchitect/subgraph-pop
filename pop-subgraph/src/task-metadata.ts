@@ -79,5 +79,11 @@ export function handleTaskMetadata(content: Bytes): void {
     metadata.submission = submissionValue.toString();
   }
 
+  // Parse rejection reason (for rejection metadata entities)
+  let rejectionValue = jsonObject.get("rejection");
+  if (rejectionValue != null && !rejectionValue.isNull() && rejectionValue.kind == JSONValueKind.STRING) {
+    metadata.rejection = rejectionValue.toString();
+  }
+
   metadata.save();
 }

@@ -4,24 +4,24 @@ indexerHints:
   prune: auto
 schema:
   file: ./schema.graphql
-# Beacon Addresses (for subgraph indexing) - Hoodi deployment block 2136397:
-# BEACON_ImplementationRegistry: 0x7d46b1B90FAc186A0F9Eb066ac3b53a9F2DDeb56
-# BEACON_OrgRegistry: 0xa15a5CCD0988C668A911A85d41BCEA786f505769
-# BEACON_OrgDeployer: 0x596ae6ab02F8c952a770dDfE08D0A4c9Ca432a94
-# BEACON_PaymasterHub: 0x02d6aeA556b94B5Fc7A336de1A7baB992F8559E0
-# BEACON_HybridVoting: 0x1796a6751EfD60386114e647929444947C833b12
-# BEACON_DirectDemocracyVoting: 0x2B1d99f41427a44FFB08C87B4b292011BE576026
-# BEACON_Executor: 0x65E1C5fE6729EFA83A347E1B25d4CDB5462a2029
-# BEACON_QuickJoin: 0x1f10FAe0d724bc192c90010a2ceaebC38980F86c
-# BEACON_ParticipationToken: 0xc70873839ffC5EDeFfdb1650f6A183De3a14201e
-# BEACON_TaskManager: 0xC10a5C505640398c0E8A0D34faAf39aF48a52484
-# BEACON_EducationHub: 0x2577a9fc33BC0c8d004F667F9d8C80DEB4e9BB9E
-# BEACON_PaymentManager: 0x1D8D16e5e620f1801ED1b777d6Ec89D04B36A9A4
-# BEACON_UniversalAccountRegistry: 0x58BFD390a84b08D71afbf7D082395A9b310E924a
-# BEACON_EligibilityModule: 0x8483fa2Af930c25Ca3583b83E7960d8EfC74d908
-# BEACON_ToggleModule: 0x16BD7AaBD886255eA12B9916240FDE607f067720
-# BEACON_PasskeyAccount: 0x6d3D6d65725e1228Dc7a7854287b251F75Dde61C
-# BEACON_PasskeyAccountFactory: 0xEF26586e3458faa0F420125FecE8cB9Bf4bfb8cd
+# Beacon Addresses (for subgraph indexing) - Hoodi deployment block 2334136:
+# BEACON_ImplementationRegistry: 0x9e7c1f0790730ae332aff37be1f9fb09405db793
+# BEACON_OrgRegistry: 0xfc989ab8584e2fded125ae876ec581e5021281cf
+# BEACON_OrgDeployer: 0xbdcf2f096fa7f8eb9fc237b1837a9cce9bc6babd
+# BEACON_PaymasterHub: 0x2643cbeb50f039440b74f4707fd39efda689cdfa
+# BEACON_HybridVoting: 0x64bdc3b17dce9dd3a3179b283f9edba1d7ad5116
+# BEACON_DirectDemocracyVoting: 0xb748d954ada3af9a35e97bd294871f695612af99
+# BEACON_Executor: 0x2408557e208be1d471caae78cafc011b364fe8b2
+# BEACON_QuickJoin: 0x4df5574bf383fae65af7e8ca6484ab09b50061a7
+# BEACON_ParticipationToken: 0x62faa7b24d378a2a05b742afd3c3bb5e90052b77
+# BEACON_TaskManager: 0x13423c11be7b3514d94278ad25f0a9020650dddd
+# BEACON_EducationHub: 0x3598ece64628ee0f34949355df82bf93962497c1
+# BEACON_PaymentManager: 0xa7ce0fc980468e9e2e753a874d3fc3f634a3c676
+# BEACON_UniversalAccountRegistry: 0x3171826d11b1473046a7ae09b605deafa93b0c78
+# BEACON_EligibilityModule: 0xd3db5ba139b6b61f679e64dfafdae73faf20ff1b
+# BEACON_ToggleModule: 0x875d9d58016f540819ed6408c7ca7598ebad80df
+# BEACON_PasskeyAccount: 0x6ba34ffa0954d8829754688d9a44d04861db55cc
+# BEACON_PasskeyAccountFactory: 0x5efc746f4fe5121af3c8f36934a3ad60a45949b4
 # NOTE: Infrastructure contracts (OrgDeployer, OrgRegistry, PaymasterHub, UniversalAccountRegistry)
 # are now dynamically discovered via InfrastructureDeployed event from PoaManager.
 # Only PoaManager and singleton factories need to be hardcoded.
@@ -50,9 +50,9 @@ dataSources:
     name: GovernanceFactory
     network: hoodi
     source:
-      address: "0x9CD9014F6aEDaDFd1f220A899081638465f05E4c"
+      address: "0x82dd6fa77b6db1db3976c818a52c14c6395f8c33"
       abi: GovernanceFactory
-      startBlock: 2136397
+      startBlock: 2334136
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -70,9 +70,9 @@ dataSources:
     name: PoaManager
     network: hoodi
     source:
-      address: "0x15D72d2D322724B9A2C0c00C835139DD741004dB"
+      address: "0x5ec60407c91595d175e044feeabf52c6d0eaadd3"
       abi: PoaManager
-      startBlock: 2136397
+      startBlock: 2334136
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -133,7 +133,7 @@ templates:
         - Organization
         - OrgMetaUpdate
         - RegisteredContract
-        - AutoUpgradeChange
+        - SwitchableBeaconContract
       abis:
         - name: OrgRegistry
           file: ./abis/OrgRegistry.json
@@ -144,8 +144,8 @@ templates:
           handler: handleMetaUpdated
         - event: ContractRegistered(indexed bytes32,indexed bytes32,indexed bytes32,address,address,bool,address)
           handler: handleContractRegistered
-        - event: AutoUpgradeSet(indexed bytes32,bool)
-          handler: handleAutoUpgradeSet
+        - event: OrgMetadataAdminHatSet(indexed bytes32,uint256)
+          handler: handleOrgMetadataAdminHatSet
         - event: HatsTreeRegistered(indexed bytes32,uint256,uint256[])
           handler: handleHatsTreeRegistered
       file: ./src/org-registry.ts
@@ -175,6 +175,8 @@ templates:
         - GracePeriodChange
         - PauseToggle
         - OrgBanRecord
+        - OnboardingConfig
+        - OnboardingAccount
       abis:
         - name: PaymasterHub
           file: ./abis/PaymasterHub.json
@@ -223,6 +225,14 @@ templates:
           handler: handleEmergencyWithdraw
         - event: GracePeriodConfigUpdated(uint32,uint128,uint128)
           handler: handleGracePeriodConfigUpdated
+        - event: SolidarityDistributionPaused()
+          handler: handleSolidarityDistributionPaused
+        - event: SolidarityDistributionUnpaused()
+          handler: handleSolidarityDistributionUnpaused
+        - event: OnboardingAccountCreated(indexed address,uint256)
+          handler: handleOnboardingAccountCreated
+        - event: OnboardingConfigUpdated(uint128,uint128,bool)
+          handler: handleOnboardingConfigUpdated
       file: ./src/paymaster-hub.ts
   - kind: ethereum
     name: UniversalAccountRegistry
@@ -256,6 +266,8 @@ templates:
           handler: handleBatchRegistered
         - event: OwnershipTransferred(indexed address,indexed address)
           handler: handleOwnershipTransferred
+        - event: PasskeyFactoryUpdated(indexed address)
+          handler: handlePasskeyFactoryUpdated
       file: ./src/universal-account-registry.ts
   # Org-level contract templates (dynamically created via OrgDeployed event)
   - kind: ethereum
@@ -271,6 +283,7 @@ templates:
         - Project
         - Task
         - TaskApplication
+        - TaskRejection
         - ProjectManager
         - ProjectRolePermission
         - ProjectBountyCap
@@ -310,6 +323,8 @@ templates:
           handler: handleTaskApplicationSubmitted
         - event: TaskApplicationApproved(indexed uint256,indexed address,indexed address)
           handler: handleTaskApplicationApproved
+        - event: TaskRejected(indexed uint256,indexed address,bytes32)
+          handler: handleTaskRejected
       file: ./src/task-manager.ts
   - kind: ethereum
     name: HybridVoting
@@ -426,6 +441,7 @@ templates:
         - HatAutoMintEvent
         - HatClaimEvent
         - HatMetadataUpdateEvent
+        - RoleApplication
       abis:
         - name: EligibilityModule
           file: ./abis/EligibilityModule.json
@@ -464,6 +480,10 @@ templates:
           handler: handleVouchingRateLimitExceeded
         - event: NewUserVouchingRestrictedEvent(indexed address)
           handler: handleNewUserVouchingRestricted
+        - event: RoleApplicationSubmitted(indexed uint256,indexed address,bytes32)
+          handler: handleRoleApplicationSubmitted
+        - event: RoleApplicationWithdrawn(indexed uint256,indexed address)
+          handler: handleRoleApplicationWithdrawn
       file: ./src/eligibility-module.ts
   - kind: ethereum
     name: ParticipationToken
@@ -516,6 +536,7 @@ templates:
         - QuickJoinContract
         - QuickJoinMemberHat
         - QuickJoinEvent
+        - PasskeyQuickJoin
         - QuickJoinExecutorChange
         - QuickJoinAddressUpdate
       abis:
@@ -524,9 +545,9 @@ templates:
       eventHandlers:
         - event: Initialized(uint64)
           handler: handleInitialized
-        - event: QuickJoined(indexed address,bool,uint256[])
+        - event: QuickJoined(indexed address,uint256[])
           handler: handleQuickJoined
-        - event: QuickJoinedByMaster(indexed address,indexed address,bool,uint256[])
+        - event: QuickJoinedByMaster(indexed address,indexed address,uint256[])
           handler: handleQuickJoinedByMaster
         - event: ExecutorUpdated(address)
           handler: handleExecutorUpdated
@@ -538,10 +559,16 @@ templates:
           handler: handleAddressesUpdated
         - event: UniversalFactoryUpdated(indexed address)
           handler: handleUniversalFactoryUpdated
-        - event: QuickJoinedWithPasskey(indexed address,string,indexed bytes32,uint256[])
+        - event: QuickJoinedWithPasskey(indexed address,indexed bytes32,uint256[])
           handler: handleQuickJoinedWithPasskey
-        - event: QuickJoinedWithPasskeyByMaster(indexed address,indexed address,string,indexed bytes32,uint256[])
+        - event: QuickJoinedWithPasskeyByMaster(indexed address,indexed address,indexed bytes32,uint256[])
           handler: handleQuickJoinedWithPasskeyByMaster
+        - event: RegisterAndQuickJoined(indexed address,string,uint256[])
+          handler: handleRegisterAndQuickJoined
+        - event: RegisterAndQuickJoinedWithPasskey(indexed address,indexed bytes32,string,uint256[])
+          handler: handleRegisterAndQuickJoinedWithPasskey
+        - event: RegisterAndQuickJoinedWithPasskeyByMaster(indexed address,indexed address,indexed bytes32,string,uint256[])
+          handler: handleRegisterAndQuickJoinedWithPasskeyByMaster
       file: ./src/quick-join.ts
   - kind: ethereum
     name: EducationHub
@@ -659,6 +686,10 @@ templates:
           handler: handleInitialized
         - event: CallerSet(indexed address)
           handler: handleCallerSet
+        - event: CallerChangeProposed(indexed address,uint256)
+          handler: handleCallerChangeProposed
+        - event: CallerChangeCancelled()
+          handler: handleCallerChangeCancelled
         - event: BatchExecuted(indexed uint256,uint256)
           handler: handleBatchExecuted
         - event: CallExecuted(indexed uint256,indexed uint256,address,uint256)
@@ -772,6 +803,36 @@ templates:
         - event: BatchExecuted(uint256)
           handler: handleBatchExecuted
       file: ./src/passkey-account.ts
+  - kind: ethereum
+    name: SwitchableBeacon
+    network: hoodi
+    source:
+      abi: SwitchableBeacon
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - SwitchableBeaconContract
+        - BeaconModeChange
+        - BeaconOwnershipChange
+      abis:
+        - name: SwitchableBeacon
+          file: ./abis/SwitchableBeacon.json
+      eventHandlers:
+        - event: MirrorSet(indexed address)
+          handler: handleMirrorSet
+        - event: Pinned(indexed address)
+          handler: handlePinned
+        - event: ModeChanged(uint8)
+          handler: handleModeChanged
+        - event: OwnerTransferred(indexed address,indexed address)
+          handler: handleOwnerTransferred
+        - event: OwnershipTransferStarted(indexed address)
+          handler: handleOwnershipTransferStarted
+        - event: OwnershipTransferCancelled(indexed address)
+          handler: handleOwnershipTransferCancelled
+      file: ./src/switchable-beacon.ts
   # IPFS file data source for org metadata
   - kind: file/ipfs
     name: OrgMetadata

@@ -16,7 +16,9 @@ import {
   handleHatsMinted,
   handlePaused,
   handleUnpaused,
-  handleOwnershipTransferred
+  handleOwnershipTransferred,
+  handleCallerChangeProposed,
+  handleCallerChangeCancelled
 } from "../src/executor";
 import {
   createCallerSetEvent,
@@ -28,7 +30,9 @@ import {
   createHatsMintedEvent,
   createPausedEvent,
   createUnpausedEvent,
-  createOwnershipTransferredEvent
+  createOwnershipTransferredEvent,
+  createCallerChangeProposedEvent,
+  createCallerChangeCancelledEvent
 } from "./executor-utils";
 import {
   Organization,
@@ -212,6 +216,92 @@ describe("Executor", () => {
       "0xa16081f360e3847006db660bae1c6d1b2e17ec2a",
       "allowedCaller",
       "0x0000000000000000000000000000000000000001"
+    );
+  });
+
+  test("CallerChangeProposed sets pendingCaller and effectiveAt on ExecutorContract", () => {
+    setupExecutorEntities();
+
+    let newCaller = Address.fromString("0x0000000000000000000000000000000000000055");
+    let effectiveAt = BigInt.fromI32(2000);
+    let event = createCallerChangeProposedEvent(newCaller, effectiveAt);
+    handleCallerChangeProposed(event);
+
+    assert.fieldEquals(
+      "ExecutorContract",
+      "0xa16081f360e3847006db660bae1c6d1b2e17ec2a",
+      "pendingCaller",
+      "0x0000000000000000000000000000000000000055"
+    );
+    assert.fieldEquals(
+      "ExecutorContract",
+      "0xa16081f360e3847006db660bae1c6d1b2e17ec2a",
+      "callerChangeEffectiveAt",
+      "2000"
+    );
+  });
+
+  test("CallerChangeCancelled clears pendingCaller and effectiveAt", () => {
+    setupExecutorEntities();
+
+    // First propose a change
+    let newCaller = Address.fromString("0x0000000000000000000000000000000000000055");
+    let effectiveAt = BigInt.fromI32(2000);
+    let proposeEvent = createCallerChangeProposedEvent(newCaller, effectiveAt);
+    handleCallerChangeProposed(proposeEvent);
+
+    // Then cancel it
+    let cancelEvent = createCallerChangeCancelledEvent();
+    cancelEvent.logIndex = BigInt.fromI32(2);
+    handleCallerChangeCancelled(cancelEvent);
+
+    assert.fieldEquals(
+      "ExecutorContract",
+      "0xa16081f360e3847006db660bae1c6d1b2e17ec2a",
+      "pendingCaller",
+      "null"
+    );
+    assert.fieldEquals(
+      "ExecutorContract",
+      "0xa16081f360e3847006db660bae1c6d1b2e17ec2a",
+      "callerChangeEffectiveAt",
+      "null"
+    );
+  });
+
+  test("CallerSet clears pending caller change state", () => {
+    setupExecutorEntities();
+
+    // First propose a change
+    let newCaller = Address.fromString("0x0000000000000000000000000000000000000055");
+    let effectiveAt = BigInt.fromI32(2000);
+    let proposeEvent = createCallerChangeProposedEvent(newCaller, effectiveAt);
+    handleCallerChangeProposed(proposeEvent);
+
+    // Then set the caller (completing the change)
+    let setEvent = createCallerSetEvent(newCaller);
+    setEvent.logIndex = BigInt.fromI32(2);
+    handleCallerSet(setEvent);
+
+    // pendingCaller should be cleared
+    assert.fieldEquals(
+      "ExecutorContract",
+      "0xa16081f360e3847006db660bae1c6d1b2e17ec2a",
+      "pendingCaller",
+      "null"
+    );
+    assert.fieldEquals(
+      "ExecutorContract",
+      "0xa16081f360e3847006db660bae1c6d1b2e17ec2a",
+      "callerChangeEffectiveAt",
+      "null"
+    );
+    // But allowedCaller should be set
+    assert.fieldEquals(
+      "ExecutorContract",
+      "0xa16081f360e3847006db660bae1c6d1b2e17ec2a",
+      "allowedCaller",
+      "0x0000000000000000000000000000000000000055"
     );
   });
 

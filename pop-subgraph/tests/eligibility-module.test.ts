@@ -25,12 +25,16 @@ function bytes32ToCid(hash: Bytes): string {
 import {
   handleHatMetadataUpdated,
   handleHatCreatedWithEligibility,
-  handleDefaultEligibilityUpdated
+  handleDefaultEligibilityUpdated,
+  handleRoleApplicationSubmitted,
+  handleRoleApplicationWithdrawn
 } from "../src/eligibility-module";
 import {
   createHatMetadataUpdatedEvent,
   createHatCreatedWithEligibilityEvent,
-  createDefaultEligibilityUpdatedEvent
+  createDefaultEligibilityUpdatedEvent,
+  createRoleApplicationSubmittedEvent,
+  createRoleApplicationWithdrawnEvent
 } from "./eligibility-module-utils";
 import {
   Organization,
@@ -45,7 +49,8 @@ import {
   PaymentManagerContract,
   TaskManager,
   Hat,
-  Role
+  Role,
+  RoleApplication
 } from "../generated/schema";
 
 /**
@@ -487,5 +492,63 @@ describe("EligibilityModule - DefaultEligibilityUpdated", () => {
     let roleId = orgId.toHexString() + "-" + newHatId.toString();
     assert.entityCount("Role", 1);
     assert.fieldEquals("Role", roleId, "hat", hatEntityId);
+  });
+});
+
+describe("EligibilityModule - RoleApplications", () => {
+  afterEach(() => {
+    clearStore();
+  });
+
+  test("RoleApplicationSubmitted creates RoleApplication entity", () => {
+    setupEligibilityModuleEntities();
+
+    let hatId = BigInt.fromI32(1001);
+    let applicant = Address.fromString("0x0000000000000000000000000000000000000099");
+    let applicationHash = Bytes.fromHexString(
+      "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+    );
+
+    let event = createRoleApplicationSubmittedEvent(hatId, applicant, applicationHash);
+    handleRoleApplicationSubmitted(event);
+
+    let applicationId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1001-0x0000000000000000000000000000000000000099";
+    assert.entityCount("RoleApplication", 1);
+    assert.fieldEquals("RoleApplication", applicationId, "hatId", "1001");
+    assert.fieldEquals("RoleApplication", applicationId, "active", "true");
+    assert.fieldEquals(
+      "RoleApplication",
+      applicationId,
+      "applicant",
+      "0x0000000000000000000000000000000000000099"
+    );
+    assert.fieldEquals(
+      "RoleApplication",
+      applicationId,
+      "applicationHash",
+      "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+    );
+  });
+
+  test("RoleApplicationWithdrawn marks application as inactive", () => {
+    setupEligibilityModuleEntities();
+
+    let hatId = BigInt.fromI32(1001);
+    let applicant = Address.fromString("0x0000000000000000000000000000000000000099");
+    let applicationHash = Bytes.fromHexString(
+      "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+    );
+
+    // First submit an application
+    let submitEvent = createRoleApplicationSubmittedEvent(hatId, applicant, applicationHash);
+    handleRoleApplicationSubmitted(submitEvent);
+
+    // Then withdraw it
+    let withdrawEvent = createRoleApplicationWithdrawnEvent(hatId, applicant);
+    withdrawEvent.logIndex = BigInt.fromI32(2);
+    handleRoleApplicationWithdrawn(withdrawEvent);
+
+    let applicationId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1001-0x0000000000000000000000000000000000000099";
+    assert.fieldEquals("RoleApplication", applicationId, "active", "false");
   });
 });
