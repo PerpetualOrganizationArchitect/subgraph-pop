@@ -266,6 +266,8 @@ templates:
           handler: handleBatchRegistered
         - event: OwnershipTransferred(indexed address,indexed address)
           handler: handleOwnershipTransferred
+        - event: PasskeyFactoryUpdated(indexed address)
+          handler: handlePasskeyFactoryUpdated
       file: ./src/universal-account-registry.ts
   # Org-level contract templates (dynamically created via OrgDeployed event)
   - kind: ethereum
@@ -534,6 +536,7 @@ templates:
         - QuickJoinContract
         - QuickJoinMemberHat
         - QuickJoinEvent
+        - PasskeyQuickJoin
         - QuickJoinExecutorChange
         - QuickJoinAddressUpdate
       abis:
@@ -560,6 +563,12 @@ templates:
           handler: handleQuickJoinedWithPasskey
         - event: QuickJoinedWithPasskeyByMaster(indexed address,indexed address,indexed bytes32,uint256[])
           handler: handleQuickJoinedWithPasskeyByMaster
+        - event: RegisterAndQuickJoined(indexed address,string,uint256[])
+          handler: handleRegisterAndQuickJoined
+        - event: RegisterAndQuickJoinedWithPasskey(indexed address,indexed bytes32,string,uint256[])
+          handler: handleRegisterAndQuickJoinedWithPasskey
+        - event: RegisterAndQuickJoinedWithPasskeyByMaster(indexed address,indexed address,indexed bytes32,string,uint256[])
+          handler: handleRegisterAndQuickJoinedWithPasskeyByMaster
       file: ./src/quick-join.ts
   - kind: ethereum
     name: EducationHub

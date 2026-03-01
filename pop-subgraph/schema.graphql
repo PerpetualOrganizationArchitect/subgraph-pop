@@ -858,6 +858,8 @@ type QuickJoinEvent @entity(immutable: true) {
   masterUsername: String
   hatIds: [BigInt!]!
   isMasterDeployJoin: Boolean! # true if joined by master, false if self-join
+  isRegisterAndJoin: Boolean! # true if username registration + join in one tx
+  username: String # only populated for register-and-join flows
   joinedAt: BigInt!
   joinedAtBlock: BigInt!
   transactionHash: Bytes!
@@ -1066,6 +1068,7 @@ type RevenueShareTokenChange @entity(immutable: true) {
 type UniversalAccountRegistry @entity(immutable: false) {
   id: Bytes! # contract address (singleton)
   owner: Bytes!
+  passkeyFactory: Bytes # trusted PasskeyAccountFactory address for sig-based registration
   totalAccounts: BigInt!
   createdAt: BigInt!
   createdAtBlock: BigInt!
@@ -1933,6 +1936,7 @@ type PasskeyQuickJoin @entity(immutable: true) {
   credentialId: Bytes!
   hatIds: [BigInt!]!
   master: Bytes # Only set for master deploy path
+  username: String # only populated for register-and-join flows
   timestamp: BigInt!
   blockNumber: BigInt!
   transactionHash: Bytes!

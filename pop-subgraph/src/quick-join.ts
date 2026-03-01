@@ -9,7 +9,10 @@ import {
   AddressesUpdated as AddressesUpdatedEvent,
   UniversalFactoryUpdated as UniversalFactoryUpdatedEvent,
   QuickJoinedWithPasskey as QuickJoinedWithPasskeyEvent,
-  QuickJoinedWithPasskeyByMaster as QuickJoinedWithPasskeyByMasterEvent
+  QuickJoinedWithPasskeyByMaster as QuickJoinedWithPasskeyByMasterEvent,
+  RegisterAndQuickJoined as RegisterAndQuickJoinedEvent,
+  RegisterAndQuickJoinedWithPasskey as RegisterAndQuickJoinedWithPasskeyEvent,
+  RegisterAndQuickJoinedWithPasskeyByMaster as RegisterAndQuickJoinedWithPasskeyByMasterEvent
 } from "../generated/templates/QuickJoin/QuickJoin";
 import {
   QuickJoinContract,
@@ -46,6 +49,7 @@ export function handleQuickJoined(event: QuickJoinedEvent): void {
   joinEvent.user = event.params.user;
   joinEvent.hatIds = event.params.hatIds;
   joinEvent.isMasterDeployJoin = false;
+  joinEvent.isRegisterAndJoin = false;
   joinEvent.joinedAt = event.block.timestamp;
   joinEvent.joinedAtBlock = event.block.number;
   joinEvent.transactionHash = event.transaction.hash;
@@ -86,6 +90,7 @@ export function handleQuickJoinedByMaster(event: QuickJoinedByMasterEvent): void
   joinEvent.master = event.params.master;
   joinEvent.hatIds = event.params.hatIds;
   joinEvent.isMasterDeployJoin = true;
+  joinEvent.isRegisterAndJoin = false;
   joinEvent.joinedAt = event.block.timestamp;
   joinEvent.joinedAtBlock = event.block.number;
   joinEvent.transactionHash = event.transaction.hash;
@@ -322,6 +327,129 @@ export function handleQuickJoinedWithPasskeyByMaster(event: QuickJoinedWithPassk
   passkeyJoin.save();
 
   // Create User and RoleWearer entities for the passkey account
+  let user = createUserOnJoin(
+    contract.organization,
+    event.params.account,
+    "QuickJoinWithPasskey",
+    event.block.timestamp,
+    event.block.number
+  );
+
+  if (user) {
+    let hatIds = event.params.hatIds;
+    for (let i = 0; i < hatIds.length; i++) {
+      if (shouldCreateRoleWearer(contract.organization, hatIds[i], event.params.account)) {
+        getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.account, event);
+        recordUserHatChange(user, hatIds[i], true, event);
+      }
+    }
+  }
+}
+
+export function handleRegisterAndQuickJoined(event: RegisterAndQuickJoinedEvent): void {
+  let contractAddress = event.address;
+  let joinEventId = contractAddress.toHexString() + "-" + event.transaction.hash.toHexString() + "-" + event.logIndex.toString();
+
+  let joinEvent = new QuickJoinEvent(joinEventId);
+  joinEvent.quickJoin = contractAddress;
+  joinEvent.user = event.params.user;
+  joinEvent.hatIds = event.params.hatIds;
+  joinEvent.isMasterDeployJoin = false;
+  joinEvent.isRegisterAndJoin = true;
+  joinEvent.username = event.params.username;
+  joinEvent.joinedAt = event.block.timestamp;
+  joinEvent.joinedAtBlock = event.block.number;
+  joinEvent.transactionHash = event.transaction.hash;
+
+  joinEvent.save();
+
+  // Create RoleWearer entities for each hat
+  let contract = QuickJoinContract.load(contractAddress);
+  if (contract) {
+    let user = createUserOnJoin(
+      contract.organization,
+      event.params.user,
+      "QuickJoin",
+      event.block.timestamp,
+      event.block.number
+    );
+
+    if (user) {
+      let hatIds = event.params.hatIds;
+      for (let i = 0; i < hatIds.length; i++) {
+        if (shouldCreateRoleWearer(contract.organization, hatIds[i], event.params.user)) {
+          getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.user, event);
+          recordUserHatChange(user, hatIds[i], true, event);
+        }
+      }
+    }
+  }
+}
+
+export function handleRegisterAndQuickJoinedWithPasskey(event: RegisterAndQuickJoinedWithPasskeyEvent): void {
+  let contractAddress = event.address;
+  let contract = QuickJoinContract.load(contractAddress);
+  if (!contract) {
+    log.warning("QuickJoinContract not found at address {}", [
+      contractAddress.toHexString()
+    ]);
+    return;
+  }
+
+  let eventId = event.transaction.hash.concatI32(event.logIndex.toI32());
+  let passkeyJoin = new PasskeyQuickJoin(eventId);
+  passkeyJoin.quickJoinContract = contractAddress;
+  passkeyJoin.credentialId = event.params.credentialId;
+  passkeyJoin.hatIds = event.params.hatIds;
+  passkeyJoin.username = event.params.username;
+  passkeyJoin.timestamp = event.block.timestamp;
+  passkeyJoin.blockNumber = event.block.number;
+  passkeyJoin.transactionHash = event.transaction.hash;
+  passkeyJoin.account = event.params.account;
+  passkeyJoin.save();
+
+  let user = createUserOnJoin(
+    contract.organization,
+    event.params.account,
+    "QuickJoinWithPasskey",
+    event.block.timestamp,
+    event.block.number
+  );
+
+  if (user) {
+    let hatIds = event.params.hatIds;
+    for (let i = 0; i < hatIds.length; i++) {
+      if (shouldCreateRoleWearer(contract.organization, hatIds[i], event.params.account)) {
+        getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.account, event);
+        recordUserHatChange(user, hatIds[i], true, event);
+      }
+    }
+  }
+}
+
+export function handleRegisterAndQuickJoinedWithPasskeyByMaster(event: RegisterAndQuickJoinedWithPasskeyByMasterEvent): void {
+  let contractAddress = event.address;
+  let contract = QuickJoinContract.load(contractAddress);
+  if (!contract) {
+    log.warning("QuickJoinContract not found at address {}", [
+      contractAddress.toHexString()
+    ]);
+    return;
+  }
+
+  let eventId = event.transaction.hash.concatI32(event.logIndex.toI32());
+  let passkeyJoin = new PasskeyQuickJoin(eventId);
+  passkeyJoin.quickJoinContract = contractAddress;
+  passkeyJoin.master = event.params.master;
+  passkeyJoin.credentialId = event.params.credentialId;
+  passkeyJoin.hatIds = event.params.hatIds;
+  passkeyJoin.username = event.params.username;
+  passkeyJoin.timestamp = event.block.timestamp;
+  passkeyJoin.blockNumber = event.block.number;
+  passkeyJoin.transactionHash = event.transaction.hash;
+  passkeyJoin.account = event.params.account;
+  passkeyJoin.save();
+
   let user = createUserOnJoin(
     contract.organization,
     event.params.account,

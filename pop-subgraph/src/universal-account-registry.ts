@@ -5,7 +5,8 @@ import {
   UsernameChanged as UsernameChangedEvent,
   UserDeleted as UserDeletedEvent,
   BatchRegistered as BatchRegisteredEvent,
-  OwnershipTransferred as OwnershipTransferredEvent
+  OwnershipTransferred as OwnershipTransferredEvent,
+  PasskeyFactoryUpdated as PasskeyFactoryUpdatedEvent
 } from "../generated/templates/UniversalAccountRegistry/UniversalAccountRegistry";
 import {
   UniversalAccountRegistry,
@@ -202,4 +203,12 @@ export function handleOwnershipTransferred(event: OwnershipTransferredEvent): vo
   transfer.transactionHash = event.transaction.hash;
 
   transfer.save();
+}
+
+export function handlePasskeyFactoryUpdated(event: PasskeyFactoryUpdatedEvent): void {
+  let registry = UniversalAccountRegistry.load(event.address);
+  if (registry) {
+    registry.passkeyFactory = event.params.factory;
+    registry.save();
+  }
 }
