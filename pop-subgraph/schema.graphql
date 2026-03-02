@@ -1671,6 +1671,7 @@ type OrgMetadata @entity(immutable: false) {
   organization: Organization
   description: String
   template: String
+  backgroundColor: String
   links: [OrgMetadataLink!]! @derivedFrom(field: "metadata")
   indexedAt: BigInt
 }

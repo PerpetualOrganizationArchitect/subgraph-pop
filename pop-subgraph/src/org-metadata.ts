@@ -8,7 +8,8 @@ import { OrgMetadata, OrgMetadataLink } from "../generated/schema";
  * {
  *   description: "...",
  *   links: [{ name: "...", url: "..." }],
- *   template: "default"
+ *   template: "default",
+ *   backgroundColor: "#1a1a2e" // optional CSS color or gradient string
  * }
  *
  * This handler is resilient to malformed data - if parsing fails or fields
@@ -63,6 +64,12 @@ export function handleOrgMetadata(content: Bytes): void {
     let templateValue = jsonObject.get("template");
     if (templateValue != null && !templateValue.isNull() && templateValue.kind == JSONValueKind.STRING) {
       metadata.template = templateValue.toString();
+    }
+
+    // Parse backgroundColor
+    let bgColorValue = jsonObject.get("backgroundColor");
+    if (bgColorValue != null && !bgColorValue.isNull() && bgColorValue.kind == JSONValueKind.STRING) {
+      metadata.backgroundColor = bgColorValue.toString();
     }
 
     // Set indexed timestamp (approximate - file data sources don't have block context)
