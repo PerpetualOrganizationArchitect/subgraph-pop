@@ -85,6 +85,8 @@ dataSources:
       abis:
         - name: PoaManager
           file: ./abis/PoaManager.json
+        - name: PaymasterHub
+          file: ./abis/PaymasterHub.json
       eventHandlers:
         - event: BeaconCreated(indexed bytes32,string,address,address)
           handler: handleBeaconCreated
