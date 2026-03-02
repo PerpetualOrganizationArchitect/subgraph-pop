@@ -334,6 +334,7 @@ type TaskRejection @entity(immutable: true) {
   rejectorUsername: String
   rejectorUser: User
   rejectionHash: Bytes! # IPFS hash of rejection reason
+  metadata: TaskMetadata # Link to rejection metadata from IPFS (contains rejection reason)
   rejectedAt: BigInt!
   rejectedAtBlock: BigInt!
   transactionHash: Bytes!

@@ -642,6 +642,10 @@ export function handleTaskRejected(event: TaskRejected): void {
   rejection.rejector = event.params.rejector;
   rejection.rejectorUsername = getUsernameForAddress(event.params.rejector);
   rejection.rejectionHash = event.params.rejectionHash;
+
+  // Link to rejection metadata entity (will be created by IPFS data source)
+  let rejectionCid = bytes32ToCid(event.params.rejectionHash);
+  rejection.metadata = event.transaction.hash.toHexString() + "-" + rejectionCid;
   rejection.rejectedAt = event.block.timestamp;
   rejection.rejectedAtBlock = event.block.number;
   rejection.transactionHash = event.transaction.hash;
