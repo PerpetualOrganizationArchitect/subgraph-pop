@@ -630,7 +630,21 @@ export function handleTaskRejected(event: TaskRejected): void {
   task.rejectionHash = event.params.rejectionHash;
   task.rejectionCount = task.rejectionCount + 1;
   task.updatedAt = event.block.timestamp;
+
+  // Clear stale submission data — task is no longer submitted after rejection
+  task.submissionHash = null;
+  task.submittedAt = null;
+
+  // Restore task.metadata to the original creation/update metadata.
+  // handleTaskSubmitted overwrites task.metadata to point at submission content;
+  // on rejection we need to point it back to the task description metadata.
+  let originalCid = bytes32ToCid(task.metadataHash);
+  task.metadata = event.transaction.hash.toHexString() + "-" + originalCid;
+
   task.save();
+
+  // Re-fetch original task description metadata from IPFS so the restored link resolves
+  createTaskMetadataSource(task.metadataHash, taskEntityId, event.block.timestamp, event.transaction.hash);
 
   // Create IPFS data source to fetch and parse rejection metadata
   createTaskMetadataSource(event.params.rejectionHash, taskEntityId, event.block.timestamp, event.transaction.hash);
