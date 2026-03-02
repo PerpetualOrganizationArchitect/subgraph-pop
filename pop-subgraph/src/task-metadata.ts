@@ -80,7 +80,8 @@ export function handleTaskMetadata(content: Bytes): void {
   }
 
   // Parse rejection reason (for rejection metadata entities)
-  let rejectionValue = jsonObject.get("rejection");
+  // The frontend uploads rejection metadata with key "rejectionReason"
+  let rejectionValue = jsonObject.get("rejectionReason");
   if (rejectionValue != null && !rejectionValue.isNull() && rejectionValue.kind == JSONValueKind.STRING) {
     metadata.rejection = rejectionValue.toString();
   }
