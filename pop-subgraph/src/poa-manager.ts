@@ -5,13 +5,15 @@ import {
   RegistryUpdated as RegistryUpdatedEvent,
   InfrastructureDeployed as InfrastructureDeployedEvent
 } from "../generated/PoaManager/PoaManager";
+import { PaymasterHub as PaymasterHubContract } from "../generated/templates/PaymasterHub/PaymasterHub";
 import {
   PoaManagerContract,
   Beacon,
   BeaconUpgradeEvent,
   RegistryUpdate,
   PasskeyAccountFactory,
-  UniversalAccountRegistry
+  UniversalAccountRegistry,
+  PaymasterHubContract as PaymasterHubEntity
 } from "../generated/schema";
 import { OrgDeployer as OrgDeployerTemplate } from "../generated/templates";
 import { OrgRegistry as OrgRegistryTemplate } from "../generated/templates";
@@ -139,6 +141,45 @@ export function handleInfrastructureDeployed(event: InfrastructureDeployedEvent)
   OrgRegistryTemplate.create(event.params.orgRegistry);
   PaymasterHubTemplate.create(event.params.paymasterHub);
   UniversalAccountRegistryTemplate.create(event.params.globalAccountRegistry);
+
+  // Create PaymasterHubContract entity and sync initial solidarity balance
+  // Note: The PaymasterInitialized and SolidarityDonationReceived events are
+  // emitted when the contract is deployed/seeded, which happens BEFORE
+  // InfrastructureDeployed. Since the template doesn't exist yet at that time,
+  // those handlers are never called. We create the entity here and read
+  // the current solidarity balance from the contract to catch up.
+  let paymasterAddress = event.params.paymasterHub;
+  let paymasterContract = PaymasterHubContract.bind(Address.fromBytes(paymasterAddress));
+
+  let hub = new PaymasterHubEntity(paymasterAddress);
+  hub.totalDeposit = BigInt.fromI32(0);
+  hub.bountyPoolBalance = BigInt.fromI32(0);
+  hub.solidarityBalance = BigInt.fromI32(0);
+  hub.gracePeriodDays = 90;
+  hub.maxSpendDuringGrace = BigInt.fromString("10000000000000000"); // 0.01 ETH
+  hub.minDepositRequired = BigInt.fromString("3000000000000000"); // 0.003 ETH
+  hub.solidarityDistributionPaused = false;
+  hub.createdAt = event.block.timestamp;
+  hub.createdAtBlock = event.block.number;
+  hub.transactionHash = event.transaction.hash;
+
+  // Read initialization values from the contract since PaymasterInitialized
+  // was also emitted before the template existed
+  let entryPointResult = paymasterContract.try_ENTRY_POINT();
+  hub.entryPoint = entryPointResult.reverted ? Address.zero() : entryPointResult.value;
+  let hatsResult = paymasterContract.try_HATS();
+  hub.hats = hatsResult.reverted ? Address.zero() : hatsResult.value;
+  let poaManagerResult = paymasterContract.try_POA_MANAGER();
+  hub.poaManager = poaManagerResult.reverted ? Address.zero() : poaManagerResult.value;
+
+  // Read actual solidarity balance from the contract to capture any donations
+  // that occurred before the template was created (e.g. donateToSolidarity
+  // called during DeployInfrastructure, before registerInfrastructure)
+  let fundResult = paymasterContract.try_getSolidarityFund();
+  if (!fundResult.reverted) {
+    hub.solidarityBalance = fundResult.value.balance;
+  }
+  hub.save();
 
   // Create UniversalAccountRegistry entity
   // Note: The Initialized event is emitted when the contract is deployed,
