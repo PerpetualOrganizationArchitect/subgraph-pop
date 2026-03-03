@@ -30,6 +30,30 @@
   },
   {
     "type": "function",
+    "name": "adminCall",
+    "inputs": [
+      {
+        "name": "target",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "data",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "beacons",
     "inputs": [
       {
@@ -110,6 +134,44 @@
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "registerInfrastructure",
+    "inputs": [
+      {
+        "name": "_orgDeployer",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_orgRegistry",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_implRegistry",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_paymasterHub",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_globalAccountRegistry",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_passkeyAccountFactoryBeacon",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -257,44 +319,6 @@
   },
   {
     "type": "event",
-    "name": "OwnershipTransferred",
-    "inputs": [
-      {
-        "name": "previousOwner",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "newOwner",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "RegistryUpdated",
-    "inputs": [
-      {
-        "name": "oldRegistry",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      },
-      {
-        "name": "newRegistry",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
     "name": "InfrastructureDeployed",
     "inputs": [
       {
@@ -337,37 +361,42 @@
     "anonymous": false
   },
   {
-    "type": "function",
-    "name": "registerInfrastructure",
+    "type": "event",
+    "name": "OwnershipTransferred",
     "inputs": [
       {
-        "name": "_orgDeployer",
+        "name": "previousOwner",
         "type": "address",
+        "indexed": true,
         "internalType": "address"
       },
       {
-        "name": "_orgRegistry",
+        "name": "newOwner",
         "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "_implRegistry",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "_paymasterHub",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "_globalAccountRegistry",
-        "type": "address",
+        "indexed": true,
         "internalType": "address"
       }
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RegistryUpdated",
+    "inputs": [
+      {
+        "name": "oldRegistry",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "newRegistry",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
   },
   {
     "type": "error",

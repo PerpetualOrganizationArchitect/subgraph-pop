@@ -44,9 +44,39 @@
             "internalType": "address"
           },
           {
+            "name": "deployerAddress",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "accountRegistry",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
             "name": "participationToken",
             "type": "address",
             "internalType": "address"
+          },
+          {
+            "name": "deployerUsername",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "regDeadline",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "regNonce",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "regSignature",
+            "type": "bytes",
+            "internalType": "bytes"
           },
           {
             "name": "autoUpgrade",
@@ -121,19 +151,121 @@
             "internalType": "address[]"
           },
           {
-            "name": "roleNames",
-            "type": "string[]",
-            "internalType": "string[]"
-          },
-          {
-            "name": "roleImages",
-            "type": "string[]",
-            "internalType": "string[]"
-          },
-          {
-            "name": "roleCanVote",
-            "type": "bool[]",
-            "internalType": "bool[]"
+            "name": "roles",
+            "type": "tuple[]",
+            "internalType": "struct RoleConfigStructs.RoleConfig[]",
+            "components": [
+              {
+                "name": "name",
+                "type": "string",
+                "internalType": "string"
+              },
+              {
+                "name": "image",
+                "type": "string",
+                "internalType": "string"
+              },
+              {
+                "name": "metadataCID",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "canVote",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "vouching",
+                "type": "tuple",
+                "internalType": "struct RoleConfigStructs.RoleVouchingConfig",
+                "components": [
+                  {
+                    "name": "enabled",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "quorum",
+                    "type": "uint32",
+                    "internalType": "uint32"
+                  },
+                  {
+                    "name": "voucherRoleIndex",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  },
+                  {
+                    "name": "combineWithHierarchy",
+                    "type": "bool",
+                    "internalType": "bool"
+                  }
+                ]
+              },
+              {
+                "name": "defaults",
+                "type": "tuple",
+                "internalType": "struct RoleConfigStructs.RoleEligibilityDefaults",
+                "components": [
+                  {
+                    "name": "eligible",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "standing",
+                    "type": "bool",
+                    "internalType": "bool"
+                  }
+                ]
+              },
+              {
+                "name": "hierarchy",
+                "type": "tuple",
+                "internalType": "struct RoleConfigStructs.RoleHierarchyConfig",
+                "components": [
+                  {
+                    "name": "adminRoleIndex",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  }
+                ]
+              },
+              {
+                "name": "distribution",
+                "type": "tuple",
+                "internalType": "struct RoleConfigStructs.RoleDistributionConfig",
+                "components": [
+                  {
+                    "name": "mintToDeployer",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "additionalWearers",
+                    "type": "address[]",
+                    "internalType": "address[]"
+                  }
+                ]
+              },
+              {
+                "name": "hatConfig",
+                "type": "tuple",
+                "internalType": "struct RoleConfigStructs.HatConfig",
+                "components": [
+                  {
+                    "name": "maxSupply",
+                    "type": "uint32",
+                    "internalType": "uint32"
+                  },
+                  {
+                    "name": "mutableHat",
+                    "type": "bool",
+                    "internalType": "bool"
+                  }
+                ]
+              }
+            ]
           }
         ]
       }
@@ -166,6 +298,11 @@
           },
           {
             "name": "directDemocracyVoting",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "execBeacon",
             "type": "address",
             "internalType": "address"
           },
@@ -229,9 +366,39 @@
             "internalType": "address"
           },
           {
+            "name": "deployerAddress",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "accountRegistry",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
             "name": "participationToken",
             "type": "address",
             "internalType": "address"
+          },
+          {
+            "name": "deployerUsername",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "regDeadline",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "regNonce",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "regSignature",
+            "type": "bytes",
+            "internalType": "bytes"
           },
           {
             "name": "autoUpgrade",
@@ -306,19 +473,121 @@
             "internalType": "address[]"
           },
           {
-            "name": "roleNames",
-            "type": "string[]",
-            "internalType": "string[]"
-          },
-          {
-            "name": "roleImages",
-            "type": "string[]",
-            "internalType": "string[]"
-          },
-          {
-            "name": "roleCanVote",
-            "type": "bool[]",
-            "internalType": "bool[]"
+            "name": "roles",
+            "type": "tuple[]",
+            "internalType": "struct RoleConfigStructs.RoleConfig[]",
+            "components": [
+              {
+                "name": "name",
+                "type": "string",
+                "internalType": "string"
+              },
+              {
+                "name": "image",
+                "type": "string",
+                "internalType": "string"
+              },
+              {
+                "name": "metadataCID",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "canVote",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "vouching",
+                "type": "tuple",
+                "internalType": "struct RoleConfigStructs.RoleVouchingConfig",
+                "components": [
+                  {
+                    "name": "enabled",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "quorum",
+                    "type": "uint32",
+                    "internalType": "uint32"
+                  },
+                  {
+                    "name": "voucherRoleIndex",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  },
+                  {
+                    "name": "combineWithHierarchy",
+                    "type": "bool",
+                    "internalType": "bool"
+                  }
+                ]
+              },
+              {
+                "name": "defaults",
+                "type": "tuple",
+                "internalType": "struct RoleConfigStructs.RoleEligibilityDefaults",
+                "components": [
+                  {
+                    "name": "eligible",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "standing",
+                    "type": "bool",
+                    "internalType": "bool"
+                  }
+                ]
+              },
+              {
+                "name": "hierarchy",
+                "type": "tuple",
+                "internalType": "struct RoleConfigStructs.RoleHierarchyConfig",
+                "components": [
+                  {
+                    "name": "adminRoleIndex",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  }
+                ]
+              },
+              {
+                "name": "distribution",
+                "type": "tuple",
+                "internalType": "struct RoleConfigStructs.RoleDistributionConfig",
+                "components": [
+                  {
+                    "name": "mintToDeployer",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "additionalWearers",
+                    "type": "address[]",
+                    "internalType": "address[]"
+                  }
+                ]
+              },
+              {
+                "name": "hatConfig",
+                "type": "tuple",
+                "internalType": "struct RoleConfigStructs.HatConfig",
+                "components": [
+                  {
+                    "name": "maxSupply",
+                    "type": "uint32",
+                    "internalType": "uint32"
+                  },
+                  {
+                    "name": "mutableHat",
+                    "type": "bool",
+                    "internalType": "bool"
+                  }
+                ]
+              }
+            ]
           }
         ]
       },
