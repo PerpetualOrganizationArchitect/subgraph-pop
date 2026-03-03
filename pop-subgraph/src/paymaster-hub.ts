@@ -771,6 +771,7 @@ export function handleOnboardingConfigUpdated(event: OnboardingConfigUpdatedEven
   config.maxGasPerCreation = event.params.maxGasPerCreation;
   config.dailyCreationLimit = event.params.dailyCreationLimit;
   config.enabled = event.params.enabled;
+  config.accountRegistry = event.params.accountRegistry;
   config.updatedAt = event.block.timestamp;
   config.blockNumber = event.block.number;
   config.transactionHash = event.transaction.hash;
