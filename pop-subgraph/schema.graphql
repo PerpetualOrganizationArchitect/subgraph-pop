@@ -1953,6 +1953,7 @@ type OnboardingConfig @entity(immutable: false) {
   maxGasPerCreation: BigInt!
   dailyCreationLimit: BigInt!
   enabled: Boolean!
+  accountRegistry: Bytes!
   updatedAt: BigInt!
   blockNumber: BigInt!
   transactionHash: Bytes!

@@ -333,6 +333,11 @@
             "name": "enabled",
             "type": "bool",
             "internalType": "bool"
+          },
+          {
+            "name": "accountRegistry",
+            "type": "address",
+            "internalType": "address"
           }
         ]
       }
@@ -604,6 +609,11 @@
         "name": "actualGasCost",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "outputs": [],
@@ -840,6 +850,11 @@
         "name": "_enabled",
         "type": "bool",
         "internalType": "bool"
+      },
+      {
+        "name": "_accountRegistry",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "outputs": [],
@@ -1468,6 +1483,12 @@
         "type": "bool",
         "indexed": false,
         "internalType": "bool"
+      },
+      {
+        "name": "accountRegistry",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
       }
     ],
     "anonymous": false
