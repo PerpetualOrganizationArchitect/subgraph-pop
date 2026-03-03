@@ -4,24 +4,35 @@ indexerHints:
   prune: auto
 schema:
   file: ./schema.graphql
-# Beacon Addresses (for subgraph indexing) - Hoodi deployment block 2340352:
-# BEACON_ImplementationRegistry: 0xb7C73C7b0801969e9e3FD0F236f903d1b62bf6cB
-# BEACON_OrgRegistry: 0x752433f2C1A07E6E7ae06fFE62Bb919ff9A57824
-# BEACON_OrgDeployer: 0xff9c7B0D3e92fB8b3b5AF25Bb1142D92045EE849
-# BEACON_PaymasterHub: 0x828CcA65A7F6CEEe4E42970287274391E83E57Ca
-# BEACON_HybridVoting: 0x5D3A12234E5179F07e56811b022D07B21f4a7f55
-# BEACON_DirectDemocracyVoting: 0x4f5C93aBE337d9825137b7ff86017c6d84a054C3
-# BEACON_Executor: 0x69980aD3FDFeeec9bEBFDE314227e75F49128Dff
-# BEACON_QuickJoin: 0xdEF0D96CEB491d398B5d73B84Bed20de61Cbb339
-# BEACON_ParticipationToken: 0xfB4E4485f4fE2d2e05659a27515e48E385AC71Da
-# BEACON_TaskManager: 0xa1353633b7E9F9D8A61ecdE920228a23B6fC0E8b
-# BEACON_EducationHub: 0x4Fc1f849B8e4478460E1D08d8976B4bCfBad0C25
-# BEACON_PaymentManager: 0x9879dF5c81f1DCEcAF4C5EEafF82dFb3E15Da2B0
-# BEACON_UniversalAccountRegistry: 0xfAF7565b89C48463bEF6fA9b144d893Cbb233C08
-# BEACON_EligibilityModule: 0x491011aDdEC65Fc67DD9891413B901f2211ca202
-# BEACON_ToggleModule: 0x4dC1dCdb94A7dC059f21b3FCEce5005f2e124Ef8
-# BEACON_PasskeyAccount: 0xF4d451aB88a9a19182C6Aaec2dAeFB32658e49b5
-# BEACON_PasskeyAccountFactory: 0x877BA81D4817999aaD02E8B01a143b595d0B8F85
+# Beacon Addresses (for subgraph indexing) - Hoodi deployment block 2340934:
+# BEACON_HybridVoting: 0xd2699bcc0558724a6cc38bdd6e312eaddc028e1b
+# BEACON_DirectDemocracyVoting: 0x41a16679ac2bb3b3f223b427e8b5e83c5d461857
+# BEACON_Executor: 0x97a64673dad876be613fa324374965de1c4c7e89
+# BEACON_QuickJoin: 0xb44b29ed43acf3efdea0f96529d8b23ae13bf473
+# BEACON_ParticipationToken: 0xb30e185cc585face052f4ffc2f9c11a82d72694b
+# BEACON_TaskManager: 0x2daa88a42e3690b7d2d6f4f1c0d82e2178c0dd21
+# BEACON_EducationHub: 0xb78dd9caf63b913b1836458ff6f16e72844bc565
+# BEACON_PaymentManager: 0x3e7b23bd429c2c069fee8e2a98ce0afdb4ccf8b0
+# BEACON_UniversalAccountRegistry: 0x347551cb2f0a5293c524730ff28a2bab49df821b
+# BEACON_EligibilityModule: 0x01e71c33d0a2d493c0201cf948127680a80477d4
+# BEACON_ToggleModule: 0xaeabd29ac45ec54cbd682e709639d78bbace4dde
+# BEACON_PasskeyAccount: 0x0a998c94cf125b9e6f6d2614a9495b017b6e5a32
+# BEACON_PasskeyAccountFactory: 0xc36c035003204b882d7f491b4e1abf473da9b148
+# BEACON_ImplementationRegistry: 0x1fd5f96e921496f31d7da1a40ea5acf36cf53425
+# BEACON_OrgRegistry: 0x2689ff237b49a289eeeea48b2713fc1b016d8a62
+# BEACON_OrgDeployer: 0xc9d6d926c671e79115e14593e6417a78a149be25
+# BEACON_PaymasterHub: 0xe80d0422da045b884889aabbe25a4e178785d9d9
+# GovernanceFactory: 0x5542f05e9b71089eefd953ca6fd69ec07407c48c
+# AccessFactory: 0x86128b3788107e255a6a362ae812de2804315348
+# ModulesFactory: 0x360712781fa75212ae36c67e463d75915578a7da
+# HatsTreeSetup: 0x8566dcf4fd0d61c1b90e3c52c03138f45ea3e72f
+# PoaManager: 0x1a4243d2d4aabde58eca439c2d42d6763d5769bb
+# BeaconProxy: 0x039a6d1bd977ab9573570691f2fe1fffc064c811
+# BeaconProxy: 0x2455db206ec0785c3f403b11f96299c8c059a73e
+# BeaconProxy: 0x922e8d5f354c6043d7602a0474fd7916584648e1
+# BeaconProxy: 0xc01c70a67808bc7a1e4cc34d762b6ca4fd6ce6ff
+# BeaconProxy: 0xeab3fb4d814fd13740cf03d3fc90073c9f32ccd2
+# BeaconProxy: 0x58683fee2f26dfbb303ddb9040a49c81b069b019
 # NOTE: Infrastructure contracts (OrgDeployer, OrgRegistry, PaymasterHub, UniversalAccountRegistry)
 # are now dynamically discovered via InfrastructureDeployed event from PoaManager.
 # Only PoaManager and singleton factories need to be hardcoded.
@@ -50,9 +61,9 @@ dataSources:
     name: GovernanceFactory
     network: hoodi
     source:
-      address: "0x601a83eab38822716a9f65e4b337743199edd5ee"
+      address: "0x5542f05e9b71089eefd953ca6fd69ec07407c48c"
       abi: GovernanceFactory
-      startBlock: 2340352
+      startBlock: 2340944
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -70,9 +81,9 @@ dataSources:
     name: PoaManager
     network: hoodi
     source:
-      address: "0x5e34F710b72DD436B0CDB3C94d7c9E8B6508aFf6"
+      address: "0x1a4243d2d4aabde58eca439c2d42d6763d5769bb"
       abi: PoaManager
-      startBlock: 2340352
+      startBlock: 2340935
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
