@@ -653,6 +653,96 @@
   },
   {
     "type": "function",
+    "name": "registerAndConfigureOrg",
+    "inputs": [
+      {
+        "name": "orgId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "adminHatId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "config",
+        "type": "tuple",
+        "internalType": "struct PaymasterHub.DeployConfig",
+        "components": [
+          {
+            "name": "operatorHatId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxFeePerGas",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxPriorityFeePerGas",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "maxCallGas",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "maxVerificationGas",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "maxPreVerificationGas",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "ruleTargets",
+            "type": "address[]",
+            "internalType": "address[]"
+          },
+          {
+            "name": "ruleSelectors",
+            "type": "bytes4[]",
+            "internalType": "bytes4[]"
+          },
+          {
+            "name": "ruleAllowed",
+            "type": "bool[]",
+            "internalType": "bool[]"
+          },
+          {
+            "name": "ruleMaxCallGasHints",
+            "type": "uint32[]",
+            "internalType": "uint32[]"
+          },
+          {
+            "name": "budgetSubjectKeys",
+            "type": "bytes32[]",
+            "internalType": "bytes32[]"
+          },
+          {
+            "name": "budgetCapsPerEpoch",
+            "type": "uint128[]",
+            "internalType": "uint128[]"
+          },
+          {
+            "name": "budgetEpochLens",
+            "type": "uint32[]",
+            "internalType": "uint32[]"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
     "name": "registerOrg",
     "inputs": [
       {

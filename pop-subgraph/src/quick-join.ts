@@ -8,7 +8,6 @@ import {
   MemberHatIdsUpdated as MemberHatIdsUpdatedEvent,
   AddressesUpdated as AddressesUpdatedEvent,
   UniversalFactoryUpdated as UniversalFactoryUpdatedEvent,
-  QuickJoinedWithPasskey as QuickJoinedWithPasskeyEvent,
   QuickJoinedWithPasskeyByMaster as QuickJoinedWithPasskeyByMasterEvent,
   RegisterAndQuickJoined as RegisterAndQuickJoinedEvent,
   RegisterAndQuickJoinedWithPasskey as RegisterAndQuickJoinedWithPasskeyEvent,
@@ -255,50 +254,6 @@ export function handleUniversalFactoryUpdated(event: UniversalFactoryUpdatedEven
 
   contract.universalFactory = event.params.universalFactory;
   contract.save();
-}
-
-export function handleQuickJoinedWithPasskey(event: QuickJoinedWithPasskeyEvent): void {
-  let contractAddress = event.address;
-  let contract = QuickJoinContract.load(contractAddress);
-  if (!contract) {
-    log.warning("QuickJoinContract not found at address {}", [
-      contractAddress.toHexString()
-    ]);
-    return;
-  }
-
-  // Create PasskeyQuickJoin event record
-  let eventId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let passkeyJoin = new PasskeyQuickJoin(eventId);
-  passkeyJoin.quickJoinContract = contractAddress;
-  passkeyJoin.credentialId = event.params.credentialId;
-  passkeyJoin.hatIds = event.params.hatIds;
-  passkeyJoin.timestamp = event.block.timestamp;
-  passkeyJoin.blockNumber = event.block.number;
-  passkeyJoin.transactionHash = event.transaction.hash;
-
-  // Link to PasskeyAccount - account should be created by PasskeyAccountFactory in the same transaction
-  passkeyJoin.account = event.params.account;
-  passkeyJoin.save();
-
-  // Create User and RoleWearer entities for the passkey account
-  let user = createUserOnJoin(
-    contract.organization,
-    event.params.account,
-    "QuickJoinWithPasskey",
-    event.block.timestamp,
-    event.block.number
-  );
-
-  if (user) {
-    let hatIds = event.params.hatIds;
-    for (let i = 0; i < hatIds.length; i++) {
-      if (shouldCreateRoleWearer(contract.organization, hatIds[i], event.params.account)) {
-        getOrCreateRoleWearer(contract.organization, hatIds[i], event.params.account, event);
-        recordUserHatChange(user, hatIds[i], true, event);
-      }
-    }
-  }
 }
 
 export function handleQuickJoinedWithPasskeyByMaster(event: QuickJoinedWithPasskeyByMasterEvent): void {

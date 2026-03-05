@@ -3,16 +3,40 @@
     "type": "constructor",
     "inputs": [
       {
-        "name": "implementation_",
+        "name": "_owner",
         "type": "address",
         "internalType": "address"
       },
       {
-        "name": "initialOwner",
+        "name": "_mirrorBeacon",
         "type": "address",
         "internalType": "address"
+      },
+      {
+        "name": "_staticImpl",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_mode",
+        "type": "uint8",
+        "internalType": "enum SwitchableBeacon.Mode"
       }
     ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "acceptOwnership",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "cancelOwnershipTransfer",
+    "inputs": [],
+    "outputs": [],
     "stateMutability": "nonpayable"
   },
   {
@@ -24,6 +48,45 @@
         "name": "",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isMirrorMode",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "mirrorBeacon",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "mode",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "enum SwitchableBeacon.Mode"
       }
     ],
     "stateMutability": "view"
@@ -43,10 +106,62 @@
   },
   {
     "type": "function",
-    "name": "renounceOwnership",
+    "name": "pendingOwner",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pin",
+    "inputs": [
+      {
+        "name": "impl",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "pinToCurrent",
     "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setMirror",
+    "inputs": [
+      {
+        "name": "_mirrorBeacon",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "staticImplementation",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -63,20 +178,51 @@
   },
   {
     "type": "function",
-    "name": "upgradeTo",
-    "inputs": [
+    "name": "tryGetImplementation",
+    "inputs": [],
+    "outputs": [
       {
-        "name": "newImplementation",
+        "name": "success",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "impl",
         "type": "address",
         "internalType": "address"
       }
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    "stateMutability": "view"
   },
   {
     "type": "event",
-    "name": "OwnershipTransferred",
+    "name": "MirrorSet",
+    "inputs": [
+      {
+        "name": "mirrorBeacon",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ModeChanged",
+    "inputs": [
+      {
+        "name": "mode",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum SwitchableBeacon.Mode"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OwnerTransferred",
     "inputs": [
       {
         "name": "previousOwner",
@@ -95,7 +241,33 @@
   },
   {
     "type": "event",
-    "name": "Upgraded",
+    "name": "OwnershipTransferCancelled",
+    "inputs": [
+      {
+        "name": "cancelledOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OwnershipTransferStarted",
+    "inputs": [
+      {
+        "name": "pendingOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Pinned",
     "inputs": [
       {
         "name": "implementation",
@@ -108,35 +280,37 @@
   },
   {
     "type": "error",
-    "name": "BeaconInvalidImplementation",
-    "inputs": [
-      {
-        "name": "implementation",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
+    "name": "ImplNotSet",
+    "inputs": []
   },
   {
     "type": "error",
-    "name": "OwnableInvalidOwner",
-    "inputs": [
-      {
-        "name": "owner",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
+    "name": "InvalidModeTransition",
+    "inputs": []
   },
   {
     "type": "error",
-    "name": "OwnableUnauthorizedAccount",
-    "inputs": [
-      {
-        "name": "account",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
+    "name": "NoPendingTransfer",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotContract",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotOwner",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotPendingOwner",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ZeroAddress",
+    "inputs": []
   }
 ]
