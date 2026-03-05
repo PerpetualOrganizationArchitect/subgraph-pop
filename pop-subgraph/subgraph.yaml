@@ -4,35 +4,35 @@ indexerHints:
   prune: never
 schema:
   file: ./schema.graphql
-# Contract Addresses - Hoodi deployment block 2354418:
-# HybridVoting: 0xd5b1376135ad2bda96413d421a89dc1989208ed6
-# DirectDemocracyVoting: 0x9cd3dcadd8a44570314a1925a89b21bf5b9e9d32
-# Executor: 0xaf0cf88369c13763532087fad0bf7452678f5ce5
-# QuickJoin: 0xd03ba38f0e08850d72c132ccc3d1b02c24e6371c
-# ParticipationToken: 0xc224098ab27792a1bc9ef715f7ccd97c23148822
-# TaskManager: 0xd1899bf7b224c52997447ce831ffe5a23c02ec8b
-# EducationHub: 0x24f031ec57b78cb7b798199452276c9c1a7db4ec
-# PaymentManager: 0x05f6beaf458f6317874ef1cd50545617dd063382
-# UniversalAccountRegistry: 0xd5532331f3f4bf8c20708879af7bd9f60b1e3c7d
-# EligibilityModule: 0x72f04e60dccd4e36495b883b6a4b4fbd6fede4b7
-# ToggleModule: 0x55c25b84cfff340196e15c2a032ed6d882ca58f0
-# PasskeyAccount: 0x78e072aa79c06a4045ace9d12d2db79994cce336
-# PasskeyAccountFactory: 0x6151a7d29d196aee4e11ea174e4ed1e39bd50b45
-# ImplementationRegistry: 0xeb2f969c89a67272e74b72dc772aa53ba154ffcc
-# OrgRegistry: 0x3d10830aa4ffccd9ad69c21885b3d5e5314faa9c
-# OrgDeployer: 0xbdbd25fa54e8cee692898c8ec90d447ce4427d17
-# PoaManager: 0x8accd6d2328f024cb37527c636c3823b06222d33
-# BeaconProxy: 0x4e0c568ae4a23ec0a931ba25660693b728540da1
-# BeaconProxy: 0xb2d76c93db4377bf78aec69138850f325ae963d4
-# GovernanceFactory: 0x1f97ccb5e31109311589bf6d3494afb38a054395
-# AccessFactory: 0xfdcacc317b056fa3b23b980bbd28b8445847866b
-# ModulesFactory: 0xc6b7ce34cdb773267ca1460de6752e7066508d84
-# HatsTreeSetup: 0x574576d68b9c6f159831493314f2030acfe436ca
-# PaymasterHub: 0x4209072baa4a4065e0d7067b9b294d68eb7da87a
-# BeaconProxy: 0x271440a94b95367538721c1507c152e546aeb05a
-# BeaconProxy: 0x595ce07f89b27d77b9b882ee105c0d11ce8a8af2
-# BeaconProxy: 0x0a36408c0b8237044884884fc04ba667d92bcab6
-# BeaconProxy: 0x7ea866284eb5446be3f228eadd0d2608e62b75cb
+# Contract Addresses - Hoodi deployment block 2355238:
+# HybridVoting: 0xce43f88a3a497ae8b2a62225b0955c52d0ea7eab
+# DirectDemocracyVoting: 0xd1e665b9870867a5a353d7bfa71b047e0484a554
+# Executor: 0xf0eb76393868982267c4e66d3aa0c77af0875288
+# QuickJoin: 0x19e7e3183c9c6ab286f0ce8c70439a5e3b3c2d01
+# ParticipationToken: 0xa6d722a4a2bb10a58f12fd85bc3cffbf8f88d68b
+# TaskManager: 0x46a0ada8321b5cd233ad1b56f268033014e92161
+# EducationHub: 0x12981b60b1188a0ac105968bfa5d878ea3903bbe
+# PaymentManager: 0xa7823a84983acd6b5bf462626531c8e093ea1398
+# UniversalAccountRegistry: 0x18e59fb19616a28eac802c93da340a3ba006d26b
+# EligibilityModule: 0x8f76d7bfb681f426a9f24d3f58aea0e70648fa6d
+# ToggleModule: 0x78106902b9b1812bc8c61170b1c10e64e8ff3483
+# PasskeyAccount: 0x954d1cf8846eea6c69074ebb8e70fd895b7d6f80
+# PasskeyAccountFactory: 0x6685e1f638e31ddf0f9a867c547570cae0e2c7c1
+# ImplementationRegistry: 0x922a77d43d8db9cd103fab05481b8643f3a9192a
+# OrgRegistry: 0x9360875b192b3c5e91f861ea34b05122e450e53d
+# OrgDeployer: 0x3d1ecaf708c6f0ec003806621fdc07677ea770cf
+# PoaManager: 0xc28170d19177bb7299d80225eda5c2964acc706e
+# BeaconProxy: 0x7513b5997eeba4964f8724b9022dcadb47b67399
+# BeaconProxy: 0x1b3874897d3d49ce74369c14e98434ffb361922a
+# GovernanceFactory: 0xcd104de7cee2b65556868e187bd2972156af0bba
+# AccessFactory: 0xa053cbfa891f15667041bf30524f7ed76174239a
+# ModulesFactory: 0x15c9e2db796999a37beaae4e31f2091d178923e7
+# HatsTreeSetup: 0x12de5e552555ef9f9ac9709785e4c367f1c44cab
+# PaymasterHub: 0x3db34bf5262ff3c079c6ffadd8ab143a0ffe5ae7
+# BeaconProxy: 0x7bc945a252f48cb5967f5e2c847d98addb419022
+# BeaconProxy: 0x62f0952b14f3240273c62e9f70889db6fea685f2
+# BeaconProxy: 0x323be55d19cf5039c3fa1cfc7262b3f63619f12a
+# BeaconProxy: 0x539f6450704309f1f1a92c1ab141e341ebf8ae31
 # NOTE: Infrastructure contracts (OrgDeployer, OrgRegistry, PaymasterHub, UniversalAccountRegistry)
 # are now dynamically discovered via InfrastructureDeployed event from PoaManager.
 # Only PoaManager and singleton factories need to be hardcoded.
@@ -61,9 +61,9 @@ dataSources:
     name: GovernanceFactory
     network: hoodi
     source:
-      address: "0x1f97ccb5e31109311589bf6d3494afb38a054395"
+      address: "0xcd104de7cee2b65556868e187bd2972156af0bba"
       abi: GovernanceFactory
-      startBlock: 2354429
+      startBlock: 2355249
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -81,9 +81,9 @@ dataSources:
     name: PoaManager
     network: hoodi
     source:
-      address: "0x8accd6d2328f024cb37527c636c3823b06222d33"
+      address: "0xc28170d19177bb7299d80225eda5c2964acc706e"
       abi: PoaManager
-      startBlock: 2354418
+      startBlock: 2355238
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
