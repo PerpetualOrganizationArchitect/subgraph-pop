@@ -1,7 +1,7 @@
 # Redeploy trigger
 specVersion: 1.2.0
 indexerHints:
-  prune: auto
+  prune: never
 schema:
   file: ./schema.graphql
 # Contract Addresses - Hoodi deployment block 2353872:
