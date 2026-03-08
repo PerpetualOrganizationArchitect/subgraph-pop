@@ -1357,13 +1357,6 @@ enum DepositEventType {
   EmergencyWithdraw
 }
 
-enum BountyEventType {
-  Funded
-  Paid
-  PayFailed
-  Swept
-}
-
 enum SolidarityEventType {
   FeeCollected
   DonationReceived
@@ -1378,7 +1371,6 @@ enum ConfigChangeType {
   PauseSet
   RuleSet
   BudgetSet
-  BountyConfigSet
 }
 
 # 1. PaymasterHubContract - Singleton contract entity
@@ -1388,7 +1380,6 @@ type PaymasterHubContract @entity(immutable: false) {
   hats: Bytes!
   poaManager: Bytes!
   totalDeposit: BigInt!
-  bountyPoolBalance: BigInt!
   solidarityBalance: BigInt!
   gracePeriodDays: Int!
   maxSpendDuringGrace: BigInt!
@@ -1399,8 +1390,6 @@ type PaymasterHubContract @entity(immutable: false) {
   # Derived relationships
   orgConfigs: [PaymasterOrgConfig!]! @derivedFrom(field: "paymasterHub")
   depositEvents: [PaymasterDepositEvent!]! @derivedFrom(field: "paymasterHub")
-  bountyEvents: [BountyEvent!]! @derivedFrom(field: "paymasterHub")
-  userOpEvents: [UserOpEvent!]! @derivedFrom(field: "paymasterHub")
   solidarityEvents: [SolidarityEvent!]! @derivedFrom(field: "paymasterHub")
   solidarityDistributionPaused: Boolean!
   configChanges: [PaymasterConfigChange!]! @derivedFrom(field: "paymasterHub")
@@ -1428,7 +1417,6 @@ type PaymasterOrgConfig @entity(immutable: false) {
   rules: [PaymasterRule!]! @derivedFrom(field: "orgConfig")
   budgets: [PaymasterBudget!]! @derivedFrom(field: "orgConfig")
   feeCaps: PaymasterFeeCaps @derivedFrom(field: "orgConfig")
-  bountyConfig: PaymasterBountyConfig @derivedFrom(field: "orgConfig")
   stats: PaymasterOrgStats @derivedFrom(field: "orgConfig")
   usageEvents: [UsageEvent!]! @derivedFrom(field: "orgConfig")
   depositEvents: [PaymasterDepositEvent!]! @derivedFrom(field: "orgConfig")
@@ -1485,19 +1473,6 @@ type PaymasterFeeCaps @entity(immutable: false) {
   transactionHash: Bytes!
 }
 
-# 6. PaymasterBountyConfig - Per-org bounty settings
-type PaymasterBountyConfig @entity(immutable: false) {
-  id: String! # paymasterHub-orgId
-  orgConfig: PaymasterOrgConfig!
-  enabled: Boolean!
-  maxBountyPerOp: BigInt!
-  pctBpCap: Int!
-  totalPaid: BigInt!
-  setAt: BigInt!
-  setAtBlock: BigInt!
-  transactionHash: Bytes!
-}
-
 """
 Pre-computed aggregate statistics for an organization's paymaster usage.
 Updated on each sponsored operation for efficient querying.
@@ -1508,14 +1483,11 @@ type PaymasterOrgStats @entity(immutable: false) {
   orgConfig: PaymasterOrgConfig!
   # Operation counts
   totalUserOps: BigInt!
-  totalSuccessfulBounties: BigInt!
-  totalFailedBounties: BigInt!
   # Gas statistics
   totalGasSponsored: BigInt! # Sum of all gas costs sponsored
   # Financial
   totalDeposited: BigInt!
   totalWithdrawn: BigInt!
-  totalBountyPaid: BigInt!
   totalSolidarityFeesCollected: BigInt!
   # Time tracking
   lastOperationAt: BigInt!
@@ -1541,22 +1513,7 @@ type PaymasterDepositEvent @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
-# 9. BountyEvent - Bounty pool activity history
-type BountyEvent @entity(immutable: true) {
-  id: Bytes! # txHash.concatI32(logIndex)
-  paymasterHub: PaymasterHubContract!
-  orgConfig: PaymasterOrgConfig
-  eventType: BountyEventType!
-  userOpHash: Bytes
-  recipient: Bytes
-  amount: BigInt!
-  newBalance: BigInt
-  eventAt: BigInt!
-  eventAtBlock: BigInt!
-  transactionHash: Bytes!
-}
-
-# 10. UsageEvent - Gas usage tracking
+# 9. UsageEvent - Gas usage tracking
 type UsageEvent @entity(immutable: true) {
   id: Bytes! # txHash.concatI32(logIndex)
   orgConfig: PaymasterOrgConfig!
@@ -1570,18 +1527,7 @@ type UsageEvent @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
-# 11. UserOpEvent - UserOperation posting history
-type UserOpEvent @entity(immutable: true) {
-  id: Bytes! # txHash.concatI32(logIndex)
-  paymasterHub: PaymasterHubContract!
-  opHash: Bytes!
-  postedBy: Bytes!
-  eventAt: BigInt!
-  eventAtBlock: BigInt!
-  transactionHash: Bytes!
-}
-
-# 12. SolidarityEvent - Solidarity pool activity
+# 10. SolidarityEvent - Solidarity pool activity
 type SolidarityEvent @entity(immutable: true) {
   id: Bytes! # txHash.concatI32(logIndex)
   paymasterHub: PaymasterHubContract!

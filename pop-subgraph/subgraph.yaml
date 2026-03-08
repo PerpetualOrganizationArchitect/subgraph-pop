@@ -163,12 +163,9 @@ templates:
         - PaymasterRule
         - PaymasterBudget
         - PaymasterFeeCaps
-        - PaymasterBountyConfig
         - PaymasterOrgStats
         - PaymasterDepositEvent
-        - BountyEvent
         - UsageEvent
-        - UserOpEvent
         - SolidarityEvent
         - PaymasterConfigChange
         - GracePeriodChange
@@ -200,20 +197,8 @@ templates:
           handler: handleDepositWithdraw
         - event: OrgDepositReceived(indexed bytes32,indexed address,uint256)
           handler: handleOrgDepositReceived
-        - event: BountyConfig(indexed bytes32,bool,uint96,uint16)
-          handler: handleBountyConfig
-        - event: BountyFunded(uint256,uint256)
-          handler: handleBountyFunded
-        - event: BountySweep(indexed address,uint256)
-          handler: handleBountySweep
-        - event: BountyPaid(indexed bytes32,indexed address,uint256)
-          handler: handleBountyPaid
-        - event: BountyPayFailed(indexed bytes32,indexed address,uint256)
-          handler: handleBountyPayFailed
         - event: UsageIncreased(indexed bytes32,bytes32,uint256,uint128,uint32)
           handler: handleUsageIncreased
-        - event: UserOpPosted(indexed bytes32,indexed address)
-          handler: handleUserOpPosted
         - event: SolidarityFeeCollected(indexed bytes32,uint256)
           handler: handleSolidarityFeeCollected
         - event: SolidarityDonationReceived(indexed address,uint256)
