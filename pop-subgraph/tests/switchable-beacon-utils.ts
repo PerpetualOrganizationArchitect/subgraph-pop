@@ -4,9 +4,8 @@ import {
   MirrorSet,
   Pinned,
   ModeChanged,
-  OwnerTransferred,
-  OwnershipTransferStarted,
-  OwnershipTransferCancelled
+  OwnershipTransferred,
+  OwnershipTransferStarted
 } from "../generated/templates/SwitchableBeacon/SwitchableBeacon";
 
 export function createMirrorSetEvent(mirrorBeacon: Address): MirrorSet {
@@ -42,11 +41,11 @@ export function createModeChangedEvent(mode: i32): ModeChanged {
   return event;
 }
 
-export function createOwnerTransferredEvent(
+export function createOwnershipTransferredEvent(
   previousOwner: Address,
   newOwner: Address
-): OwnerTransferred {
-  let event = changetype<OwnerTransferred>(newMockEvent());
+): OwnershipTransferred {
+  let event = changetype<OwnershipTransferred>(newMockEvent());
 
   event.parameters = new Array();
   event.parameters.push(
@@ -60,26 +59,17 @@ export function createOwnerTransferredEvent(
 }
 
 export function createOwnershipTransferStartedEvent(
-  pendingOwner: Address
+  previousOwner: Address,
+  newOwner: Address
 ): OwnershipTransferStarted {
   let event = changetype<OwnershipTransferStarted>(newMockEvent());
 
   event.parameters = new Array();
   event.parameters.push(
-    new ethereum.EventParam("pendingOwner", ethereum.Value.fromAddress(pendingOwner))
+    new ethereum.EventParam("previousOwner", ethereum.Value.fromAddress(previousOwner))
   );
-
-  return event;
-}
-
-export function createOwnershipTransferCancelledEvent(
-  cancelledOwner: Address
-): OwnershipTransferCancelled {
-  let event = changetype<OwnershipTransferCancelled>(newMockEvent());
-
-  event.parameters = new Array();
   event.parameters.push(
-    new ethereum.EventParam("cancelledOwner", ethereum.Value.fromAddress(cancelledOwner))
+    new ethereum.EventParam("newOwner", ethereum.Value.fromAddress(newOwner))
   );
 
   return event;

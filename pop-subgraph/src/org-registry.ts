@@ -1,4 +1,4 @@
-import { BigInt, Bytes, DataSourceContext } from "@graphprotocol/graph-ts";
+import { BigInt, Bytes, DataSourceContext, dataSource } from "@graphprotocol/graph-ts";
 import {
   OrgRegistered as OrgRegisteredEvent,
   MetaUpdated as MetaUpdatedEvent,
@@ -11,7 +11,8 @@ import {
   Organization,
   OrgMetaUpdate,
   RegisteredContract,
-  SwitchableBeaconContract
+  SwitchableBeaconContract,
+  NameReservation
 } from "../generated/schema";
 import { SwitchableBeacon as SwitchableBeaconTemplate } from "../generated/templates";
 import { OrgMetadata as OrgMetadataTemplate } from "../generated/templates";
@@ -86,6 +87,64 @@ function getOrCreateOrgRegistry(contractAddress: Bytes, timestamp: BigInt, block
 }
 
 /**
+ * Try to reserve an org name. Returns true if the name is canonical for this org.
+ * Handles cross-chain ordering: earlier timestamp always wins.
+ */
+function tryReserveOrgName(orgName: string, orgId: Bytes, timestamp: BigInt): boolean {
+  let nameKey = "org-" + orgName.toLowerCase();
+  let reservation = NameReservation.load(nameKey);
+
+  if (reservation && reservation.active) {
+    if (reservation.owner.equals(orgId)) {
+      // Same org re-registering — canonical
+      return true;
+    }
+
+    if (timestamp < reservation.reservedAt) {
+      // Current event is earlier — take ownership from previous holder
+      let previousOrg = Organization.load(reservation.owner);
+      if (previousOrg) {
+        previousOrg.isCanonicalName = false;
+        previousOrg.save();
+      }
+      reservation.owner = orgId;
+      reservation.chain = dataSource.network();
+      reservation.reservedAt = timestamp;
+      reservation.save();
+      return true;
+    }
+
+    // Name is taken by another org that registered earlier — reject
+    return false;
+  }
+
+  // Name is available (no reservation or inactive) — reserve it
+  if (!reservation) {
+    reservation = new NameReservation(nameKey);
+    reservation.type = "orgname";
+  }
+  reservation.name = orgName;
+  reservation.owner = orgId;
+  reservation.chain = dataSource.network();
+  reservation.reservedAt = timestamp;
+  reservation.active = true;
+  reservation.save();
+  return true;
+}
+
+/**
+ * Release an org name reservation if the given org is the current holder.
+ */
+function releaseOrgName(orgName: string, orgId: Bytes): void {
+  let nameKey = "org-" + orgName.toLowerCase();
+  let reservation = NameReservation.load(nameKey);
+  if (reservation && reservation.active && reservation.owner.equals(orgId)) {
+    reservation.active = false;
+    reservation.save();
+  }
+}
+
+/**
  * Handles OrgRegistered event
  * Updates the Organization entity with name and metadata from OrgRegistry
  * Also triggers IPFS indexing for the metadata content
@@ -111,9 +170,15 @@ export function handleOrgRegistered(event: OrgRegisteredEvent): void {
   let org = Organization.load(orgId);
   if (!org) {
     org = new Organization(orgId);
+    org.isCanonicalName = false; // will be set below
   }
-  org.name = name.toString();
+
+  let orgName = name.toString();
+  org.name = orgName;
   org.metadataHash = metadataHash;
+
+  // Try to reserve the org name
+  org.isCanonicalName = tryReserveOrgName(orgName, orgId, event.block.timestamp);
 
   // Link to metadata entity (will be populated when IPFS content is indexed)
   // Use CIDv0 format as the metadata ID (must match the ID used in org-metadata.ts)
@@ -144,7 +209,19 @@ export function handleMetaUpdated(event: MetaUpdatedEvent): void {
   // Load Organization
   let org = Organization.load(orgId);
   if (org) {
-    org.name = newName.toString();
+    let oldName = org.name;
+    let newOrgName = newName.toString();
+
+    // Release old name reservation if name changed
+    if (oldName != null && oldName != newOrgName) {
+      releaseOrgName(oldName!, orgId);
+    }
+
+    org.name = newOrgName;
+
+    // Try to reserve new name
+    org.isCanonicalName = tryReserveOrgName(newOrgName, orgId, event.block.timestamp);
+
     org.metadataHash = newMetadataHash;
 
     // Link to new metadata entity (will be populated when IPFS content is indexed)
@@ -166,7 +243,7 @@ export function handleMetaUpdated(event: MetaUpdatedEvent): void {
 
     update.organization = orgId;
     update.orgId = orgId;
-    update.newName = newName.toString();
+    update.newName = newOrgName;
     update.newMetadataHash = newMetadataHash;
     update.updatedAt = event.block.timestamp;
     update.updatedAtBlock = event.block.number;

@@ -1,4 +1,4 @@
-import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes, dataSource } from "@graphprotocol/graph-ts";
 import {
   BeaconCreated as BeaconCreatedEvent,
   BeaconUpgraded as BeaconUpgradedEvent,
@@ -50,9 +50,10 @@ export function handleBeaconCreated(event: BeaconCreatedEvent): void {
   poaManager.beaconCount = poaManager.beaconCount.plus(BigInt.fromI32(1));
   poaManager.save();
 
-  // Create Beacon entity using typeId hex string as ID
+  // Create Beacon entity using network-typeId as ID (chain-aware to prevent collisions)
   let typeIdHex = event.params.typeId.toHexString();
-  let beacon = new Beacon(typeIdHex);
+  let beaconId = dataSource.network() + "-" + typeIdHex;
+  let beacon = new Beacon(beaconId);
   beacon.poaManager = contractAddress;
   beacon.typeId = event.params.typeId;
   beacon.typeName = event.params.typeName;
@@ -70,9 +71,10 @@ export function handleBeaconCreated(event: BeaconCreatedEvent): void {
 export function handleBeaconUpgraded(event: BeaconUpgradedEvent): void {
   let contractAddress = event.address;
   let typeIdHex = event.params.typeId.toHexString();
+  let beaconId = dataSource.network() + "-" + typeIdHex;
 
   // Update Beacon entity
-  let beacon = Beacon.load(typeIdHex);
+  let beacon = Beacon.load(beaconId);
   if (beacon) {
     beacon.currentImplementation = event.params.newImplementation;
     beacon.version = event.params.version;
@@ -85,7 +87,7 @@ export function handleBeaconUpgraded(event: BeaconUpgradedEvent): void {
   let upgradeId = event.transaction.hash.concatI32(event.logIndex.toI32());
   let upgrade = new BeaconUpgradeEvent(upgradeId);
   upgrade.poaManager = contractAddress;
-  upgrade.beacon = typeIdHex;
+  upgrade.beacon = beaconId;
   upgrade.typeId = event.params.typeId;
   upgrade.newImplementation = event.params.newImplementation;
   upgrade.version = event.params.version;

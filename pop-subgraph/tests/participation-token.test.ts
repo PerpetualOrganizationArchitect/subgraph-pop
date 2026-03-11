@@ -80,6 +80,7 @@ function createTestUser(userAddress: Address): void {
 function setupParticipationTokenEntities(): void {
   // Create Organization entity
   let organization = new Organization(ORG_ID);
+  organization.isCanonicalName = true;
   organization.topHatId = BigInt.fromI32(1000);
   organization.roleHatIds = [BigInt.fromI32(1001), BigInt.fromI32(1002)];
   organization.deployedAt = BigInt.fromI32(1000);
@@ -379,6 +380,7 @@ describe("ParticipationToken", () => {
     test("Transfer without ParticipationTokenContract entity creates TokenBalance but not User", () => {
       // Create only the organization, not the ParticipationTokenContract
       let organization = new Organization(ORG_ID);
+      organization.isCanonicalName = true;
       organization.topHatId = BigInt.fromI32(1000);
       organization.roleHatIds = [];
       organization.deployedAt = BigInt.fromI32(1000);

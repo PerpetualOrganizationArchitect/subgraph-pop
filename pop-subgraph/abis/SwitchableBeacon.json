@@ -34,13 +34,6 @@
   },
   {
     "type": "function",
-    "name": "cancelOwnershipTransfer",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "implementation",
     "inputs": [],
     "outputs": [
@@ -48,19 +41,6 @@
         "name": "",
         "type": "address",
         "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "isMirrorMode",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
       }
     ],
     "stateMutability": "view"
@@ -136,6 +116,13 @@
     "inputs": [],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "renounceOwnership",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "pure"
   },
   {
     "type": "function",
@@ -222,7 +209,7 @@
   },
   {
     "type": "event",
-    "name": "OwnerTransferred",
+    "name": "OwnershipTransferStarted",
     "inputs": [
       {
         "name": "previousOwner",
@@ -241,23 +228,16 @@
   },
   {
     "type": "event",
-    "name": "OwnershipTransferCancelled",
+    "name": "OwnershipTransferred",
     "inputs": [
       {
-        "name": "cancelledOwner",
+        "name": "previousOwner",
         "type": "address",
         "indexed": true,
         "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "OwnershipTransferStarted",
-    "inputs": [
+      },
       {
-        "name": "pendingOwner",
+        "name": "newOwner",
         "type": "address",
         "indexed": true,
         "internalType": "address"
@@ -280,17 +260,12 @@
   },
   {
     "type": "error",
+    "name": "CannotRenounce",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "ImplNotSet",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InvalidModeTransition",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "NoPendingTransfer",
     "inputs": []
   },
   {
@@ -300,17 +275,24 @@
   },
   {
     "type": "error",
-    "name": "NotOwner",
-    "inputs": []
+    "name": "OwnableInvalidOwner",
+    "inputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   },
   {
     "type": "error",
-    "name": "NotPendingOwner",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "ZeroAddress",
-    "inputs": []
+    "name": "OwnableUnauthorizedAccount",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
   }
 ]

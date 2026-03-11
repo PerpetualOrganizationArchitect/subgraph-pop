@@ -32,6 +32,7 @@ let ORG_ID = Bytes.fromHexString("0x11111111111111111111111111111111111111111111
  */
 function setupQuickJoinEntities(): void {
   let organization = new Organization(ORG_ID);
+  organization.isCanonicalName = true;
   organization.topHatId = BigInt.fromI32(1000);
   organization.roleHatIds = [BigInt.fromI32(1001), BigInt.fromI32(1002)];
   organization.deployedAt = BigInt.fromI32(1000);

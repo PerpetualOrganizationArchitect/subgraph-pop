@@ -308,7 +308,7 @@
         "internalType": "address[]"
       },
       {
-        "name": "quorum_",
+        "name": "thresholdPct_",
         "type": "uint8",
         "internalType": "uint8"
       },
@@ -450,13 +450,13 @@
   },
   {
     "type": "function",
-    "name": "quorumPct",
+    "name": "quorum",
     "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "uint8",
-        "internalType": "uint8"
+        "type": "uint32",
+        "internalType": "uint32"
       }
     ],
     "stateMutability": "view"
@@ -541,6 +541,19 @@
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "thresholdPct",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "uint8"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -647,10 +660,10 @@
     "name": "QuorumSet",
     "inputs": [
       {
-        "name": "pct",
-        "type": "uint8",
+        "name": "quorum",
+        "type": "uint32",
         "indexed": false,
-        "internalType": "uint8"
+        "internalType": "uint32"
       }
     ],
     "anonymous": false
@@ -675,6 +688,19 @@
     "anonymous": false
   },
   {
+    "type": "event",
+    "name": "ThresholdPctSet",
+    "inputs": [
+      {
+        "name": "pct",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      }
+    ],
+    "anonymous": false
+  },
+  {
     "type": "error",
     "name": "InvalidInitialization",
     "inputs": []
@@ -686,7 +712,7 @@
   },
   {
     "type": "error",
-    "name": "InvalidQuorum",
+    "name": "InvalidThreshold",
     "inputs": []
   },
   {
@@ -712,84 +738,6 @@
   {
     "type": "error",
     "name": "ZeroAddress",
-    "inputs": []
-  },
-  {
-    "type": "event",
-    "name": "ClassesReplaced",
-    "inputs": [
-      {
-        "name": "version",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "classesHash",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "classes",
-        "type": "tuple[]",
-        "indexed": false,
-        "internalType": "struct HybridVoting.ClassConfig[]",
-        "components": [
-          {
-            "name": "strategy",
-            "type": "uint8",
-            "internalType": "enum HybridVoting.ClassStrategy"
-          },
-          {
-            "name": "slicePct",
-            "type": "uint8",
-            "internalType": "uint8"
-          },
-          {
-            "name": "quadratic",
-            "type": "bool",
-            "internalType": "bool"
-          },
-          {
-            "name": "minBalance",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
-            "name": "asset",
-            "type": "address",
-            "internalType": "address"
-          },
-          {
-            "name": "hatIds",
-            "type": "uint256[]",
-            "internalType": "uint256[]"
-          }
-        ]
-      },
-      {
-        "name": "timestamp",
-        "type": "uint64",
-        "indexed": false,
-        "internalType": "uint64"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "error",
-    "name": "InvalidClassCount",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InvalidSliceSum",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "TooManyClasses",
     "inputs": []
   },
   {
@@ -898,57 +846,6 @@
     "anonymous": false
   },
   {
-    "type": "error",
-    "name": "AlreadyExecuted",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "AlreadyVoted",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "DuplicateIndex",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InvalidIndex",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InvalidWeight",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "LengthMismatch",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "RoleNotAllowed",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "VotingExpired",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "WeightSumNot100",
-    "inputs": [
-      {
-        "name": "sum",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
-  },
-  {
     "type": "event",
     "name": "NewHatProposal",
     "inputs": [
@@ -1041,33 +938,66 @@
     "anonymous": false
   },
   {
-    "type": "error",
-    "name": "DurationOutOfRange",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "EmptyTitle",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "TargetSelf",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "TitleTooLong",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "TooManyCalls",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "TooManyOptions",
-    "inputs": []
+    "type": "event",
+    "name": "ClassesReplaced",
+    "inputs": [
+      {
+        "name": "version",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "classesHash",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "classes",
+        "type": "tuple[]",
+        "indexed": false,
+        "internalType": "struct HybridVoting.ClassConfig[]",
+        "components": [
+          {
+            "name": "strategy",
+            "type": "uint8",
+            "internalType": "enum HybridVoting.ClassStrategy"
+          },
+          {
+            "name": "slicePct",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "quadratic",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "minBalance",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "asset",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "hatIds",
+            "type": "uint256[]",
+            "internalType": "uint256[]"
+          }
+        ]
+      },
+      {
+        "name": "timestamp",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      }
+    ],
+    "anonymous": false
   }
 ]
