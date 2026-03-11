@@ -2,6 +2,7 @@ import { Address, Bytes, BigInt, DataSourceContext } from "@graphprotocol/graph-
 import {
   Initialized,
   ExecutorUpdated,
+  ThresholdPctSet,
   QuorumSet,
   HatSet,
   HatToggled,
@@ -16,6 +17,7 @@ import {
 import {
   HybridVotingContract,
   HybridVotingTargetPermission,
+  HybridVotingThresholdChange,
   HybridVotingQuorumChange,
   HatPermission,
   Proposal,
@@ -120,28 +122,50 @@ export function handleExecutorUpdated(event: ExecutorUpdated): void {
 }
 
 /**
+ * Handler for ThresholdPctSet event
+ * Updates the threshold percentage and creates a historical record
+ */
+export function handleThresholdPctSet(event: ThresholdPctSet): void {
+  let contract = HybridVotingContract.load(event.address);
+
+  if (!contract) {
+    return;
+  }
+
+  contract.thresholdPct = event.params.pct;
+  contract.save();
+
+  let changeId = event.transaction.hash.concatI32(event.logIndex.toI32());
+  let change = new HybridVotingThresholdChange(changeId);
+
+  change.hybridVoting = event.address;
+  change.newThresholdPct = event.params.pct;
+  change.changedAt = event.block.timestamp;
+  change.changedAtBlock = event.block.number;
+  change.transactionHash = event.transaction.hash;
+
+  change.save();
+}
+
+/**
  * Handler for QuorumSet event
- * Updates the quorum percentage and creates a historical record
+ * Updates the minimum voter count quorum and creates a historical record
  */
 export function handleQuorumSet(event: QuorumSet): void {
   let contract = HybridVotingContract.load(event.address);
 
   if (!contract) {
-    // Edge case: contract doesn't exist yet (OrgDeployed not processed)
-    // Skip this update - the contract will be created by OrgDeployed
     return;
   }
 
-  // Update current quorum
-  contract.quorum = event.params.pct;
+  contract.quorum = event.params.quorum.toI32();
   contract.save();
 
-  // Create historical record
   let changeId = event.transaction.hash.concatI32(event.logIndex.toI32());
   let change = new HybridVotingQuorumChange(changeId);
 
   change.hybridVoting = event.address;
-  change.newQuorum = event.params.pct;
+  change.newQuorum = event.params.quorum.toI32();
   change.changedAt = event.block.timestamp;
   change.changedAtBlock = event.block.number;
   change.transactionHash = event.transaction.hash;

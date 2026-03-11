@@ -3,6 +3,7 @@ import { ethereum, Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import {
   Initialized,
   ExecutorUpdated,
+  ThresholdPctSet,
   QuorumSet,
   HatSet,
   HatToggled,
@@ -44,14 +45,28 @@ export function createExecutorUpdatedEvent(newExec: Address): ExecutorUpdated {
 }
 
 /**
- * Creates a mock QuorumSet event
+ * Creates a mock ThresholdPctSet event
  */
-export function createQuorumSetEvent(pct: i32): QuorumSet {
-  let event = changetype<QuorumSet>(newMockEvent());
+export function createThresholdPctSetEvent(pct: i32): ThresholdPctSet {
+  let event = changetype<ThresholdPctSet>(newMockEvent());
 
   event.parameters = new Array();
   event.parameters.push(
     new ethereum.EventParam("pct", ethereum.Value.fromI32(pct))
+  );
+
+  return event;
+}
+
+/**
+ * Creates a mock QuorumSet event (uint32 voter count)
+ */
+export function createQuorumSetEvent(quorum: i32): QuorumSet {
+  let event = changetype<QuorumSet>(newMockEvent());
+
+  event.parameters = new Array();
+  event.parameters.push(
+    new ethereum.EventParam("quorum", ethereum.Value.fromI32(quorum))
   );
 
   return event;

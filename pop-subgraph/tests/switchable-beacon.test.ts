@@ -10,17 +10,15 @@ import {
   handleMirrorSet,
   handlePinned,
   handleModeChanged,
-  handleOwnerTransferred,
-  handleOwnershipTransferStarted,
-  handleOwnershipTransferCancelled
+  handleOwnershipTransferred,
+  handleOwnershipTransferStarted
 } from "../src/switchable-beacon";
 import {
   createMirrorSetEvent,
   createPinnedEvent,
   createModeChangedEvent,
-  createOwnerTransferredEvent,
-  createOwnershipTransferStartedEvent,
-  createOwnershipTransferCancelledEvent
+  createOwnershipTransferredEvent,
+  createOwnershipTransferStartedEvent
 } from "./switchable-beacon-utils";
 import {
   SwitchableBeaconContract,
@@ -127,7 +125,7 @@ describe("SwitchableBeacon", () => {
     });
   });
 
-  describe("handleOwnerTransferred", () => {
+  describe("handleOwnershipTransferred", () => {
     test("updates owner, clears pendingOwner, and creates ownership change record", () => {
       setupBeaconEntity();
 
@@ -137,8 +135,8 @@ describe("SwitchableBeacon", () => {
       beacon.pendingOwner = newOwner;
       beacon.save();
 
-      let event = createOwnerTransferredEvent(OWNER, newOwner);
-      handleOwnerTransferred(event);
+      let event = createOwnershipTransferredEvent(OWNER, newOwner);
+      handleOwnershipTransferred(event);
 
       let updated = SwitchableBeaconContract.load(BEACON_ADDRESS)!;
       assert.bytesEquals(updated.owner, newOwner);
@@ -157,7 +155,7 @@ describe("SwitchableBeacon", () => {
       setupBeaconEntity();
 
       let pendingOwner = Address.fromString("0x0000000000000000000000000000000000000088");
-      let event = createOwnershipTransferStartedEvent(pendingOwner);
+      let event = createOwnershipTransferStartedEvent(OWNER, pendingOwner);
       handleOwnershipTransferStarted(event);
 
       let beacon = SwitchableBeaconContract.load(BEACON_ADDRESS)!;
@@ -166,29 +164,7 @@ describe("SwitchableBeacon", () => {
       let changeId = event.transaction.hash.concatI32(event.logIndex.toI32());
       assert.entityCount("BeaconOwnershipChange", 1);
       assert.fieldEquals("BeaconOwnershipChange", changeId.toHexString(), "changeType", "Started");
-      assert.fieldEquals("BeaconOwnershipChange", changeId.toHexString(), "newOwner", pendingOwner.toHexString());
-    });
-  });
-
-  describe("handleOwnershipTransferCancelled", () => {
-    test("clears pendingOwner and creates ownership change record", () => {
-      setupBeaconEntity();
-
-      // Set pending owner first
-      let pendingOwner = Address.fromString("0x0000000000000000000000000000000000000088");
-      let beacon = SwitchableBeaconContract.load(BEACON_ADDRESS)!;
-      beacon.pendingOwner = pendingOwner;
-      beacon.save();
-
-      let event = createOwnershipTransferCancelledEvent(pendingOwner);
-      handleOwnershipTransferCancelled(event);
-
-      let updated = SwitchableBeaconContract.load(BEACON_ADDRESS)!;
-      assert.assertTrue(updated.pendingOwner === null);
-
-      let changeId = event.transaction.hash.concatI32(event.logIndex.toI32());
-      assert.entityCount("BeaconOwnershipChange", 1);
-      assert.fieldEquals("BeaconOwnershipChange", changeId.toHexString(), "changeType", "Cancelled");
+      assert.fieldEquals("BeaconOwnershipChange", changeId.toHexString(), "previousOwner", OWNER.toHexString());
       assert.fieldEquals("BeaconOwnershipChange", changeId.toHexString(), "newOwner", pendingOwner.toHexString());
     });
   });

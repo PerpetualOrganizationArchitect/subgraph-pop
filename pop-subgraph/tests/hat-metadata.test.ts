@@ -30,6 +30,7 @@ function createMockHat(hatEntityId: string): void {
   // Create Organization entity first
   let orgId = Bytes.fromHexString("0x1111111111111111111111111111111111111111111111111111111111111111");
   let org = new Organization(orgId);
+  org.isCanonicalName = true;
   org.executorContract = Bytes.fromHexString("0x0000000000000000000000000000000000000001");
   org.hybridVoting = Bytes.fromHexString("0x0000000000000000000000000000000000000002");
   org.directDemocracyVoting = Bytes.fromHexString("0x0000000000000000000000000000000000000003");

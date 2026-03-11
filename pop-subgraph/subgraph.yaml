@@ -4,52 +4,31 @@ indexerHints:
   prune: never
 schema:
   file: ./schema.graphql
-# Contract Addresses - Hoodi deployment block 2358852:
-# OrgDeployer: 0xfB57C2053ca9DDBD5b4fd3cf8378faDD63e40DbC
-# UniversalAccountRegistry: 0x4820Aa2019EC06729fF1A101369608D64067847a
-# PaymasterHub: 0x036430226c5Df5Fe2b7A128f3Eb999a2C6B1B6d5
-# PoaManager: 0xcFB538f47603dcea81f040cb4Bd05899FB6F9804
-# OrgRegistry: 0x8ea03293982F99a6817FB261c7e64d6F72559A6B
-# ImplementationRegistry: 0x10c6Eee29e0D8D56Cf7e7db86899f6E0Fc46CA4f
-# HatsProtocol: 0x3bc1A0Ad72417f2d411118085256fC53CBdDd137
-# GovernanceFactory: 0x23dA8aE6bc6F39d99Df2FA0764428b5Ce853092C
-# AccessFactory: 0xE6786bFe5beA46E4342dD9742294e8e68d6d335e
-# ModulesFactory: 0xC4672E30861C92C7beaff91ef62Af6241B572556
-# HatsTreeSetup: 0x6EeE457293eBF1EAa09E89Cb5f912FcE9D7515Ed
-# UniversalPasskeyFactory: 0xEB94E85C75acD83d6CBC4784Fb79Ef8e47E00f66
-# PasskeyAccountBeacon: 0x16caBCEDe5d6A1e9D8eC2E80950F47C459696f46
-# PasskeyAccountFactoryBeacon: 0xced1e0dD171baBDd5e3927e7227dD34fd86d5AfC
+# Contract Addresses - Multi-chain deployment
+#
+# --- Sepolia (home chain) ---
+# PoaManager: 0xaF0cF88369c13763532087Fad0bF7452678f5Ce5 (block 10429245)
+# GovernanceFactory: 0x78E072aa79C06a4045AcE9D12D2DB79994ccE336 (block 10429254)
+# PoaManagerHub: 0x110CB1206E83bfC5faeCDf9001Af8435d6d184de (block 10429297)
+#
+# --- Base Sepolia (satellite chain) ---
+# PoaManager: 0x51DAC13B59817278a01Bb8cB5f9b9C98D826F8DF (block 38751533)
+# GovernanceFactory: 0x74004a10cee02f16aeecab3843d33f43f3ed6eb7 (block 38751535)
+# PoaManagerSatellite: 0x51C5BC692083540A348247636E2f910F972B38eF (block 38751537)
+#
 # NOTE: Infrastructure contracts (OrgDeployer, OrgRegistry, PaymasterHub, UniversalAccountRegistry)
-# are now dynamically discovered via InfrastructureDeployed event from PoaManager.
-# Only PoaManager and singleton factories need to be hardcoded.
+# are dynamically discovered via InfrastructureDeployed event from PoaManager on each chain.
 dataSources:
-  # - kind: ethereum
-  #   name: Beacon
-  #   network: hoodi
-  #   source:
-  #     address: "0x0000000000000000000000000000000000000000" # TODO: Add Beacon contract address
-  #     abi: Beacon
-  #     startBlock: 1429671
-  #   mapping:
-  #     kind: ethereum/events
-  #     apiVersion: 0.0.9
-  #     language: wasm/assemblyscript
-  #     entities:
-  #       - BeaconUpgrade
-  #     abis:
-  #       - name: Beacon
-  #         file: ./abis/Beacon.json
-  #     eventHandlers:
-  #       - event: Upgraded(indexed address)
-  #         handler: handleUpgraded
-  #     file: ./src/beacon.ts
+  # ═══════════════════════════════════════
+  # Sepolia (home chain)
+  # ═══════════════════════════════════════
   - kind: ethereum
     name: GovernanceFactory
-    network: hoodi
+    network: sepolia
     source:
-      address: "0x23dA8aE6bc6F39d99Df2FA0764428b5Ce853092C"
+      address: "0x78E072aa79C06a4045AcE9D12D2DB79994ccE336"
       abi: GovernanceFactory
-      startBlock: 2358853
+      startBlock: 10429254
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -65,11 +44,11 @@ dataSources:
       file: ./src/governance-factory.ts
   - kind: ethereum
     name: PoaManager
-    network: hoodi
+    network: sepolia
     source:
-      address: "0xcFB538f47603dcea81f040cb4Bd05899FB6F9804"
+      address: "0xaF0cF88369c13763532087Fad0bF7452678f5Ce5"
       abi: PoaManager
-      startBlock: 2358852
+      startBlock: 10429245
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -94,11 +73,128 @@ dataSources:
         - event: InfrastructureDeployed(address,address,address,address,address,address)
           handler: handleInfrastructureDeployed
       file: ./src/poa-manager.ts
+  - kind: ethereum
+    name: PoaManagerHub
+    network: sepolia
+    source:
+      address: "0x110CB1206E83bfC5faeCDf9001Af8435d6d184de"
+      abi: PoaManagerHub
+      startBlock: 10429297
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - PoaManagerHubContract
+        - SatelliteRegistration
+        - CrossChainUpgradeDispatch
+        - CrossChainAddTypeDispatch
+        - CrossChainAdminCallDispatch
+      abis:
+        - name: PoaManagerHub
+          file: ./abis/PoaManagerHub.json
+      eventHandlers:
+        - event: CrossChainUpgradeDispatched(indexed bytes32,address,string)
+          handler: handleCrossChainUpgradeDispatched
+        - event: CrossChainAddTypeDispatched(indexed bytes32,string,address)
+          handler: handleCrossChainAddTypeDispatched
+        - event: CrossChainAdminCallDispatched(indexed address,bytes)
+          handler: handleCrossChainAdminCallDispatched
+        - event: SatelliteRegistered(indexed uint32,address)
+          handler: handleSatelliteRegistered
+        - event: SatelliteRemoved(indexed uint32)
+          handler: handleSatelliteRemoved
+        - event: PauseSet(bool)
+          handler: handleHubPauseSet
+      file: ./src/poa-manager-hub.ts
+  # ═══════════════════════════════════════
+  # Base Sepolia (satellite chain)
+  # ═══════════════════════════════════════
+  - kind: ethereum
+    name: GovernanceFactory_BaseSepolia
+    network: base-sepolia
+    source:
+      address: "0x74004a10cee02f16aeecab3843d33f43f3ed6eb7"
+      abi: GovernanceFactory
+      startBlock: 38751535
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - GovernanceModule
+      abis:
+        - name: GovernanceFactory
+          file: ./abis/GovernanceFactory.json
+      eventHandlers:
+        - event: ModuleDeployed(indexed bytes32,indexed bytes32,address,address,bool,address)
+          handler: handleModuleDeployed
+      file: ./src/governance-factory.ts
+  - kind: ethereum
+    name: PoaManager_BaseSepolia
+    network: base-sepolia
+    source:
+      address: "0x51DAC13B59817278a01Bb8cB5f9b9C98D826F8DF"
+      abi: PoaManager
+      startBlock: 38751533
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - PoaManagerContract
+        - Beacon
+        - BeaconUpgradeEvent
+        - RegistryUpdate
+      abis:
+        - name: PoaManager
+          file: ./abis/PoaManager.json
+        - name: PaymasterHub
+          file: ./abis/PaymasterHub.json
+      eventHandlers:
+        - event: BeaconCreated(indexed bytes32,string,address,address)
+          handler: handleBeaconCreated
+        - event: BeaconUpgraded(indexed bytes32,address,string)
+          handler: handleBeaconUpgraded
+        - event: RegistryUpdated(address,address)
+          handler: handleRegistryUpdated
+        - event: InfrastructureDeployed(address,address,address,address,address,address)
+          handler: handleInfrastructureDeployed
+      file: ./src/poa-manager.ts
+  - kind: ethereum
+    name: PoaManagerSatellite
+    network: base-sepolia
+    source:
+      address: "0x51C5BC692083540A348247636E2f910F972B38eF"
+      abi: PoaManagerSatellite
+      startBlock: 38751537
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - PoaManagerSatelliteContract
+        - CrossChainUpgradeReceived
+        - CrossChainContractTypeReceived
+        - CrossChainAdminCallReceived
+      abis:
+        - name: PoaManagerSatellite
+          file: ./abis/PoaManagerSatellite.json
+      eventHandlers:
+        - event: UpgradeReceived(indexed bytes32,address,string,uint32)
+          handler: handleUpgradeReceived
+        - event: ContractTypeReceived(indexed bytes32,string,address,uint32)
+          handler: handleContractTypeReceived
+        - event: AdminCallReceived(indexed address,bytes,uint32)
+          handler: handleAdminCallReceived
+        - event: PauseSet(bool)
+          handler: handleSatellitePauseSet
+      file: ./src/poa-manager-satellite.ts
 templates:
   # Infrastructure templates (dynamically created via InfrastructureDeployed event)
   - kind: ethereum
     name: OrgDeployer
-    network: hoodi
+    network: sepolia
     source:
       abi: OrgDeployer
     mapping:
@@ -120,7 +216,7 @@ templates:
       file: ./src/org-deployer.ts
   - kind: ethereum
     name: OrgRegistry
-    network: hoodi
+    network: sepolia
     source:
       abi: OrgRegistry
     mapping:
@@ -150,7 +246,7 @@ templates:
       file: ./src/org-registry.ts
   - kind: ethereum
     name: PaymasterHub
-    network: hoodi
+    network: sepolia
     source:
       abi: PaymasterHub
     mapping:
@@ -163,12 +259,9 @@ templates:
         - PaymasterRule
         - PaymasterBudget
         - PaymasterFeeCaps
-        - PaymasterBountyConfig
         - PaymasterOrgStats
         - PaymasterDepositEvent
-        - BountyEvent
         - UsageEvent
-        - UserOpEvent
         - SolidarityEvent
         - PaymasterConfigChange
         - GracePeriodChange
@@ -200,20 +293,8 @@ templates:
           handler: handleDepositWithdraw
         - event: OrgDepositReceived(indexed bytes32,indexed address,uint256)
           handler: handleOrgDepositReceived
-        - event: BountyConfig(indexed bytes32,bool,uint96,uint16)
-          handler: handleBountyConfig
-        - event: BountyFunded(uint256,uint256)
-          handler: handleBountyFunded
-        - event: BountySweep(indexed address,uint256)
-          handler: handleBountySweep
-        - event: BountyPaid(indexed bytes32,indexed address,uint256)
-          handler: handleBountyPaid
-        - event: BountyPayFailed(indexed bytes32,indexed address,uint256)
-          handler: handleBountyPayFailed
         - event: UsageIncreased(indexed bytes32,bytes32,uint256,uint128,uint32)
           handler: handleUsageIncreased
-        - event: UserOpPosted(indexed bytes32,indexed address)
-          handler: handleUserOpPosted
         - event: SolidarityFeeCollected(indexed bytes32,uint256)
           handler: handleSolidarityFeeCollected
         - event: SolidarityDonationReceived(indexed address,uint256)
@@ -235,7 +316,7 @@ templates:
       file: ./src/paymaster-hub.ts
   - kind: ethereum
     name: UniversalAccountRegistry
-    network: hoodi
+    network: sepolia
     source:
       abi: UniversalAccountRegistry
     mapping:
@@ -271,7 +352,7 @@ templates:
   # Org-level contract templates (dynamically created via OrgDeployed event)
   - kind: ethereum
     name: TaskManager
-    network: hoodi
+    network: sepolia
     source:
       abi: TaskManager
     mapping:
@@ -327,7 +408,7 @@ templates:
       file: ./src/task-manager.ts
   - kind: ethereum
     name: HybridVoting
-    network: hoodi
+    network: sepolia
     source:
       abi: HybridVoting
     mapping:
@@ -338,6 +419,7 @@ templates:
         - HybridVotingContract
         - HybridVotingHatPermission
         - HybridVotingTargetPermission
+        - HybridVotingThresholdChange
         - HybridVotingQuorumChange
         - HybridVotingExecutorChange
         - VotingClass
@@ -352,7 +434,9 @@ templates:
           handler: handleInitialized
         - event: ExecutorUpdated(address)
           handler: handleExecutorUpdated
-        - event: QuorumSet(uint8)
+        - event: ThresholdPctSet(uint8)
+          handler: handleThresholdPctSet
+        - event: QuorumSet(uint32)
           handler: handleQuorumSet
         - event: HatSet(uint8,uint256,bool)
           handler: handleHatSet
@@ -375,7 +459,7 @@ templates:
       file: ./src/hybrid-voting.ts
   - kind: ethereum
     name: DirectDemocracyVoting
-    network: hoodi
+    network: sepolia
     source:
       abi: DirectDemocracyVoting
     mapping:
@@ -387,6 +471,7 @@ templates:
         - DirectDemocracyVotingHatPermission
         - DirectDemocracyVotingCreatorHatPermission
         - DirectDemocracyVotingTargetPermission
+        - DirectDemocracyVotingThresholdChange
         - DirectDemocracyVotingQuorumChange
         - DirectDemocracyVotingExecutorChange
         - DDVProposal
@@ -399,8 +484,10 @@ templates:
           handler: handleInitialized
         - event: ExecutorUpdated(address)
           handler: handleExecutorUpdated
-        - event: QuorumPercentageSet(uint8)
-          handler: handleQuorumPercentageSet
+        - event: ThresholdPctSet(uint8)
+          handler: handleThresholdPctSet
+        - event: QuorumSet(uint32)
+          handler: handleQuorumSet
         - event: HatSet(uint8,uint256,bool)
           handler: handleHatSet
         - event: HatToggled(indexed uint256,bool)
@@ -422,7 +509,7 @@ templates:
       file: ./src/direct-democracy-voting.ts
   - kind: ethereum
     name: EligibilityModule
-    network: hoodi
+    network: sepolia
     source:
       abi: EligibilityModule
     mapping:
@@ -486,7 +573,7 @@ templates:
       file: ./src/eligibility-module.ts
   - kind: ethereum
     name: ParticipationToken
-    network: hoodi
+    network: sepolia
     source:
       abi: ParticipationToken
     mapping:
@@ -524,7 +611,7 @@ templates:
       file: ./src/participation-token.ts
   - kind: ethereum
     name: QuickJoin
-    network: hoodi
+    network: sepolia
     source:
       abi: QuickJoin
     mapping:
@@ -569,7 +656,7 @@ templates:
       file: ./src/quick-join.ts
   - kind: ethereum
     name: EducationHub
-    network: hoodi
+    network: sepolia
     source:
       abi: EducationHub
     mapping:
@@ -620,7 +707,7 @@ templates:
       file: ./src/education-hub.ts
   - kind: ethereum
     name: PaymentManager
-    network: hoodi
+    network: sepolia
     source:
       abi: PaymentManager
     mapping:
@@ -658,7 +745,7 @@ templates:
       file: ./src/payment-manager.ts
   - kind: ethereum
     name: Executor
-    network: hoodi
+    network: sepolia
     source:
       abi: Executor
     mapping:
@@ -708,7 +795,7 @@ templates:
       file: ./src/executor.ts
   - kind: ethereum
     name: ToggleModule
-    network: hoodi
+    network: sepolia
     source:
       abi: ToggleModule
     mapping:
@@ -735,7 +822,7 @@ templates:
   # Passkey Account Factory template
   - kind: ethereum
     name: PasskeyAccountFactory
-    network: hoodi
+    network: sepolia
     source:
       abi: PasskeyAccountFactory
     mapping:
@@ -761,7 +848,7 @@ templates:
   # Passkey Account template (created dynamically when accounts are created)
   - kind: ethereum
     name: PasskeyAccount
-    network: hoodi
+    network: sepolia
     source:
       abi: PasskeyAccount
     mapping:
@@ -802,7 +889,7 @@ templates:
       file: ./src/passkey-account.ts
   - kind: ethereum
     name: SwitchableBeacon
-    network: hoodi
+    network: sepolia
     source:
       abi: SwitchableBeacon
     mapping:
@@ -823,17 +910,15 @@ templates:
           handler: handlePinned
         - event: ModeChanged(uint8)
           handler: handleModeChanged
-        - event: OwnerTransferred(indexed address,indexed address)
-          handler: handleOwnerTransferred
-        - event: OwnershipTransferStarted(indexed address)
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: OwnershipTransferStarted(indexed address,indexed address)
           handler: handleOwnershipTransferStarted
-        - event: OwnershipTransferCancelled(indexed address)
-          handler: handleOwnershipTransferCancelled
       file: ./src/switchable-beacon.ts
   # IPFS file data source for org metadata
   - kind: file/ipfs
     name: OrgMetadata
-    network: hoodi
+    network: sepolia
     mapping:
       apiVersion: 0.0.9
       language: wasm/assemblyscript
@@ -848,7 +933,7 @@ templates:
   # IPFS file data source for hat metadata
   - kind: file/ipfs
     name: HatMetadata
-    network: hoodi
+    network: sepolia
     mapping:
       apiVersion: 0.0.9
       language: wasm/assemblyscript
@@ -862,7 +947,7 @@ templates:
   # IPFS file data source for task metadata
   - kind: file/ipfs
     name: TaskMetadata
-    network: hoodi
+    network: sepolia
     mapping:
       apiVersion: 0.0.9
       language: wasm/assemblyscript
@@ -877,7 +962,7 @@ templates:
   # IPFS file data source for project metadata
   - kind: file/ipfs
     name: ProjectMetadata
-    network: hoodi
+    network: sepolia
     mapping:
       apiVersion: 0.0.9
       language: wasm/assemblyscript
@@ -892,7 +977,7 @@ templates:
   # IPFS file data source for proposal metadata
   - kind: file/ipfs
     name: ProposalMetadata
-    network: hoodi
+    network: sepolia
     mapping:
       apiVersion: 0.0.9
       language: wasm/assemblyscript

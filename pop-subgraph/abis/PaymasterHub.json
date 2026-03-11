@@ -5,10 +5,6 @@
     "stateMutability": "nonpayable"
   },
   {
-    "type": "receive",
-    "stateMutability": "payable"
-  },
-  {
     "type": "function",
     "name": "ENTRY_POINT",
     "inputs": [],
@@ -128,54 +124,6 @@
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "fundBounty",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "payable"
-  },
-  {
-    "type": "function",
-    "name": "getBountyConfig",
-    "inputs": [
-      {
-        "name": "orgId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct PaymasterHub.Bounty",
-        "components": [
-          {
-            "name": "enabled",
-            "type": "bool",
-            "internalType": "bool"
-          },
-          {
-            "name": "maxBountyWeiPerOp",
-            "type": "uint96",
-            "internalType": "uint96"
-          },
-          {
-            "name": "pctBpCap",
-            "type": "uint16",
-            "internalType": "uint16"
-          },
-          {
-            "name": "totalPaid",
-            "type": "uint144",
-            "internalType": "uint144"
-          }
-        ]
-      }
-    ],
-    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -621,25 +569,6 @@
   },
   {
     "type": "function",
-    "name": "postUserOp",
-    "inputs": [
-      {
-        "name": "packedUserOp",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "opHash",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "proxiableUUID",
     "inputs": [],
     "outputs": [
@@ -777,34 +706,6 @@
         "name": "banned",
         "type": "bool",
         "internalType": "bool"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setBounty",
-    "inputs": [
-      {
-        "name": "orgId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      },
-      {
-        "name": "enabled",
-        "type": "bool",
-        "internalType": "bool"
-      },
-      {
-        "name": "maxBountyWeiPerOp",
-        "type": "uint96",
-        "internalType": "uint96"
-      },
-      {
-        "name": "pctBpCap",
-        "type": "uint16",
-        "internalType": "uint16"
       }
     ],
     "outputs": [],
@@ -1099,24 +1000,6 @@
   },
   {
     "type": "function",
-    "name": "sweepBounty",
-    "inputs": [
-      {
-        "name": "to",
-        "type": "address",
-        "internalType": "address payable"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "unpauseSolidarityDistribution",
     "inputs": [],
     "outputs": [],
@@ -1238,125 +1121,6 @@
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
-  },
-  {
-    "type": "event",
-    "name": "BountyConfig",
-    "inputs": [
-      {
-        "name": "orgId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "enabled",
-        "type": "bool",
-        "indexed": false,
-        "internalType": "bool"
-      },
-      {
-        "name": "maxPerOp",
-        "type": "uint96",
-        "indexed": false,
-        "internalType": "uint96"
-      },
-      {
-        "name": "pctBpCap",
-        "type": "uint16",
-        "indexed": false,
-        "internalType": "uint16"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "BountyFunded",
-    "inputs": [
-      {
-        "name": "amount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "newBalance",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "BountyPaid",
-    "inputs": [
-      {
-        "name": "userOpHash",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "to",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "BountyPayFailed",
-    "inputs": [
-      {
-        "name": "userOpHash",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "to",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "BountySweep",
-    "inputs": [
-      {
-        "name": "to",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
   },
   {
     "type": "event",
@@ -1853,25 +1617,6 @@
     "anonymous": false
   },
   {
-    "type": "event",
-    "name": "UserOpPosted",
-    "inputs": [
-      {
-        "name": "opHash",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "postedBy",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
     "type": "error",
     "name": "AddressEmptyCode",
     "inputs": [
@@ -1956,11 +1701,6 @@
   {
     "type": "error",
     "name": "InsufficientOrgBalance",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "InvalidBountyConfig",
     "inputs": []
   },
   {

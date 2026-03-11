@@ -2,7 +2,8 @@ import { Address, Bytes, BigInt, DataSourceContext } from "@graphprotocol/graph-
 import {
   Initialized,
   ExecutorUpdated,
-  QuorumPercentageSet,
+  ThresholdPctSet,
+  QuorumSet,
   HatSet,
   HatToggled,
   CreatorHatSet,
@@ -16,6 +17,7 @@ import {
 import {
   DirectDemocracyVotingContract,
   DirectDemocracyVotingTargetPermission,
+  DirectDemocracyVotingThresholdChange,
   DirectDemocracyVotingQuorumChange,
   HatPermission,
   DDVProposal,
@@ -118,28 +120,50 @@ export function handleExecutorUpdated(event: ExecutorUpdated): void {
 }
 
 /**
- * Handler for QuorumPercentageSet event
- * Updates the quorum percentage and creates a historical record
+ * Handler for ThresholdPctSet event
+ * Updates the threshold percentage and creates a historical record
  */
-export function handleQuorumPercentageSet(event: QuorumPercentageSet): void {
+export function handleThresholdPctSet(event: ThresholdPctSet): void {
   let contract = DirectDemocracyVotingContract.load(event.address);
 
   if (!contract) {
-    // Edge case: contract doesn't exist yet (OrgDeployed not processed)
-    // Skip this update - the contract will be created by OrgDeployed
     return;
   }
 
-  // Update current quorum
-  contract.quorumPercentage = event.params.pct;
+  contract.thresholdPct = event.params.pct;
   contract.save();
 
-  // Create historical record
+  let changeId = event.transaction.hash.concatI32(event.logIndex.toI32());
+  let change = new DirectDemocracyVotingThresholdChange(changeId);
+
+  change.directDemocracyVoting = event.address;
+  change.newThresholdPct = event.params.pct;
+  change.changedAt = event.block.timestamp;
+  change.changedAtBlock = event.block.number;
+  change.transactionHash = event.transaction.hash;
+
+  change.save();
+}
+
+/**
+ * Handler for QuorumSet event
+ * Updates the minimum voter count quorum and creates a historical record
+ */
+export function handleQuorumSet(event: QuorumSet): void {
+  let contract = DirectDemocracyVotingContract.load(event.address);
+
+  if (!contract) {
+    return;
+  }
+
+  contract.quorum = event.params.quorum.toI32();
+  contract.save();
+
   let changeId = event.transaction.hash.concatI32(event.logIndex.toI32());
   let change = new DirectDemocracyVotingQuorumChange(changeId);
 
   change.directDemocracyVoting = event.address;
-  change.newQuorumPercentage = event.params.pct;
+  change.newQuorum = event.params.quorum.toI32();
   change.changedAt = event.block.timestamp;
   change.changedAtBlock = event.block.number;
   change.transactionHash = event.transaction.hash;
