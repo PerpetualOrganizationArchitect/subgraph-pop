@@ -146,7 +146,6 @@ export function handleOrgDeployed(event: OrgDeployed): void {
   let organization = Organization.load(event.params.orgId);
   if (!organization) {
     organization = new Organization(event.params.orgId);
-    organization.isCanonicalName = true;
   }
   organization.executorContract = executor.id; // Link to ExecutorContract entity
   organization.hybridVoting = hybridVoting.id; // Link to HybridVotingContract entity

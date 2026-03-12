@@ -63,7 +63,6 @@ function setupEligibilityModuleEntities(): void {
     "0x1111111111111111111111111111111111111111111111111111111111111111"
   );
   let organization = new Organization(orgId);
-  organization.isCanonicalName = true;
   organization.topHatId = BigInt.fromI32(1000);
   organization.roleHatIds = [BigInt.fromI32(1001), BigInt.fromI32(1002)];
   organization.deployedAt = BigInt.fromI32(1000);

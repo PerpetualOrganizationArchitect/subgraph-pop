@@ -9,10 +9,21 @@ on:
     paths: ['pop-subgraph/**']
 
 jobs:
-  subgraph:
-    uses: BreadchainCoop/subgraphform/.github/workflows/_subgraph-cicd.yml@main
+  subgraph-sepolia:
+    uses: BreadchainCoop/subgraphform/.github/workflows/_subgraph-cicd.yml@hudsonhrh/add-network-input
     with:
-      subgraph-name: poa-2
+      subgraph-name: poa-sepolia
       working-directory: pop-subgraph
+      network: sepolia
+    secrets:
+      GRAPH_DEPLOY_KEY: ${{ secrets.GRAPH_DEPLOY_KEY }}
+
+  subgraph-base-sepolia:
+    uses: BreadchainCoop/subgraphform/.github/workflows/_subgraph-cicd.yml@hudsonhrh/add-network-input
+    with:
+      subgraph-name: poa-base-sepolia
+      working-directory: pop-subgraph
+      network: base-sepolia
+      run-tests: false
     secrets:
       GRAPH_DEPLOY_KEY: ${{ secrets.GRAPH_DEPLOY_KEY }}
