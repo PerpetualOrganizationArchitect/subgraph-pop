@@ -1,4 +1,4 @@
-import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes, dataSource } from "@graphprotocol/graph-ts";
 import {
   Initialized as InitializedEvent,
   UserRegistered as UserRegisteredEvent,
@@ -14,8 +14,67 @@ import {
   UsernameChange,
   AccountDeletion,
   BatchRegistration,
-  RegistryOwnershipTransfer
+  RegistryOwnershipTransfer,
+  NameReservation
 } from "../generated/schema";
+
+/**
+ * Try to reserve a username. Returns true if the name is canonical for this owner.
+ * Handles cross-chain ordering: earlier timestamp always wins.
+ */
+function tryReserveUsername(username: string, owner: Bytes, timestamp: BigInt): boolean {
+  let nameKey = "user-" + username.toLowerCase();
+  let reservation = NameReservation.load(nameKey);
+
+  if (reservation && reservation.active) {
+    if (reservation.owner.equals(owner)) {
+      // Same user re-registering on another chain — canonical
+      return true;
+    }
+
+    if (timestamp < reservation.reservedAt) {
+      // Current event is earlier — take ownership from previous holder
+      let previousOwner = Account.load(reservation.owner);
+      if (previousOwner) {
+        previousOwner.isCanonicalName = false;
+        previousOwner.save();
+      }
+      reservation.owner = owner;
+      reservation.chain = dataSource.network();
+      reservation.reservedAt = timestamp;
+      reservation.save();
+      return true;
+    }
+
+    // Name is taken by someone else who registered earlier — reject
+    return false;
+  }
+
+  // Name is available (no reservation or inactive) — reserve it
+  if (!reservation) {
+    reservation = new NameReservation(nameKey);
+    reservation.type = "username";
+  }
+  reservation.name = username;
+  reservation.owner = owner;
+  reservation.chain = dataSource.network();
+  reservation.reservedAt = timestamp;
+  reservation.active = true;
+  reservation.save();
+  return true;
+}
+
+/**
+ * Release a username reservation if the given owner is the current holder.
+ */
+function releaseUsername(username: string, owner: Bytes): void {
+  let nameKey = "user-" + username.toLowerCase();
+  let reservation = NameReservation.load(nameKey);
+  if (reservation && reservation.active && reservation.owner.equals(owner)) {
+    reservation.active = false;
+    reservation.save();
+  }
+}
 
 export function handleInitialized(event: InitializedEvent): void {
   let contractAddress = event.address;
@@ -67,11 +126,15 @@ export function handleUserRegistered(event: UserRegisteredEvent): void {
     return;
   }
 
+  // Try to reserve the name
+  let isCanonical = tryReserveUsername(username, userAddress, event.block.timestamp);
+
   // Create new account
   account = new Account(userAddress);
   account.registry = contractAddress;
   account.user = userAddress;
   account.username = username;
+  account.isCanonicalName = isCanonical;
   account.isDeleted = false;
   account.registeredAt = event.block.timestamp;
   account.registeredAtBlock = event.block.number;
@@ -109,6 +172,7 @@ export function handleUsernameChanged(event: UsernameChangedEvent): void {
     account = new Account(userAddress);
     account.registry = contractAddress;
     account.user = userAddress;
+    account.isCanonicalName = false;
     account.isDeleted = false;
     account.registeredAt = event.block.timestamp;
     account.registeredAtBlock = event.block.number;
@@ -116,7 +180,14 @@ export function handleUsernameChanged(event: UsernameChangedEvent): void {
 
   let oldUsername = account.username;
 
+  // Release old name reservation (only if this account was the canonical owner)
+  releaseUsername(oldUsername, userAddress);
+
+  // Try to reserve the new name
+  let isCanonical = tryReserveUsername(newUsername, userAddress, event.block.timestamp);
+
   account.username = newUsername;
+  account.isCanonicalName = isCanonical;
   account.lastUpdatedAt = event.block.timestamp;
   account.save();
 
@@ -149,10 +220,14 @@ export function handleUserDeleted(event: UserDeletedEvent): void {
     registry.save();
   }
 
+  // Release name reservation
+  releaseUsername(oldUsername, userAddress);
+
   // Update account
   let account = Account.load(userAddress);
   if (account) {
     account.isDeleted = true;
+    account.isCanonicalName = false;
     account.deletedAt = event.block.timestamp;
     account.deletedAtBlock = event.block.number;
     account.lastUpdatedAt = event.block.timestamp;

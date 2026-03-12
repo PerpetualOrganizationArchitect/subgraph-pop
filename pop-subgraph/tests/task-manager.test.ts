@@ -44,6 +44,7 @@ function setupTaskManagerEntities(): void {
     "0x1111111111111111111111111111111111111111111111111111111111111111"
   );
   let organization = new Organization(orgId);
+  organization.isCanonicalName = true;
   organization.topHatId = BigInt.fromI32(1000);
   organization.roleHatIds = [BigInt.fromI32(1001), BigInt.fromI32(1002)];
   organization.deployedAt = BigInt.fromI32(1000);
@@ -821,6 +822,7 @@ describe("TaskManager", () => {
     let taskManager1Address = Address.fromString("0xa16081f360e3847006db660bae1c6d1b2e17ec2a");
 
     let org1 = new Organization(orgId1);
+    org1.isCanonicalName = true;
     org1.topHatId = BigInt.fromI32(1000);
     org1.roleHatIds = [BigInt.fromI32(1001)];
     org1.deployedAt = BigInt.fromI32(1000);
@@ -843,6 +845,7 @@ describe("TaskManager", () => {
     let taskManager2Address = Address.fromString("0xb27182f471e4948107dc771caf2d6c2f28fc3d3b");
 
     let org2 = new Organization(orgId2);
+    org2.isCanonicalName = true;
     org2.topHatId = BigInt.fromI32(2000);
     org2.roleHatIds = [BigInt.fromI32(2001)];
     org2.deployedAt = BigInt.fromI32(2000);
@@ -908,6 +911,7 @@ describe("TaskManager", () => {
     let taskManager1Address = Address.fromString("0xa16081f360e3847006db660bae1c6d1b2e17ec2a");
 
     let org1 = new Organization(orgId1);
+    org1.isCanonicalName = true;
     org1.topHatId = BigInt.fromI32(1000);
     org1.roleHatIds = [BigInt.fromI32(1001)];
     org1.deployedAt = BigInt.fromI32(1000);
@@ -929,6 +933,7 @@ describe("TaskManager", () => {
     let taskManager2Address = Address.fromString("0xb27182f471e4948107dc771caf2d6c2f28fc3d3b");
 
     let org2 = new Organization(orgId2);
+    org2.isCanonicalName = true;
     org2.topHatId = BigInt.fromI32(2000);
     org2.roleHatIds = [BigInt.fromI32(2001)];
     org2.deployedAt = BigInt.fromI32(2000);
