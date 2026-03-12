@@ -11,16 +11,24 @@
     "PoaManagerHub": {
       "address": "0x110CB1206E83bfC5faeCDf9001Af8435d6d184de",
       "startBlock": 10429297
+    },
+    "PoaManagerSatellite": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 99999999
     }
   },
   "base-sepolia": {
-    "GovernanceFactory_BaseSepolia": {
+    "GovernanceFactory": {
       "address": "0x74004a10cee02f16aeecab3843d33f43f3ed6eb7",
       "startBlock": 38751535
     },
-    "PoaManager_BaseSepolia": {
+    "PoaManager": {
       "address": "0x51DAC13B59817278a01Bb8cB5f9b9C98D826F8DF",
       "startBlock": 38751533
+    },
+    "PoaManagerHub": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 99999999
     },
     "PoaManagerSatellite": {
       "address": "0x51C5BC692083540A348247636E2f910F972B38eF",
