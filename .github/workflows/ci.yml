@@ -10,7 +10,7 @@ on:
 
 jobs:
   subgraph-sepolia:
-    uses: BreadchainCoop/subgraphform/.github/workflows/_subgraph-cicd.yml@main
+    uses: BreadchainCoop/subgraphform/.github/workflows/_subgraph-cicd.yml@hudsonhrh/add-network-input
     with:
       subgraph-name: poa-sepolia
       working-directory: pop-subgraph
@@ -19,7 +19,7 @@ jobs:
       GRAPH_DEPLOY_KEY: ${{ secrets.GRAPH_DEPLOY_KEY }}
 
   subgraph-base-sepolia:
-    uses: BreadchainCoop/subgraphform/.github/workflows/_subgraph-cicd.yml@main
+    uses: BreadchainCoop/subgraphform/.github/workflows/_subgraph-cicd.yml@hudsonhrh/add-network-input
     with:
       subgraph-name: poa-base-sepolia
       working-directory: pop-subgraph
