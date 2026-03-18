@@ -352,7 +352,6 @@ type HybridVotingContract @entity(immutable: false) {
   createdAt: BigInt!
   createdAtBlock: BigInt!
   classVersion: BigInt! # Current class configuration version (block number)
-  targetPermissions: [HybridVotingTargetPermission!]! @derivedFrom(field: "hybridVoting")
   thresholdChanges: [HybridVotingThresholdChange!]! @derivedFrom(field: "hybridVoting")
   quorumChanges: [HybridVotingQuorumChange!]! @derivedFrom(field: "hybridVoting")
   proposals: [Proposal!]! @derivedFrom(field: "hybridVoting")
@@ -393,16 +392,6 @@ type VotingClassChange @entity(immutable: true) {
   numClasses: Int!               # Number of classes in this version
   changedAt: BigInt!
   changedAtBlock: BigInt!
-  transactionHash: Bytes!
-}
-
-type HybridVotingTargetPermission @entity(immutable: false) {
-  id: String! # contractAddress-targetAddress
-  hybridVoting: HybridVotingContract!
-  target: Bytes!
-  allowed: Boolean!
-  setAt: BigInt!
-  setAtBlock: BigInt!
   transactionHash: Bytes!
 }
 
@@ -1374,9 +1363,7 @@ type UserHatChange @entity(immutable: true) {
 # Enums for PaymasterHub event types
 enum DepositEventType {
   HubDeposit
-  HubWithdraw
   OrgDeposit
-  EmergencyWithdraw
 }
 
 enum SolidarityEventType {
@@ -1928,6 +1915,33 @@ type OnboardingConfig @entity(immutable: false) {
 }
 
 type OnboardingAccount @entity(immutable: true) {
+  id: Bytes! # txHash.concatI32(logIndex)
+  paymasterHub: PaymasterHubContract!
+  account: Bytes!
+  gasCost: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+# ═══════════════════════════════════════════════════════════════════════
+#                    PAYMASTER ORG DEPLOY SPONSORSHIP ENTITIES
+# ═══════════════════════════════════════════════════════════════════════
+
+type OrgDeployConfig @entity(immutable: false) {
+  id: Bytes! # paymasterHub address
+  paymasterHub: PaymasterHubContract!
+  maxGasPerDeploy: BigInt!
+  dailyDeployLimit: BigInt!
+  maxDeploysPerAccount: Int!
+  enabled: Boolean!
+  orgDeployer: Bytes!
+  updatedAt: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+type OrgDeploySponsorship @entity(immutable: true) {
   id: Bytes! # txHash.concatI32(logIndex)
   paymasterHub: PaymasterHubContract!
   account: Bytes!

@@ -6,7 +6,6 @@ import {
   QuorumSet,
   HatSet,
   HatToggled,
-  TargetAllowed,
   NewProposal,
   NewHatProposal,
   VoteCast,
@@ -16,7 +15,6 @@ import {
 } from "../generated/templates/HybridVoting/HybridVoting";
 import {
   HybridVotingContract,
-  HybridVotingTargetPermission,
   HybridVotingThresholdChange,
   HybridVotingQuorumChange,
   HatPermission,
@@ -255,31 +253,6 @@ export function handleHatToggled(event: HatToggled): void {
   permission.setAt = event.block.timestamp;
   permission.setAtBlock = event.block.number;
   permission.transactionHash = event.transaction.hash;
-  permission.save();
-}
-
-/**
- * Handler for TargetAllowed event
- * Creates or updates target permissions
- */
-export function handleTargetAllowed(event: TargetAllowed): void {
-  let contractAddress = event.address.toHexString();
-  let targetAddress = event.params.target.toHexString();
-  let permissionId = contractAddress + "-" + targetAddress;
-
-  let permission = HybridVotingTargetPermission.load(permissionId);
-
-  if (!permission) {
-    permission = new HybridVotingTargetPermission(permissionId);
-    permission.hybridVoting = event.address;
-    permission.target = event.params.target;
-  }
-
-  permission.allowed = event.params.allowed;
-  permission.setAt = event.block.timestamp;
-  permission.setAtBlock = event.block.number;
-  permission.transactionHash = event.transaction.hash;
-
   permission.save();
 }
 
