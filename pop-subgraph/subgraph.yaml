@@ -9,8 +9,8 @@ dataSources:
     network: base-sepolia
     source:
       abi: GovernanceFactory
-      address: "0x192e4a58CCA6BD8E15ca70811E42d5420e01b019"
-      startBlock: 39045315
+      address: "0x7Bc3Bccd67B8DB098dFC3DfCF60Be3220f1Ec4AC"
+      startBlock: 39054692
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -30,8 +30,8 @@ dataSources:
     network: base-sepolia
     source:
       abi: PoaManager
-      address: "0xAD3b332bb092B93C0DbFfeF4F9a8f2B7ac28D68f"
-      startBlock: 39045292
+      address: "0x408540C209d6F6B2C94eAbfC582c7A095fb0F48C"
+      startBlock: 39054654
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -95,8 +95,8 @@ dataSources:
     network: base-sepolia
     source:
       abi: PoaManagerSatellite
-      address: "0x74DBF8be23cf87205b07f90238D3cacd21818eD1"
-      startBlock: 39045331
+      address: "0x6441247BCc1eDFf6213314D6910651401F99BbAE"
+      startBlock: 39054700
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
