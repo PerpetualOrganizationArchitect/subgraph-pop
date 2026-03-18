@@ -355,25 +355,6 @@
   },
   {
     "type": "function",
-    "name": "isTargetAllowed",
-    "inputs": [
-      {
-        "name": "target",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
     "name": "pause",
     "inputs": [],
     "outputs": [],
@@ -664,25 +645,6 @@
         "type": "uint32",
         "indexed": false,
         "internalType": "uint32"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "TargetAllowed",
-    "inputs": [
-      {
-        "name": "target",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      },
-      {
-        "name": "allowed",
-        "type": "bool",
-        "indexed": false,
-        "internalType": "bool"
       }
     ],
     "anonymous": false

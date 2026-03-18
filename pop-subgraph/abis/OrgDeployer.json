@@ -127,12 +127,12 @@
             "internalType": "bool"
           },
           {
-            "name": "hybridQuorumPct",
+            "name": "hybridThresholdPct",
             "type": "uint8",
             "internalType": "uint8"
           },
           {
-            "name": "ddQuorumPct",
+            "name": "ddThresholdPct",
             "type": "uint8",
             "internalType": "uint8"
           },

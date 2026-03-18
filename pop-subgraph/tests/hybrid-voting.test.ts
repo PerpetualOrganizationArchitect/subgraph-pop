@@ -13,7 +13,6 @@ import {
   handleQuorumSet,
   handleHatSet,
   handleHatToggled,
-  handleTargetAllowed,
   handleNewProposal,
   handleNewHatProposal,
   handleVoteCast,
@@ -28,7 +27,6 @@ import {
   createQuorumSetEvent,
   createHatSetEvent,
   createHatToggledEvent,
-  createTargetAllowedEvent,
   createNewProposalEvent,
   createNewHatProposalEvent,
   createVoteCastEvent,
@@ -570,69 +568,6 @@ describe("HybridVoting", () => {
 
       // Verify no entity was created
       assert.entityCount("HatPermission", 0);
-    });
-  });
-
-  describe("TargetAllowed", () => {
-    test("Target permission created", () => {
-      let target = Address.fromString(
-        "0x0000000000000000000000000000000000000001"
-      );
-      let event = createTargetAllowedEvent(target, true);
-      handleTargetAllowed(event);
-
-      assert.entityCount("HybridVotingTargetPermission", 1);
-
-      let permissionId =
-        event.address.toHexString() +
-        "-0x0000000000000000000000000000000000000001";
-      assert.fieldEquals(
-        "HybridVotingTargetPermission",
-        permissionId,
-        "allowed",
-        "true"
-      );
-    });
-
-    test("Target permission can be updated", () => {
-      let target = Address.fromString(
-        "0x0000000000000000000000000000000000000001"
-      );
-
-      let event1 = createTargetAllowedEvent(target, true);
-      handleTargetAllowed(event1);
-
-      let event2 = createTargetAllowedEvent(target, false);
-      handleTargetAllowed(event2);
-
-      assert.entityCount("HybridVotingTargetPermission", 1);
-
-      let permissionId =
-        event1.address.toHexString() +
-        "-0x0000000000000000000000000000000000000001";
-      assert.fieldEquals(
-        "HybridVotingTargetPermission",
-        permissionId,
-        "allowed",
-        "false"
-      );
-    });
-
-    test("Multiple targets can be tracked", () => {
-      let target1 = Address.fromString(
-        "0x0000000000000000000000000000000000000001"
-      );
-      let target2 = Address.fromString(
-        "0x0000000000000000000000000000000000000002"
-      );
-
-      let event1 = createTargetAllowedEvent(target1, true);
-      handleTargetAllowed(event1);
-
-      let event2 = createTargetAllowedEvent(target2, true);
-      handleTargetAllowed(event2);
-
-      assert.entityCount("HybridVotingTargetPermission", 2);
     });
   });
 

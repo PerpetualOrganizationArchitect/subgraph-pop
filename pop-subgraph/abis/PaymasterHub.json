@@ -114,19 +114,6 @@
   },
   {
     "type": "function",
-    "name": "emergencyWithdraw",
-    "inputs": [
-      {
-        "name": "to",
-        "type": "address",
-        "internalType": "address payable"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "getBudget",
     "inputs": [
       {
@@ -319,11 +306,6 @@
             "internalType": "uint256"
           },
           {
-            "name": "__deprecated_voucherHatId",
-            "type": "uint256",
-            "internalType": "uint256"
-          },
-          {
             "name": "paused",
             "type": "bool",
             "internalType": "bool"
@@ -339,6 +321,75 @@
             "internalType": "bool"
           }
         ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getOrgDeployConfig",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct PaymasterHub.OrgDeployConfig",
+        "components": [
+          {
+            "name": "maxGasPerDeploy",
+            "type": "uint128",
+            "internalType": "uint128"
+          },
+          {
+            "name": "dailyDeployLimit",
+            "type": "uint128",
+            "internalType": "uint128"
+          },
+          {
+            "name": "attemptsToday",
+            "type": "uint128",
+            "internalType": "uint128"
+          },
+          {
+            "name": "currentDay",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "maxDeploysPerAccount",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "enabled",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "orgDeployer",
+            "type": "address",
+            "internalType": "address"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getOrgDeployCount",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint8",
+        "internalType": "uint8"
       }
     ],
     "stateMutability": "view"
@@ -365,11 +416,6 @@
             "internalType": "uint128"
           },
           {
-            "name": "totalDeposited",
-            "type": "uint128",
-            "internalType": "uint128"
-          },
-          {
             "name": "spent",
             "type": "uint128",
             "internalType": "uint128"
@@ -383,47 +429,8 @@
             "name": "periodStart",
             "type": "uint32",
             "internalType": "uint32"
-          },
-          {
-            "name": "reserved",
-            "type": "uint224",
-            "internalType": "uint224"
           }
         ]
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getOrgGraceStatus",
-    "inputs": [
-      {
-        "name": "orgId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "inGrace",
-        "type": "bool",
-        "internalType": "bool"
-      },
-      {
-        "name": "spendRemaining",
-        "type": "uint128",
-        "internalType": "uint128"
-      },
-      {
-        "name": "requiresDeposit",
-        "type": "bool",
-        "internalType": "bool"
-      },
-      {
-        "name": "solidarityLimit",
-        "type": "uint256",
-        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -498,11 +505,6 @@
             "name": "distributionPaused",
             "type": "bool",
             "internalType": "bool"
-          },
-          {
-            "name": "reserved",
-            "type": "uint200",
-            "internalType": "uint200"
           }
         ]
       }
@@ -871,6 +873,39 @@
   },
   {
     "type": "function",
+    "name": "setOrgDeployConfig",
+    "inputs": [
+      {
+        "name": "_maxGasPerDeploy",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "_dailyDeployLimit",
+        "type": "uint128",
+        "internalType": "uint128"
+      },
+      {
+        "name": "_maxDeploysPerAccount",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "_enabled",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "_orgDeployer",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setOrgRegistrar",
     "inputs": [
       {
@@ -1105,24 +1140,6 @@
     "stateMutability": "nonpayable"
   },
   {
-    "type": "function",
-    "name": "withdrawFromEntryPoint",
-    "inputs": [
-      {
-        "name": "to",
-        "type": "address",
-        "internalType": "address payable"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
     "type": "event",
     "name": "BudgetSet",
     "inputs": [
@@ -1171,44 +1188,6 @@
       },
       {
         "name": "newDeposit",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "DepositWithdraw",
-    "inputs": [
-      {
-        "name": "to",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "EmergencyWithdraw",
-    "inputs": [
-      {
-        "name": "to",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "amount",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -1381,6 +1360,62 @@
         "type": "bool",
         "indexed": false,
         "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OrgDeployConfigUpdated",
+    "inputs": [
+      {
+        "name": "maxGasPerDeploy",
+        "type": "uint128",
+        "indexed": false,
+        "internalType": "uint128"
+      },
+      {
+        "name": "dailyDeployLimit",
+        "type": "uint128",
+        "indexed": false,
+        "internalType": "uint128"
+      },
+      {
+        "name": "maxDeploysPerAccount",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "uint8"
+      },
+      {
+        "name": "enabled",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "orgDeployer",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OrgDeploymentSponsored",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "gasCost",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       }
     ],
     "anonymous": false
@@ -1720,6 +1755,11 @@
   },
   {
     "type": "error",
+    "name": "InvalidOrgDeployRequest",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InvalidOrgId",
     "inputs": []
   },
@@ -1780,6 +1820,21 @@
   },
   {
     "type": "error",
+    "name": "OrgDeployDailyLimitExceeded",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "OrgDeployDisabled",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "OrgDeployLimitExceeded",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "OrgIsBanned",
     "inputs": []
   },
@@ -1796,11 +1851,6 @@
   {
     "type": "error",
     "name": "Paused",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "PaymentFailed",
     "inputs": []
   },
   {
@@ -1853,6 +1903,11 @@
   {
     "type": "error",
     "name": "ZeroAddress",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ZeroAmount",
     "inputs": []
   }
 ]

@@ -8,18 +8,18 @@ import {
   PauseSet as PauseSetEvent,
   OperatorHatSet as OperatorHatSetEvent,
   DepositIncrease as DepositIncreaseEvent,
-  DepositWithdraw as DepositWithdrawEvent,
   OrgDepositReceived as OrgDepositReceivedEvent,
   UsageIncreased as UsageIncreasedEvent,
   SolidarityFeeCollected as SolidarityFeeCollectedEvent,
   SolidarityDonationReceived as SolidarityDonationReceivedEvent,
   OrgBannedFromSolidarity as OrgBannedFromSolidarityEvent,
-  EmergencyWithdraw as EmergencyWithdrawEvent,
   GracePeriodConfigUpdated as GracePeriodConfigUpdatedEvent,
   SolidarityDistributionPaused as SolidarityDistributionPausedEvent,
   SolidarityDistributionUnpaused as SolidarityDistributionUnpausedEvent,
   OnboardingAccountCreated as OnboardingAccountCreatedEvent,
-  OnboardingConfigUpdated as OnboardingConfigUpdatedEvent
+  OnboardingConfigUpdated as OnboardingConfigUpdatedEvent,
+  OrgDeployConfigUpdated as OrgDeployConfigUpdatedEvent,
+  OrgDeploymentSponsored as OrgDeploymentSponsoredEvent
 } from "../generated/templates/PaymasterHub/PaymasterHub";
 import {
   PaymasterHubContract,
@@ -37,7 +37,9 @@ import {
   OrgBanRecord,
   Organization,
   OnboardingConfig,
-  OnboardingAccount
+  OnboardingAccount,
+  OrgDeployConfig,
+  OrgDeploySponsorship
 } from "../generated/schema";
 
 // Helper to get or create PaymasterHubContract singleton
@@ -339,30 +341,7 @@ export function handleDepositIncrease(event: DepositIncreaseEvent): void {
   depositEvent.save();
 }
 
-// 9. DepositWithdraw - Update hub + create deposit event
-export function handleDepositWithdraw(event: DepositWithdrawEvent): void {
-  let contractAddress = event.address;
-
-  // Update hub
-  let hub = getOrCreateHub(contractAddress);
-  hub.totalDeposit = hub.totalDeposit.minus(event.params.amount);
-  hub.save();
-
-  // Create deposit event record
-  let eventId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let depositEvent = new PaymasterDepositEvent(eventId);
-  depositEvent.paymasterHub = contractAddress;
-  depositEvent.eventType = "HubWithdraw";
-  depositEvent.to = event.params.to;
-  depositEvent.amount = event.params.amount;
-  depositEvent.newBalance = hub.totalDeposit;
-  depositEvent.eventAt = event.block.timestamp;
-  depositEvent.eventAtBlock = event.block.number;
-  depositEvent.transactionHash = event.transaction.hash;
-  depositEvent.save();
-}
-
-// 10. OrgDepositReceived - Update org config + create deposit event
+// 9. OrgDepositReceived - Update org config + create deposit event
 export function handleOrgDepositReceived(event: OrgDepositReceivedEvent): void {
   let contractAddress = event.address;
   let orgId = event.params.orgId;
@@ -538,30 +517,7 @@ export function handleOrgBannedFromSolidarity(event: OrgBannedFromSolidarityEven
   banRecord.save();
 }
 
-// 21. EmergencyWithdraw - Update hub + create deposit event
-export function handleEmergencyWithdraw(event: EmergencyWithdrawEvent): void {
-  let contractAddress = event.address;
-
-  // Update hub
-  let hub = getOrCreateHub(contractAddress);
-  hub.totalDeposit = hub.totalDeposit.minus(event.params.amount);
-  hub.save();
-
-  // Create deposit event record
-  let eventId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let depositEvent = new PaymasterDepositEvent(eventId);
-  depositEvent.paymasterHub = contractAddress;
-  depositEvent.eventType = "EmergencyWithdraw";
-  depositEvent.to = event.params.to;
-  depositEvent.amount = event.params.amount;
-  depositEvent.newBalance = hub.totalDeposit;
-  depositEvent.eventAt = event.block.timestamp;
-  depositEvent.eventAtBlock = event.block.number;
-  depositEvent.transactionHash = event.transaction.hash;
-  depositEvent.save();
-}
-
-// 22. GracePeriodConfigUpdated - Update hub + create grace period change
+// 21. GracePeriodConfigUpdated - Update hub + create grace period change
 export function handleGracePeriodConfigUpdated(event: GracePeriodConfigUpdatedEvent): void {
   let contractAddress = event.address;
 
@@ -627,4 +583,35 @@ export function handleOnboardingConfigUpdated(event: OnboardingConfigUpdatedEven
   config.blockNumber = event.block.number;
   config.transactionHash = event.transaction.hash;
   config.save();
+}
+
+// 27. OrgDeployConfigUpdated - Org deploy sponsorship config changed
+export function handleOrgDeployConfigUpdated(event: OrgDeployConfigUpdatedEvent): void {
+  let config = OrgDeployConfig.load(event.address);
+  if (!config) {
+    config = new OrgDeployConfig(event.address);
+    config.paymasterHub = event.address;
+  }
+  config.maxGasPerDeploy = event.params.maxGasPerDeploy;
+  config.dailyDeployLimit = event.params.dailyDeployLimit;
+  config.maxDeploysPerAccount = event.params.maxDeploysPerAccount;
+  config.enabled = event.params.enabled;
+  config.orgDeployer = event.params.orgDeployer;
+  config.updatedAt = event.block.timestamp;
+  config.blockNumber = event.block.number;
+  config.transactionHash = event.transaction.hash;
+  config.save();
+}
+
+// 28. OrgDeploymentSponsored - Free org deployment completed
+export function handleOrgDeploymentSponsored(event: OrgDeploymentSponsoredEvent): void {
+  let entityId = event.transaction.hash.concatI32(event.logIndex.toI32());
+  let entity = new OrgDeploySponsorship(entityId);
+  entity.paymasterHub = event.address;
+  entity.account = event.params.account;
+  entity.gasCost = event.params.gasCost;
+  entity.timestamp = event.block.timestamp;
+  entity.blockNumber = event.block.number;
+  entity.transactionHash = event.transaction.hash;
+  entity.save();
 }

@@ -9,8 +9,8 @@ dataSources:
     network: base-sepolia
     source:
       abi: GovernanceFactory
-      address: "0x74004a10cee02f16aeecab3843d33f43f3ed6eb7"
-      startBlock: 38751535
+      address: "0x192e4a58CCA6BD8E15ca70811E42d5420e01b019"
+      startBlock: 39045315
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -30,8 +30,8 @@ dataSources:
     network: base-sepolia
     source:
       abi: PoaManager
-      address: "0x51DAC13B59817278a01Bb8cB5f9b9C98D826F8DF"
-      startBlock: 38751533
+      address: "0xAD3b332bb092B93C0DbFfeF4F9a8f2B7ac28D68f"
+      startBlock: 39045292
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -95,8 +95,8 @@ dataSources:
     network: base-sepolia
     source:
       abi: PoaManagerSatellite
-      address: "0x51C5BC692083540A348247636E2f910F972B38eF"
-      startBlock: 38751537
+      address: "0x74DBF8be23cf87205b07f90238D3cacd21818eD1"
+      startBlock: 39045331
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -201,6 +201,8 @@ templates:
         - OrgBanRecord
         - OnboardingConfig
         - OnboardingAccount
+        - OrgDeployConfig
+        - OrgDeploySponsorship
       abis:
         - name: PaymasterHub
           file: ./abis/PaymasterHub.json
@@ -221,8 +223,6 @@ templates:
           handler: handleOperatorHatSet
         - event: DepositIncrease(uint256,uint256)
           handler: handleDepositIncrease
-        - event: DepositWithdraw(indexed address,uint256)
-          handler: handleDepositWithdraw
         - event: OrgDepositReceived(indexed bytes32,indexed address,uint256)
           handler: handleOrgDepositReceived
         - event: UsageIncreased(indexed bytes32,bytes32,uint256,uint128,uint32)
@@ -233,8 +233,6 @@ templates:
           handler: handleSolidarityDonationReceived
         - event: OrgBannedFromSolidarity(indexed bytes32,bool)
           handler: handleOrgBannedFromSolidarity
-        - event: EmergencyWithdraw(indexed address,uint256)
-          handler: handleEmergencyWithdraw
         - event: GracePeriodConfigUpdated(uint32,uint128,uint128)
           handler: handleGracePeriodConfigUpdated
         - event: SolidarityDistributionPaused()
@@ -245,6 +243,10 @@ templates:
           handler: handleOnboardingAccountCreated
         - event: OnboardingConfigUpdated(uint128,uint128,bool,address)
           handler: handleOnboardingConfigUpdated
+        - event: OrgDeployConfigUpdated(uint128,uint128,uint8,bool,address)
+          handler: handleOrgDeployConfigUpdated
+        - event: OrgDeploymentSponsored(indexed address,uint256)
+          handler: handleOrgDeploymentSponsored
       file: ./src/paymaster-hub.ts
   - kind: ethereum
     name: UniversalAccountRegistry
@@ -350,7 +352,6 @@ templates:
       entities:
         - HybridVotingContract
         - HybridVotingHatPermission
-        - HybridVotingTargetPermission
         - HybridVotingThresholdChange
         - HybridVotingQuorumChange
         - HybridVotingExecutorChange
@@ -374,8 +375,6 @@ templates:
           handler: handleHatSet
         - event: HatToggled(indexed uint256,bool)
           handler: handleHatToggled
-        - event: TargetAllowed(address,bool)
-          handler: handleTargetAllowed
         - event: NewProposal(uint256,bytes,bytes32,uint8,uint64,uint64)
           handler: handleNewProposal
         - event: NewHatProposal(uint256,bytes,bytes32,uint8,uint64,uint64,uint256[])

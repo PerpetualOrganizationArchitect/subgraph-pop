@@ -7,7 +7,6 @@ import {
   QuorumSet,
   HatSet,
   HatToggled,
-  TargetAllowed,
   NewProposal,
   NewHatProposal,
   VoteCast,
@@ -108,26 +107,6 @@ export function createHatToggledEvent(
   event.parameters = new Array();
   event.parameters.push(
     new ethereum.EventParam("hatId", ethereum.Value.fromUnsignedBigInt(hatId))
-  );
-  event.parameters.push(
-    new ethereum.EventParam("allowed", ethereum.Value.fromBoolean(allowed))
-  );
-
-  return event;
-}
-
-/**
- * Creates a mock TargetAllowed event
- */
-export function createTargetAllowedEvent(
-  target: Address,
-  allowed: boolean
-): TargetAllowed {
-  let event = changetype<TargetAllowed>(newMockEvent());
-
-  event.parameters = new Array();
-  event.parameters.push(
-    new ethereum.EventParam("target", ethereum.Value.fromAddress(target))
   );
   event.parameters.push(
     new ethereum.EventParam("allowed", ethereum.Value.fromBoolean(allowed))
