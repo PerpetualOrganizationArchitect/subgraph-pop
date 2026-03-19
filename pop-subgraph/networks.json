@@ -1,16 +1,16 @@
 {
   "sepolia": {
     "GovernanceFactory": {
-      "address": "0x7513B5997EebA4964f8724b9022dCadB47B67399",
-      "startBlock": 10471608
+      "address": "0xE6786bFe5beA46E4342dD9742294e8e68d6d335e",
+      "startBlock": 10473063
     },
     "PoaManager": {
-      "address": "0x8F76d7bFB681f426a9f24d3f58AEA0E70648fa6d",
-      "startBlock": 10471599
+      "address": "0xb5f5924B47D5E1dA8510C9043BAC5a85a7a68830",
+      "startBlock": 10473054
     },
     "PoaManagerHub": {
-      "address": "0x2346A053477576007139a716d30a4a8f94951Da7",
-      "startBlock": 10471652
+      "address": "0xBa19d8f122c85E4a336F9E38e60DBE7ED8be9bEF",
+      "startBlock": 10473109
     },
     "PoaManagerSatellite": {
       "address": "0x0000000000000000000000000000000000000000",
@@ -19,20 +19,20 @@
   },
   "base-sepolia": {
     "GovernanceFactory": {
-      "address": "0x192e4a58CCA6BD8E15ca70811E42d5420e01b019",
-      "startBlock": 39045315
+      "address": "0x7Bc3Bccd67B8DB098dFC3DfCF60Be3220f1Ec4AC",
+      "startBlock": 39054692
     },
     "PoaManager": {
-      "address": "0xAD3b332bb092B93C0DbFfeF4F9a8f2B7ac28D68f",
-      "startBlock": 39045292
+      "address": "0x408540C209d6F6B2C94eAbfC582c7A095fb0F48C",
+      "startBlock": 39054654
     },
     "PoaManagerHub": {
       "address": "0x0000000000000000000000000000000000000000",
       "startBlock": 99999999
     },
     "PoaManagerSatellite": {
-      "address": "0x74DBF8be23cf87205b07f90238D3cacd21818eD1",
-      "startBlock": 39045331
+      "address": "0x6441247BCc1eDFf6213314D6910651401F99BbAE",
+      "startBlock": 39054700
     }
   }
 }
