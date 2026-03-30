@@ -21,7 +21,7 @@ jobs:
   subgraph-gnosis:
     uses: BreadchainCoop/subgraphform/.github/workflows/_subgraph-cicd.yml@hudsonhrh/add-network-input
     with:
-      subgraph-name: poa-gnosis-v1
+      subgraph-name: poa-gnosis-v-1
       working-directory: pop-subgraph
       network: gnosis
       run-tests: false

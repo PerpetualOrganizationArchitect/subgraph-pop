@@ -7,7 +7,7 @@
     "build:arbitrum-one": "graph build --network arbitrum-one",
     "build:gnosis": "graph build --network gnosis",
     "deploy:arbitrum-one": "graph deploy --network arbitrum-one --node https://api.studio.thegraph.com/deploy/ poa-arb-v-1",
-    "deploy:gnosis": "graph deploy --network gnosis --node https://api.studio.thegraph.com/deploy/ poa-gnosis-v1",
+    "deploy:gnosis": "graph deploy --network gnosis --node https://api.studio.thegraph.com/deploy/ poa-gnosis-v-1",
     "create-local": "graph create --node http://localhost:8020/ poa-arb-v-1",
     "remove-local": "graph remove --node http://localhost:8020/ poa-arb-v-1",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 poa-arb-v-1",
