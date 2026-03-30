@@ -4,13 +4,13 @@
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "build:sepolia": "graph build --network sepolia",
-    "build:base-sepolia": "graph build --network base-sepolia",
-    "deploy:sepolia": "graph deploy --network sepolia --node https://api.studio.thegraph.com/deploy/ poa-sepolia",
-    "deploy:base-sepolia": "graph deploy --network base-sepolia --node https://api.studio.thegraph.com/deploy/ poa-base-sepolia",
-    "create-local": "graph create --node http://localhost:8020/ poa-sepolia",
-    "remove-local": "graph remove --node http://localhost:8020/ poa-sepolia",
-    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 poa-sepolia",
+    "build:arbitrum-one": "graph build --network arbitrum-one",
+    "build:gnosis": "graph build --network gnosis",
+    "deploy:arbitrum-one": "graph deploy --network arbitrum-one --node https://api.studio.thegraph.com/deploy/ poa-arb-v-1",
+    "deploy:gnosis": "graph deploy --network gnosis --node https://api.studio.thegraph.com/deploy/ poa-gnosis-v1",
+    "create-local": "graph create --node http://localhost:8020/ poa-arb-v-1",
+    "remove-local": "graph remove --node http://localhost:8020/ poa-arb-v-1",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 poa-arb-v-1",
     "test": "graph test --version 0.6.0"
   },
   "dependencies": {
