@@ -6,11 +6,11 @@ schema:
 dataSources:
   - kind: ethereum
     name: GovernanceFactory
-    network: base-sepolia
+    network: arbitrum-one
     source:
       abi: GovernanceFactory
-      address: "0xc31D11096Ad61659EA962dde209C0b0a77B50877"
-      startBlock: 39524446
+      address: "0x24Fd3b269905AF10A6E5c67D93F0502Cd11Af875"
+      startBlock: 447059876
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -27,11 +27,11 @@ dataSources:
       file: ./src/governance-factory.ts
   - kind: ethereum
     name: PoaManager
-    network: base-sepolia
+    network: arbitrum-one
     source:
       abi: PoaManager
-      address: "0x46C4E1E91c2B569D4153dCd91eEbB319849377CF"
-      startBlock: 39524441
+      address: "0xFF585Fae4A944cD173B19158C6FC5E08980b0815"
+      startBlock: 447059849
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -58,11 +58,11 @@ dataSources:
       file: ./src/poa-manager.ts
   - kind: ethereum
     name: PoaManagerHub
-    network: base-sepolia
+    network: arbitrum-one
     source:
       abi: PoaManagerHub
-      address: "0x0000000000000000000000000000000000000000"
-      startBlock: 99999999
+      address: "0xB72840B343654eAfb2CFf7acC4Fc6b59E6c3CC71"
+      startBlock: 447060030
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -92,11 +92,11 @@ dataSources:
       file: ./src/poa-manager-hub.ts
   - kind: ethereum
     name: PoaManagerSatellite
-    network: base-sepolia
+    network: arbitrum-one
     source:
       abi: PoaManagerSatellite
-      address: "0x0f1B4C56A578cC28A40DAC179A74f804747Ea9dD"
-      startBlock: 39524464
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 99999999
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -122,7 +122,7 @@ dataSources:
 templates:
   - kind: ethereum
     name: OrgDeployer
-    network: base-sepolia
+    network: arbitrum-one
     source:
       abi: OrgDeployer
     mapping:
@@ -147,7 +147,7 @@ templates:
       file: ./src/org-deployer.ts
   - kind: ethereum
     name: OrgRegistry
-    network: base-sepolia
+    network: arbitrum-one
     source:
       abi: OrgRegistry
     mapping:
@@ -178,7 +178,7 @@ templates:
       file: ./src/org-registry.ts
   - kind: ethereum
     name: PaymasterHub
-    network: base-sepolia
+    network: arbitrum-one
     source:
       abi: PaymasterHub
     mapping:
@@ -250,7 +250,7 @@ templates:
       file: ./src/paymaster-hub.ts
   - kind: ethereum
     name: UniversalAccountRegistry
-    network: base-sepolia
+    network: arbitrum-one
     source:
       abi: UniversalAccountRegistry
     mapping:
@@ -285,7 +285,7 @@ templates:
       file: ./src/universal-account-registry.ts
   - kind: ethereum
     name: TaskManager
-    network: base-sepolia
+    network: arbitrum-one
     source:
       abi: TaskManager
     mapping:
@@ -342,7 +342,7 @@ templates:
       file: ./src/task-manager.ts
   - kind: ethereum
     name: HybridVoting
-    network: base-sepolia
+    network: arbitrum-one
     source:
       abi: HybridVoting
     mapping:
@@ -392,7 +392,7 @@ templates:
       file: ./src/hybrid-voting.ts
   - kind: ethereum
     name: DirectDemocracyVoting
-    network: base-sepolia
+    network: arbitrum-one
     source:
       abi: DirectDemocracyVoting
     mapping:
@@ -442,7 +442,7 @@ templates:
       file: ./src/direct-democracy-voting.ts
   - kind: ethereum
     name: EligibilityModule
-    network: base-sepolia
+    network: arbitrum-one
     source:
       abi: EligibilityModule
     mapping:
@@ -509,7 +509,7 @@ templates:
       file: ./src/eligibility-module.ts
   - kind: ethereum
     name: ParticipationToken
-    network: base-sepolia
+    network: arbitrum-one
     source:
       abi: ParticipationToken
     mapping:
@@ -547,7 +547,7 @@ templates:
       file: ./src/participation-token.ts
   - kind: ethereum
     name: QuickJoin
-    network: base-sepolia
+    network: arbitrum-one
     source:
       abi: QuickJoin
     mapping:
@@ -595,7 +595,7 @@ templates:
       file: ./src/quick-join.ts
   - kind: ethereum
     name: EducationHub
-    network: base-sepolia
+    network: arbitrum-one
     source:
       abi: EducationHub
     mapping:
@@ -646,7 +646,7 @@ templates:
       file: ./src/education-hub.ts
   - kind: ethereum
     name: PaymentManager
-    network: base-sepolia
+    network: arbitrum-one
     source:
       abi: PaymentManager
     mapping:
@@ -685,7 +685,7 @@ templates:
       file: ./src/payment-manager.ts
   - kind: ethereum
     name: Executor
-    network: base-sepolia
+    network: arbitrum-one
     source:
       abi: Executor
     mapping:
@@ -735,7 +735,7 @@ templates:
       file: ./src/executor.ts
   - kind: ethereum
     name: ToggleModule
-    network: base-sepolia
+    network: arbitrum-one
     source:
       abi: ToggleModule
     mapping:
@@ -761,7 +761,7 @@ templates:
       file: ./src/toggle-module.ts
   - kind: ethereum
     name: PasskeyAccountFactory
-    network: base-sepolia
+    network: arbitrum-one
     source:
       abi: PasskeyAccountFactory
     mapping:
@@ -786,7 +786,7 @@ templates:
       file: ./src/passkey-account-factory.ts
   - kind: ethereum
     name: PasskeyAccount
-    network: base-sepolia
+    network: arbitrum-one
     source:
       abi: PasskeyAccount
     mapping:
@@ -827,7 +827,7 @@ templates:
       file: ./src/passkey-account.ts
   - kind: ethereum
     name: SwitchableBeacon
-    network: base-sepolia
+    network: arbitrum-one
     source:
       abi: SwitchableBeacon
     mapping:
@@ -855,7 +855,7 @@ templates:
       file: ./src/switchable-beacon.ts
   - kind: file/ipfs
     name: OrgMetadata
-    network: base-sepolia
+    network: arbitrum-one
     mapping:
       apiVersion: 0.0.9
       language: wasm/assemblyscript
@@ -869,7 +869,7 @@ templates:
           file: ./abis/OrgRegistry.json
   - kind: file/ipfs
     name: HatMetadata
-    network: base-sepolia
+    network: arbitrum-one
     mapping:
       apiVersion: 0.0.9
       language: wasm/assemblyscript
@@ -882,7 +882,7 @@ templates:
           file: ./abis/EligibilityModule.json
   - kind: file/ipfs
     name: TaskMetadata
-    network: base-sepolia
+    network: arbitrum-one
     mapping:
       apiVersion: 0.0.9
       language: wasm/assemblyscript
@@ -896,7 +896,7 @@ templates:
           file: ./abis/TaskManager.json
   - kind: file/ipfs
     name: ProjectMetadata
-    network: base-sepolia
+    network: arbitrum-one
     mapping:
       apiVersion: 0.0.9
       language: wasm/assemblyscript
@@ -910,7 +910,7 @@ templates:
           file: ./abis/TaskManager.json
   - kind: file/ipfs
     name: ProposalMetadata
-    network: base-sepolia
+    network: arbitrum-one
     mapping:
       apiVersion: 0.0.9
       language: wasm/assemblyscript
