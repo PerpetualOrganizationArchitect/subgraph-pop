@@ -556,6 +556,7 @@ type EligibilityModuleContract @entity(immutable: false) {
   id: Bytes! # contract address
   organization: Organization! # Organization this EligibilityModuleContract belongs to
   superAdmin: Bytes!
+  governanceAdmin: Bytes
   hatsContract: Bytes!
   toggleModule: Bytes!
   eligibilityModuleAdminHat: BigInt

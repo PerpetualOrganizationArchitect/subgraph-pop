@@ -1524,6 +1524,19 @@
   },
   {
     "type": "event",
+    "name": "GovernanceAdminSet",
+    "inputs": [
+      {
+        "name": "governanceAdmin",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "SuperAdminTransferred",
     "inputs": [
       {

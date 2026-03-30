@@ -13,6 +13,7 @@ import {
   HatMetadataUpdated as HatMetadataUpdatedEvent,
   UserJoinTimeSet as UserJoinTimeSetEvent,
   EligibilityModuleAdminHatSet as EligibilityModuleAdminHatSetEvent,
+  GovernanceAdminSet as GovernanceAdminSetEvent,
   SuperAdminTransferred as SuperAdminTransferredEvent,
   Paused as PausedEvent,
   Unpaused as UnpausedEvent,
@@ -620,6 +621,21 @@ export function handleEligibilityModuleAdminHatSet(
   }
 
   contract.eligibilityModuleAdminHat = event.params.hatId;
+  contract.save();
+}
+
+export function handleGovernanceAdminSet(
+  event: GovernanceAdminSetEvent
+): void {
+  let contract = EligibilityModuleContract.load(event.address);
+  if (contract == null) {
+    log.warning("EligibilityModuleContract not found at address {}", [
+      event.address.toHexString()
+    ]);
+    return;
+  }
+
+  contract.governanceAdmin = event.params.governanceAdmin;
   contract.save();
 }
 

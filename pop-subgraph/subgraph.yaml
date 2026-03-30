@@ -492,6 +492,8 @@ templates:
           handler: handleUserJoinTimeSet
         - event: EligibilityModuleAdminHatSet(indexed uint256)
           handler: handleEligibilityModuleAdminHatSet
+        - event: GovernanceAdminSet(indexed address)
+          handler: handleGovernanceAdminSet
         - event: SuperAdminTransferred(indexed address,indexed address)
           handler: handleSuperAdminTransferred
         - event: Paused(indexed address)
