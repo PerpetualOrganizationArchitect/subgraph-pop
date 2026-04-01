@@ -422,11 +422,11 @@ export function handleTaskApplicationApproved(event: TaskApplicationApproved): v
   let taskId = event.params.id.toString();
   let taskManagerAddress = event.address.toHexString();
   let applicantAddress = event.params.applicant.toHexString();
-  let id = taskManagerAddress + "-" + taskId + "-" + applicantAddress;
+  let applicationId = taskManagerAddress + "-" + taskId + "-" + applicantAddress;
 
-  let application = TaskApplication.load(id);
+  // Update the TaskApplication entity
+  let application = TaskApplication.load(applicationId);
   if (application) {
-    // Link to User entity for approver
     let taskManager = TaskManager.load(event.address);
     if (taskManager) {
       let user = loadExistingUser(
@@ -445,6 +445,30 @@ export function handleTaskApplicationApproved(event: TaskApplicationApproved): v
     application.approverUsername = getUsernameForAddress(event.params.approver);
     application.approvedAt = event.block.timestamp;
     application.save();
+  }
+
+  // Update the Task entity — contract sets status to CLAIMED and claimer to applicant
+  let taskEntityId = taskManagerAddress + "-" + taskId;
+  let task = Task.load(taskEntityId);
+  if (task) {
+    let taskManager = TaskManager.load(event.address);
+    if (taskManager) {
+      let assigneeUser = loadExistingUser(
+        taskManager.organization,
+        event.params.applicant,
+        event.block.timestamp,
+        event.block.number
+      );
+      if (assigneeUser) {
+        task.assigneeUser = assigneeUser.id;
+      }
+    }
+
+    task.assignee = event.params.applicant;
+    task.assigneeUsername = getUsernameForAddress(event.params.applicant);
+    task.status = "Assigned";
+    task.assignedAt = event.block.timestamp;
+    task.save();
   }
 }
 
