@@ -8,7 +8,9 @@ import { OrgMetadata, OrgMetadataLink } from "../generated/schema";
  * {
  *   description: "...",
  *   links: [{ name: "...", url: "..." }],
- *   template: "default"
+ *   template: "default",
+ *   logo: "QmXxx...",         // optional IPFS CID
+ *   hideTreasury: true/false  // optional, defaults to null (= show treasury)
  * }
  *
  * This handler is resilient to malformed data - if parsing fails or fields
@@ -63,6 +65,18 @@ export function handleOrgMetadata(content: Bytes): void {
     let templateValue = jsonObject.get("template");
     if (templateValue != null && !templateValue.isNull() && templateValue.kind == JSONValueKind.STRING) {
       metadata.template = templateValue.toString();
+    }
+
+    // Parse logo (IPFS CID string, optional)
+    let logoValue = jsonObject.get("logo");
+    if (logoValue != null && !logoValue.isNull() && logoValue.kind == JSONValueKind.STRING) {
+      metadata.logo = logoValue.toString();
+    }
+
+    // Parse hideTreasury (boolean, optional — null means treasury is visible)
+    let hideTreasuryValue = jsonObject.get("hideTreasury");
+    if (hideTreasuryValue != null && !hideTreasuryValue.isNull() && hideTreasuryValue.kind == JSONValueKind.BOOL) {
+      metadata.hideTreasury = hideTreasuryValue.toBool();
     }
 
     // Set indexed timestamp (approximate - file data sources don't have block context)
