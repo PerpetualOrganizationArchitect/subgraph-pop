@@ -318,6 +318,7 @@ type TaskApplication @entity(immutable: false) {
   applicantUsername: String
   applicantUser: User
   applicationHash: Bytes!
+  metadata: TaskApplicationMetadata # IPFS-indexed content (notes, experience)
   approved: Boolean!
   approver: Bytes
   approverUsername: String
@@ -325,6 +326,17 @@ type TaskApplication @entity(immutable: false) {
   appliedAt: BigInt!
   appliedAtBlock: BigInt!
   approvedAt: BigInt
+}
+
+"""
+Task application content fetched from IPFS.
+Contains the applicant's notes and relevant experience.
+"""
+type TaskApplicationMetadata @entity(immutable: true) {
+  id: String! # IPFS CID
+  notes: String
+  experience: String
+  indexedAt: BigInt
 }
 
 type TaskRejection @entity(immutable: true) {
@@ -823,6 +835,7 @@ type TokenRequest @entity(immutable: false) {
   requesterUsername: String
   amount: BigInt!
   ipfsHash: String!
+  metadata: TokenRequestMetadata # IPFS-indexed content (reason, submittedAt)
   status: TokenRequestStatus!
   approver: Bytes
   approverUser: User
@@ -834,6 +847,17 @@ type TokenRequest @entity(immutable: false) {
   cancelledAt: BigInt
   cancelledAtBlock: BigInt
   transactionHash: Bytes!
+}
+
+"""
+Token request metadata fetched from IPFS.
+Contains the reason for the request and when it was submitted.
+"""
+type TokenRequestMetadata @entity(immutable: true) {
+  id: String! # IPFS CID
+  reason: String
+  submittedAt: BigInt
+  indexedAt: BigInt
 }
 
 type TokenBalance @entity(immutable: false) {
@@ -920,6 +944,7 @@ type EducationModule @entity(immutable: false) {
   moduleId: BigInt!
   title: String! # module title
   contentHash: Bytes! # content hash for the module materials
+  metadata: EducationModuleMetadata # IPFS-indexed content (description, link, quiz, answers)
   payout: BigInt!
   status: ModuleStatus!
   createdAt: BigInt!
@@ -930,6 +955,20 @@ type EducationModule @entity(immutable: false) {
   removedAtBlock: BigInt
   completions: [ModuleCompletion!]! @derivedFrom(field: "module")
   updates: [ModuleUpdate!]! @derivedFrom(field: "module")
+}
+
+"""
+Education module content fetched from IPFS.
+Contains description, external link, quiz questions, and answer options.
+"""
+type EducationModuleMetadata @entity(immutable: true) {
+  id: String! # IPFS CID
+  module: EducationModule
+  description: String
+  link: String # External resource URL
+  quiz: [String!] # Array of quiz questions
+  answersJson: String # JSON-stringified 2D array of answer options per question
+  indexedAt: BigInt
 }
 
 type ModuleCompletion @entity(immutable: true) {

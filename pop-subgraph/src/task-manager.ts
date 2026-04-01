@@ -1,5 +1,5 @@
 import { Address, BigInt, Bytes, DataSourceContext } from "@graphprotocol/graph-ts";
-import { TaskMetadata as TaskMetadataTemplate, ProjectMetadata as ProjectMetadataTemplate } from "../generated/templates";
+import { TaskMetadata as TaskMetadataTemplate, ProjectMetadata as ProjectMetadataTemplate, TaskApplicationMetadata as TaskApplicationMetadataTemplate } from "../generated/templates";
 import {
   ProjectCreated,
   ProjectDeleted,
@@ -414,6 +414,18 @@ export function handleTaskApplicationSubmitted(event: TaskApplicationSubmitted):
   application.approved = false;
   application.appliedAt = event.block.timestamp;
   application.appliedAtBlock = event.block.number;
+
+  // Set metadata link and create IPFS data source for application content
+  let zeroHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000");
+  if (!event.params.applicationHash.equals(zeroHash)) {
+    let applicationCid = bytes32ToCid(event.params.applicationHash);
+    application.metadata = applicationCid;
+
+    let context = new DataSourceContext();
+    context.setBigInt("timestamp", event.block.timestamp);
+
+    TaskApplicationMetadataTemplate.createWithContext(applicationCid, context);
+  }
 
   application.save();
 }

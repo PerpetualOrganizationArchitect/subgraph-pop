@@ -925,3 +925,43 @@ templates:
       abis:
         - name: HybridVoting
           file: ./abis/HybridVoting.json
+  - kind: file/ipfs
+    name: EducationModuleMetadata
+    network: arbitrum-one
+    mapping:
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      file: ./src/education-module-metadata.ts
+      handler: handleEducationModuleMetadata
+      entities:
+        - EducationModuleMetadata
+        - EducationModule
+      abis:
+        - name: EducationHub
+          file: ./abis/EducationHub.json
+  - kind: file/ipfs
+    name: TokenRequestMetadata
+    network: arbitrum-one
+    mapping:
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      file: ./src/token-request-metadata.ts
+      handler: handleTokenRequestMetadata
+      entities:
+        - TokenRequestMetadata
+      abis:
+        - name: ParticipationToken
+          file: ./abis/ParticipationToken.json
+  - kind: file/ipfs
+    name: TaskApplicationMetadata
+    network: arbitrum-one
+    mapping:
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      file: ./src/task-application-metadata.ts
+      handler: handleTaskApplicationMetadata
+      entities:
+        - TaskApplicationMetadata
+      abis:
+        - name: TaskManager
+          file: ./abis/TaskManager.json
