@@ -1,4 +1,5 @@
-import { BigInt, Bytes, log, Address } from "@graphprotocol/graph-ts";
+import { BigInt, Bytes, log, Address, DataSourceContext } from "@graphprotocol/graph-ts";
+import { TokenRequestMetadata as TokenRequestMetadataTemplate } from "../generated/templates";
 import {
   Initialized as InitializedEvent,
   Transfer as TransferEvent,
@@ -210,6 +211,18 @@ export function handleRequested(event: RequestedEvent): void {
   tokenRequest.createdAt = event.block.timestamp;
   tokenRequest.createdAtBlock = event.block.number;
   tokenRequest.transactionHash = event.transaction.hash;
+
+  // Set metadata link and create IPFS data source
+  // ipfsHash is already a CID string (not bytes32)
+  let ipfsCid = event.params.ipfsHash;
+  if (ipfsCid.length > 0) {
+    tokenRequest.metadata = ipfsCid;
+
+    let context = new DataSourceContext();
+    context.setBigInt("timestamp", event.block.timestamp);
+
+    TokenRequestMetadataTemplate.createWithContext(ipfsCid, context);
+  }
 
   tokenRequest.save();
 }
