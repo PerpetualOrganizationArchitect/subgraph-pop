@@ -1459,7 +1459,8 @@ type PaymasterOrgConfig @entity(immutable: false) {
   isBannedFromSolidarity: Boolean!
   depositBalance: BigInt!
   totalDeposited: BigInt!
-  totalSpent: BigInt!
+  totalSpent: BigInt! # Amount spent from org's own deposits (excludes solidarity subsidy)
+  totalSolidarityReceived: BigInt! # Amount subsidized by solidarity fund
   registeredAt: BigInt!
   registeredAtBlock: BigInt!
   transactionHash: Bytes!

@@ -229,6 +229,8 @@ templates:
           handler: handleUsageIncreased
         - event: SolidarityFeeCollected(indexed bytes32,uint256)
           handler: handleSolidarityFeeCollected
+        - event: OrgSpendingRecorded(indexed bytes32,uint256,uint256,uint256)
+          handler: handleOrgSpendingRecorded
         - event: SolidarityDonationReceived(indexed address,uint256)
           handler: handleSolidarityDonationReceived
         - event: OrgBannedFromSolidarity(indexed bytes32,bool)

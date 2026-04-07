@@ -1553,6 +1553,17 @@
   },
   {
     "type": "event",
+    "name": "OrgSpendingRecorded",
+    "inputs": [
+      { "name": "orgId", "type": "bytes32", "indexed": true, "internalType": "bytes32" },
+      { "name": "fromDeposits", "type": "uint256", "indexed": false, "internalType": "uint256" },
+      { "name": "fromSolidarity", "type": "uint256", "indexed": false, "internalType": "uint256" },
+      { "name": "solidarityFee", "type": "uint256", "indexed": false, "internalType": "uint256" }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "SolidarityDistributionPaused",
     "inputs": [],
     "anonymous": false
