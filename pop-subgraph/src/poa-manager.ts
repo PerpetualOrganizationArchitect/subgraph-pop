@@ -158,6 +158,7 @@ export function handleInfrastructureDeployed(event: InfrastructureDeployedEvent)
   let hub = new PaymasterHubEntity(paymasterAddress);
   hub.totalDeposit = BigInt.fromI32(0);
   hub.solidarityBalance = BigInt.fromI32(0);
+  hub.totalFeesCollected = BigInt.fromI32(0);
   hub.gracePeriodDays = 90;
   hub.maxSpendDuringGrace = BigInt.fromString("10000000000000000"); // 0.01 ETH
   hub.minDepositRequired = BigInt.fromString("3000000000000000"); // 0.003 ETH

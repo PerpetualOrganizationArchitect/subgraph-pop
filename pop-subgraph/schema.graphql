@@ -1430,6 +1430,7 @@ type PaymasterHubContract @entity(immutable: false) {
   poaManager: Bytes!
   totalDeposit: BigInt!
   solidarityBalance: BigInt!
+  totalFeesCollected: BigInt! # Cumulative solidarity fees collected from all orgs
   gracePeriodDays: Int!
   maxSpendDuringGrace: BigInt!
   minDepositRequired: BigInt!
