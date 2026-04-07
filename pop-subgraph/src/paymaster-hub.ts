@@ -19,7 +19,8 @@ import {
   OnboardingAccountCreated as OnboardingAccountCreatedEvent,
   OnboardingConfigUpdated as OnboardingConfigUpdatedEvent,
   OrgDeployConfigUpdated as OrgDeployConfigUpdatedEvent,
-  OrgDeploymentSponsored as OrgDeploymentSponsoredEvent
+  OrgDeploymentSponsored as OrgDeploymentSponsoredEvent,
+  OrgSpendingRecorded as OrgSpendingRecordedEvent
 } from "../generated/templates/PaymasterHub/PaymasterHub";
 import {
   PaymasterHubContract,
@@ -121,6 +122,7 @@ export function handleOrgRegistered(event: OrgRegisteredEvent): void {
   orgConfig.depositBalance = BigInt.fromI32(0);
   orgConfig.totalDeposited = BigInt.fromI32(0);
   orgConfig.totalSpent = BigInt.fromI32(0);
+  orgConfig.totalSolidarityReceived = BigInt.fromI32(0);
   orgConfig.registeredAt = event.block.timestamp;
   orgConfig.registeredAtBlock = event.block.number;
   orgConfig.transactionHash = event.transaction.hash;
@@ -397,7 +399,7 @@ export function handleUsageIncreased(event: UsageIncreasedEvent): void {
     budget.save();
   }
 
-  // Update org config total spent
+  // Update org config total spent (includes solidarity subsidy for backward compat)
   let orgConfig = PaymasterOrgConfig.load(orgConfigId);
   if (orgConfig) {
     orgConfig.totalSpent = orgConfig.totalSpent.plus(event.params.delta);
@@ -428,6 +430,23 @@ export function handleUsageIncreased(event: UsageIncreasedEvent): void {
   usageEvent.eventAtBlock = event.block.number;
   usageEvent.transactionHash = event.transaction.hash;
   usageEvent.save();
+}
+
+// 11b. OrgSpendingRecorded - Accurate financial tracking with deposit/solidarity breakdown
+export function handleOrgSpendingRecorded(event: OrgSpendingRecordedEvent): void {
+  let contractAddress = event.address;
+  let orgId = event.params.orgId;
+  let orgConfigId = getOrgConfigId(contractAddress, orgId);
+
+  // Only track solidarity received here. Financial fields (totalSpent, depositBalance)
+  // are still updated by handleUsageIncreased for backward compatibility with
+  // pre-upgrade events. The frontend computes accurate balance using:
+  // accurateBalance = totalDeposited - totalSpent + totalSolidarityReceived
+  let orgConfig = PaymasterOrgConfig.load(orgConfigId);
+  if (orgConfig) {
+    orgConfig.totalSolidarityReceived = orgConfig.totalSolidarityReceived.plus(event.params.fromSolidarity);
+    orgConfig.save();
+  }
 }
 
 // 12. SolidarityFeeCollected - Update hub + create solidarity event
