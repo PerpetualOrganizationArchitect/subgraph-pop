@@ -52,6 +52,7 @@ function getOrCreateHub(contractAddress: Bytes): PaymasterHubContract {
     hub.poaManager = Address.zero();
     hub.totalDeposit = BigInt.fromI32(0);
     hub.solidarityBalance = BigInt.fromI32(0);
+    hub.totalFeesCollected = BigInt.fromI32(0);
     hub.gracePeriodDays = 90;
     hub.maxSpendDuringGrace = BigInt.fromString("10000000000000000"); // 0.01 ETH
     hub.minDepositRequired = BigInt.fromString("3000000000000000"); // 0.003 ETH
@@ -438,6 +439,7 @@ export function handleSolidarityFeeCollected(event: SolidarityFeeCollectedEvent)
   // Update hub
   let hub = getOrCreateHub(contractAddress);
   hub.solidarityBalance = hub.solidarityBalance.plus(event.params.amount);
+  hub.totalFeesCollected = hub.totalFeesCollected.plus(event.params.amount);
   hub.save();
 
   // Update stats
