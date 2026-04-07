@@ -13,7 +13,9 @@ import {
   RegistryUpdate,
   PasskeyAccountFactory,
   UniversalAccountRegistry,
-  PaymasterHubContract as PaymasterHubEntity
+  PaymasterHubContract as PaymasterHubEntity,
+  OnboardingConfig,
+  OrgDeployConfig
 } from "../generated/schema";
 import { OrgDeployer as OrgDeployerTemplate } from "../generated/templates";
 import { OrgRegistry as OrgRegistryTemplate } from "../generated/templates";
@@ -180,7 +182,47 @@ export function handleInfrastructureDeployed(event: InfrastructureDeployedEvent)
   if (!fundResult.reverted) {
     hub.solidarityBalance = fundResult.value.balance;
   }
+
+  // Read grace period config (also set before template existed)
+  let graceResult = paymasterContract.try_getGracePeriodConfig();
+  if (!graceResult.reverted) {
+    hub.gracePeriodDays = graceResult.value.initialGraceDays.toI32();
+    hub.maxSpendDuringGrace = graceResult.value.maxSpendDuringGrace;
+    hub.minDepositRequired = graceResult.value.minDepositRequired;
+  }
+
   hub.save();
+
+  // Read onboarding config (set via adminCall before template existed)
+  let onboardingResult = paymasterContract.try_getOnboardingConfig();
+  if (!onboardingResult.reverted) {
+    let onboardingConfig = new OnboardingConfig(paymasterAddress);
+    onboardingConfig.paymasterHub = paymasterAddress;
+    onboardingConfig.maxGasPerCreation = onboardingResult.value.maxGasPerCreation;
+    onboardingConfig.dailyCreationLimit = onboardingResult.value.dailyCreationLimit;
+    onboardingConfig.enabled = onboardingResult.value.enabled;
+    onboardingConfig.accountRegistry = onboardingResult.value.accountRegistry;
+    onboardingConfig.updatedAt = event.block.timestamp;
+    onboardingConfig.blockNumber = event.block.number;
+    onboardingConfig.transactionHash = event.transaction.hash;
+    onboardingConfig.save();
+  }
+
+  // Read org deploy config (set via adminCall before template existed)
+  let orgDeployResult = paymasterContract.try_getOrgDeployConfig();
+  if (!orgDeployResult.reverted) {
+    let orgDeployConfig = new OrgDeployConfig(paymasterAddress);
+    orgDeployConfig.paymasterHub = paymasterAddress;
+    orgDeployConfig.maxGasPerDeploy = orgDeployResult.value.maxGasPerDeploy;
+    orgDeployConfig.dailyDeployLimit = orgDeployResult.value.dailyDeployLimit;
+    orgDeployConfig.maxDeploysPerAccount = orgDeployResult.value.maxDeploysPerAccount;
+    orgDeployConfig.enabled = orgDeployResult.value.enabled;
+    orgDeployConfig.orgDeployer = orgDeployResult.value.orgDeployer;
+    orgDeployConfig.updatedAt = event.block.timestamp;
+    orgDeployConfig.blockNumber = event.block.number;
+    orgDeployConfig.transactionHash = event.transaction.hash;
+    orgDeployConfig.save();
+  }
 
   // Create UniversalAccountRegistry entity
   // Note: The Initialized event is emitted when the contract is deployed,
