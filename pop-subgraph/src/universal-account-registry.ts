@@ -1,4 +1,4 @@
-import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes, DataSourceContext } from "@graphprotocol/graph-ts";
 import {
   Initialized as InitializedEvent,
   UserRegistered as UserRegisteredEvent,
@@ -6,7 +6,8 @@ import {
   UserDeleted as UserDeletedEvent,
   BatchRegistered as BatchRegisteredEvent,
   OwnershipTransferred as OwnershipTransferredEvent,
-  PasskeyFactoryUpdated as PasskeyFactoryUpdatedEvent
+  PasskeyFactoryUpdated as PasskeyFactoryUpdatedEvent,
+  ProfileMetadataUpdated as ProfileMetadataUpdatedEvent
 } from "../generated/templates/UniversalAccountRegistry/UniversalAccountRegistry";
 import {
   UniversalAccountRegistry,
@@ -16,6 +17,19 @@ import {
   BatchRegistration,
   RegistryOwnershipTransfer
 } from "../generated/schema";
+import { AccountMetadata as AccountMetadataTemplate } from "../generated/templates";
+
+function bytes32ToCid(hash: Bytes): string {
+  let prefix = Bytes.fromHexString("0x1220");
+  let multihash = new Bytes(34);
+  for (let i = 0; i < 2; i++) {
+    multihash[i] = prefix[i];
+  }
+  for (let i = 0; i < 32; i++) {
+    multihash[i + 2] = hash[i];
+  }
+  return multihash.toBase58();
+}
 
 export function handleInitialized(event: InitializedEvent): void {
   let contractAddress = event.address;
@@ -227,4 +241,39 @@ export function handlePasskeyFactoryUpdated(event: PasskeyFactoryUpdatedEvent): 
     registry.passkeyFactory = event.params.factory;
     registry.save();
   }
+}
+
+export function handleProfileMetadataUpdated(event: ProfileMetadataUpdatedEvent): void {
+  let userAddress = event.params.user;
+  let metadataHash = event.params.metadataHash;
+
+  let account = Account.load(userAddress);
+  if (!account) {
+    return;
+  }
+
+  // Store raw hash on Account
+  account.profileMetadataHash = metadataHash;
+  account.lastUpdatedAt = event.block.timestamp;
+
+  // Skip IPFS fetch for zero hash (clear profile)
+  let zeroHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000");
+  if (metadataHash.equals(zeroHash)) {
+    account.profileMetadataHash = null;
+    account.metadata = null;
+    account.save();
+    return;
+  }
+
+  // Convert bytes32 sha256 digest to IPFS CIDv0
+  let ipfsCid = bytes32ToCid(metadataHash);
+
+  // Link Account to AccountMetadata
+  account.metadata = ipfsCid;
+  account.save();
+
+  // Create IPFS file data source to fetch and parse the metadata
+  let context = new DataSourceContext();
+  context.setBytes("userAddress", userAddress);
+  AccountMetadataTemplate.createWithContext(ipfsCid, context);
 }

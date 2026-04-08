@@ -262,6 +262,7 @@ templates:
       entities:
         - UniversalAccountRegistry
         - Account
+        - AccountMetadata
         - UsernameChange
         - AccountDeletion
         - BatchRegistration
@@ -284,6 +285,8 @@ templates:
           handler: handleOwnershipTransferred
         - event: PasskeyFactoryUpdated(indexed address)
           handler: handlePasskeyFactoryUpdated
+        - event: ProfileMetadataUpdated(indexed address,bytes32)
+          handler: handleProfileMetadataUpdated
       file: ./src/universal-account-registry.ts
   - kind: ethereum
     name: TaskManager
@@ -967,3 +970,16 @@ templates:
       abis:
         - name: TaskManager
           file: ./abis/TaskManager.json
+  - kind: file/ipfs
+    name: AccountMetadata
+    network: arbitrum-one
+    mapping:
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      file: ./src/account-metadata.ts
+      handler: handleAccountMetadata
+      entities:
+        - AccountMetadata
+      abis:
+        - name: UniversalAccountRegistry
+          file: ./abis/UniversalAccountRegistry.json

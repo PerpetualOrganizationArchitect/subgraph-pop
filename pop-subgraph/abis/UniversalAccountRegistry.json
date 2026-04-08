@@ -395,6 +395,25 @@
   },
   {
     "type": "event",
+    "name": "ProfileMetadataUpdated",
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "metadataHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "PasskeyFactoryUpdated",
     "inputs": [
       {
