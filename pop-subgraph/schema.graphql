@@ -1142,8 +1142,21 @@ type Account @entity(immutable: false) {
   lastUpdatedAt: BigInt!
   deletedAt: BigInt
   deletedAtBlock: BigInt
+  profileMetadataHash: Bytes
+  metadata: AccountMetadata
   users: [User!]! @derivedFrom(field: "account")
   usernameChanges: [UsernameChange!]! @derivedFrom(field: "account")
+}
+
+type AccountMetadata @entity(immutable: false) {
+  id: String! # IPFS CID
+  account: Account
+  bio: String
+  avatar: String # IPFS CID for avatar image
+  github: String
+  twitter: String
+  website: String
+  indexedAt: BigInt
 }
 
 type UsernameChange @entity(immutable: true) {
