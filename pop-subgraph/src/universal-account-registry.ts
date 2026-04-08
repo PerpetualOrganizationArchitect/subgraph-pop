@@ -47,24 +47,39 @@ export function handleUserRegistered(event: UserRegisteredEvent): void {
     registry.createdAtBlock = event.block.number;
   }
 
-  // Create or update account
+  // Check if account already exists (same user on another chain)
   let account = Account.load(userAddress);
-  if (!account) {
-    account = new Account(userAddress);
-    account.registry = contractAddress;
-    account.user = userAddress;
-    account.isDeleted = false;
-    account.registeredAt = event.block.timestamp;
-    account.registeredAtBlock = event.block.number;
+  if (account) {
+    // Account already exists — don't overwrite canonical name or re-increment
+    registry.save();
 
-    // Increment total accounts
-    registry.totalAccounts = registry.totalAccounts.plus(BigInt.fromI32(1));
+    // Still create the change record for audit trail
+    let changeId = event.transaction.hash.concatI32(event.logIndex.toI32());
+    let change = new UsernameChange(changeId);
+    change.registry = contractAddress;
+    change.account = userAddress;
+    change.user = userAddress;
+    change.newUsername = username;
+    change.changedAt = event.block.timestamp;
+    change.changedAtBlock = event.block.number;
+    change.transactionHash = event.transaction.hash;
+    change.save();
+    return;
   }
 
+  // Create new account
+  account = new Account(userAddress);
+  account.registry = contractAddress;
+  account.user = userAddress;
   account.username = username;
+  account.isDeleted = false;
+  account.registeredAt = event.block.timestamp;
+  account.registeredAtBlock = event.block.number;
   account.lastUpdatedAt = event.block.timestamp;
   account.save();
 
+  // Increment total accounts
+  registry.totalAccounts = registry.totalAccounts.plus(BigInt.fromI32(1));
   registry.save();
 
   // Create username change record (for registration, oldUsername is null)
@@ -100,6 +115,7 @@ export function handleUsernameChanged(event: UsernameChangedEvent): void {
   }
 
   let oldUsername = account.username;
+
   account.username = newUsername;
   account.lastUpdatedAt = event.block.timestamp;
   account.save();

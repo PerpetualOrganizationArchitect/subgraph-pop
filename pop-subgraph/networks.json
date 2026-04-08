@@ -1,8 +1,38 @@
 {
-  "hoodi": {
-    "OrgDeployer": {
-      "address": "0xB995E5A9ae90C39af4C3BEf282f354c24B4EABf8",
-      "startBlock": 2136397
+  "arbitrum-one": {
+    "GovernanceFactory": {
+      "address": "0x24Fd3b269905AF10A6E5c67D93F0502Cd11Af875",
+      "startBlock": 447059876
+    },
+    "PoaManager": {
+      "address": "0xFF585Fae4A944cD173B19158C6FC5E08980b0815",
+      "startBlock": 447059849
+    },
+    "PoaManagerHub": {
+      "address": "0xB72840B343654eAfb2CFf7acC4Fc6b59E6c3CC71",
+      "startBlock": 447060030
+    },
+    "PoaManagerSatellite": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 447059849
+    }
+  },
+  "gnosis": {
+    "GovernanceFactory": {
+      "address": "0x7B023B9566b96616D54935AE8De80579c93f62aC",
+      "startBlock": 45408008
+    },
+    "PoaManager": {
+      "address": "0x794fD39e75140ee1545B1B022E5486B7c863789b",
+      "startBlock": 45407962
+    },
+    "PoaManagerHub": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "startBlock": 45407962
+    },
+    "PoaManagerSatellite": {
+      "address": "0x4Ad70029a9247D369a5bEA92f90840B9ee58eD06",
+      "startBlock": 45408030
     }
   }
 }

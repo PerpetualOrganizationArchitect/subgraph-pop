@@ -1,4 +1,4 @@
-import { BigInt, Bytes, dataSource, json, JSONValueKind } from "@graphprotocol/graph-ts";
+import { BigDecimal, BigInt, Bytes, dataSource, json, JSONValueKind } from "@graphprotocol/graph-ts";
 import { TaskMetadata } from "../generated/schema";
 
 /**
@@ -67,10 +67,10 @@ export function handleTaskMetadata(content: Bytes): void {
     metadata.difficulty = difficultyValue.toString();
   }
 
-  // Parse estHours
+  // Parse estHours (supports fractional values like 0.5)
   let estHoursValue = jsonObject.get("estHours");
   if (estHoursValue != null && !estHoursValue.isNull() && estHoursValue.kind == JSONValueKind.NUMBER) {
-    metadata.estimatedHours = i32(Math.round(estHoursValue.toF64()));
+    metadata.estimatedHours = BigDecimal.fromString(estHoursValue.toF64().toString());
   }
 
   // Parse submission content (for submission metadata entities)
@@ -80,7 +80,8 @@ export function handleTaskMetadata(content: Bytes): void {
   }
 
   // Parse rejection reason (for rejection metadata entities)
-  let rejectionValue = jsonObject.get("rejection");
+  // The frontend uploads rejection metadata with key "rejectionReason"
+  let rejectionValue = jsonObject.get("rejectionReason");
   if (rejectionValue != null && !rejectionValue.isNull() && rejectionValue.kind == JSONValueKind.STRING) {
     metadata.rejection = rejectionValue.toString();
   }

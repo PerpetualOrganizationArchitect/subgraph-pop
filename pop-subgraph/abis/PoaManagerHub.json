@@ -3,12 +3,41 @@
     "type": "constructor",
     "inputs": [
       {
-        "name": "registryAddr",
+        "name": "_poaManager",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "_mailbox",
         "type": "address",
         "internalType": "address"
       }
     ],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "receive",
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "acceptOwnership",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "activeSatelliteCount",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -27,6 +56,24 @@
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "addContractTypeCrossChain",
+    "inputs": [
+      {
+        "name": "typeName",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "impl",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
   },
   {
     "type": "function",
@@ -54,70 +101,31 @@
   },
   {
     "type": "function",
-    "name": "beacons",
+    "name": "adminCallCrossChain",
     "inputs": [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
+        "name": "target",
         "type": "address",
-        "internalType": "contract UpgradeableBeacon"
+        "internalType": "address"
+      },
+      {
+        "name": "data",
+        "type": "bytes",
+        "internalType": "bytes"
       }
     ],
-    "stateMutability": "view"
+    "outputs": [],
+    "stateMutability": "payable"
   },
   {
     "type": "function",
-    "name": "contractTypeCount",
+    "name": "mailbox",
     "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getBeaconById",
-    "inputs": [
-      {
-        "name": "typeId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
         "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getCurrentImplementationById",
-    "inputs": [
-      {
-        "name": "typeId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
+        "internalType": "contract IMailbox"
       }
     ],
     "stateMutability": "view"
@@ -137,35 +145,54 @@
   },
   {
     "type": "function",
-    "name": "registerInfrastructure",
+    "name": "paused",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pendingOwner",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "poaManager",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract PoaManager"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "registerSatellite",
     "inputs": [
       {
-        "name": "_orgDeployer",
-        "type": "address",
-        "internalType": "address"
+        "name": "domain",
+        "type": "uint32",
+        "internalType": "uint32"
       },
       {
-        "name": "_orgRegistry",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "_implRegistry",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "_paymasterHub",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "_globalAccountRegistry",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "_passkeyAccountFactoryBeacon",
+        "name": "satellite",
         "type": "address",
         "internalType": "address"
       }
@@ -175,21 +202,76 @@
   },
   {
     "type": "function",
-    "name": "registry",
+    "name": "removeSatellite",
+    "inputs": [
+      {
+        "name": "index",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "renounceOwnership",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "satelliteCount",
     "inputs": [],
     "outputs": [
       {
         "name": "",
-        "type": "address",
-        "internalType": "contract ImplementationRegistry"
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
   },
   {
     "type": "function",
-    "name": "renounceOwnership",
-    "inputs": [],
+    "name": "satellites",
+    "inputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "domain",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "satellite",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "active",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "setPaused",
+    "inputs": [
+      {
+        "name": "_paused",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
@@ -208,22 +290,16 @@
   },
   {
     "type": "function",
-    "name": "typeIds",
+    "name": "transferPoaManagerOwnership",
     "inputs": [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
+        "name": "newOwner",
+        "type": "address",
+        "internalType": "address"
       }
     ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "stateMutability": "view"
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -240,7 +316,30 @@
   },
   {
     "type": "function",
-    "name": "upgradeBeacon",
+    "name": "upgradeBeaconCrossChain",
+    "inputs": [
+      {
+        "name": "typeName",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "newImpl",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "version",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "upgradeBeaconLocal",
     "inputs": [
       {
         "name": "typeName",
@@ -262,8 +361,21 @@
     "stateMutability": "nonpayable"
   },
   {
+    "type": "function",
+    "name": "withdrawETH",
+    "inputs": [
+      {
+        "name": "to",
+        "type": "address",
+        "internalType": "address payable"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
     "type": "event",
-    "name": "BeaconCreated",
+    "name": "CrossChainAddTypeDispatched",
     "inputs": [
       {
         "name": "typeId",
@@ -278,13 +390,7 @@
         "internalType": "string"
       },
       {
-        "name": "beacon",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      },
-      {
-        "name": "implementation",
+        "name": "impl",
         "type": "address",
         "indexed": false,
         "internalType": "address"
@@ -294,7 +400,26 @@
   },
   {
     "type": "event",
-    "name": "BeaconUpgraded",
+    "name": "CrossChainAdminCallDispatched",
+    "inputs": [
+      {
+        "name": "target",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "data",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CrossChainUpgradeDispatched",
     "inputs": [
       {
         "name": "typeId",
@@ -303,7 +428,7 @@
         "internalType": "bytes32"
       },
       {
-        "name": "newImplementation",
+        "name": "newImpl",
         "type": "address",
         "indexed": false,
         "internalType": "address"
@@ -319,42 +444,18 @@
   },
   {
     "type": "event",
-    "name": "InfrastructureDeployed",
+    "name": "OwnershipTransferStarted",
     "inputs": [
       {
-        "name": "orgDeployer",
+        "name": "previousOwner",
         "type": "address",
-        "indexed": false,
+        "indexed": true,
         "internalType": "address"
       },
       {
-        "name": "orgRegistry",
+        "name": "newOwner",
         "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      },
-      {
-        "name": "implRegistry",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      },
-      {
-        "name": "paymasterHub",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      },
-      {
-        "name": "globalAccountRegistry",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      },
-      {
-        "name": "passkeyAccountFactoryBeacon",
-        "type": "address",
-        "indexed": false,
+        "indexed": true,
         "internalType": "address"
       }
     ],
@@ -381,16 +482,29 @@
   },
   {
     "type": "event",
-    "name": "RegistryUpdated",
+    "name": "PauseSet",
     "inputs": [
       {
-        "name": "oldRegistry",
-        "type": "address",
+        "name": "paused",
+        "type": "bool",
         "indexed": false,
-        "internalType": "address"
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "SatelliteRegistered",
+    "inputs": [
+      {
+        "name": "domain",
+        "type": "uint32",
+        "indexed": true,
+        "internalType": "uint32"
       },
       {
-        "name": "newRegistry",
+        "name": "satellite",
         "type": "address",
         "indexed": false,
         "internalType": "address"
@@ -399,8 +513,42 @@
     "anonymous": false
   },
   {
+    "type": "event",
+    "name": "SatelliteRemoved",
+    "inputs": [
+      {
+        "name": "domain",
+        "type": "uint32",
+        "indexed": true,
+        "internalType": "uint32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
     "type": "error",
-    "name": "ImplZero",
+    "name": "CannotRenounce",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "DuplicateDomain",
+    "inputs": [
+      {
+        "name": "domain",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "IsPaused",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NoActiveSatellites",
     "inputs": []
   },
   {
@@ -427,17 +575,17 @@
   },
   {
     "type": "error",
-    "name": "SameImplementation",
+    "name": "SatelliteNotActive",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "TypeExists",
+    "name": "TransferFailed",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "TypeUnknown",
+    "name": "ZeroAddress",
     "inputs": []
   }
 ]

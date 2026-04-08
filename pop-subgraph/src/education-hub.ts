@@ -1,4 +1,5 @@
-import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
+import { Address, BigInt, Bytes, DataSourceContext } from "@graphprotocol/graph-ts";
+import { EducationModuleMetadata as EducationModuleMetadataTemplate } from "../generated/templates";
 import {
   Initialized as InitializedEvent,
   CreatorHatSet as CreatorHatSetEvent,
@@ -25,6 +26,39 @@ import {
 } from "../generated/schema";
 import { getUsernameForAddress, loadExistingUser, createExecutorChange, createPauseEvent, getOrCreateRole } from "./utils";
 
+/**
+ * Convert bytes32 sha256 digest to IPFS CIDv0 string.
+ */
+function bytes32ToCid(hash: Bytes): string {
+  let prefix = Bytes.fromHexString("0x1220");
+  let multihash = new Bytes(34);
+  for (let i = 0; i < 2; i++) {
+    multihash[i] = prefix[i];
+  }
+  for (let i = 0; i < 32; i++) {
+    multihash[i + 2] = hash[i];
+  }
+  return multihash.toBase58();
+}
+
+/**
+ * Helper to create an IPFS file data source for education module content.
+ */
+function createEducationModuleMetadataSource(contentHash: Bytes, moduleEntityId: string, timestamp: BigInt): void {
+  let zeroHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000");
+  if (contentHash.equals(zeroHash)) {
+    return;
+  }
+
+  let ipfsCid = bytes32ToCid(contentHash);
+
+  let context = new DataSourceContext();
+  context.setString("moduleEntityId", moduleEntityId);
+  context.setBigInt("timestamp", timestamp);
+
+  EducationModuleMetadataTemplate.createWithContext(ipfsCid, context);
+}
+
 export function handleInitialized(event: InitializedEvent): void {
   // Initialization handled in org-deployer.ts
   // This event just confirms the contract is initialized
@@ -46,7 +80,14 @@ export function handleModuleCreated(event: ModuleCreatedEvent): void {
   module.createdAt = event.block.timestamp;
   module.createdAtBlock = event.block.number;
 
+  // Set metadata link (CID) for the EducationModuleMetadata entity
+  let contentCid = bytes32ToCid(event.params.contentHash);
+  module.metadata = contentCid;
+
   module.save();
+
+  // Create IPFS data source to fetch and index module content
+  createEducationModuleMetadataSource(event.params.contentHash, moduleEntityId, event.block.timestamp);
 
   // Update nextModuleId on contract
   let contract = EducationHubContract.load(contractAddress);
@@ -112,7 +153,15 @@ export function handleModuleUpdated(event: ModuleUpdatedEvent): void {
     module.payout = event.params.payout;
     module.updatedAt = event.block.timestamp;
     module.updatedAtBlock = event.block.number;
+
+    // Update metadata link to new content
+    let contentCid = bytes32ToCid(event.params.contentHash);
+    module.metadata = contentCid;
+
     module.save();
+
+    // Create IPFS data source to fetch and index updated module content
+    createEducationModuleMetadataSource(event.params.contentHash, moduleEntityId, event.block.timestamp);
   }
 
   // Create historical update record

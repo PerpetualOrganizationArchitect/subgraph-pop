@@ -1,5 +1,5 @@
 import { Address, BigInt, Bytes, DataSourceContext } from "@graphprotocol/graph-ts";
-import { TaskMetadata as TaskMetadataTemplate, ProjectMetadata as ProjectMetadataTemplate } from "../generated/templates";
+import { TaskMetadata as TaskMetadataTemplate, ProjectMetadata as ProjectMetadataTemplate, TaskApplicationMetadata as TaskApplicationMetadataTemplate } from "../generated/templates";
 import {
   ProjectCreated,
   ProjectDeleted,
@@ -415,6 +415,18 @@ export function handleTaskApplicationSubmitted(event: TaskApplicationSubmitted):
   application.appliedAt = event.block.timestamp;
   application.appliedAtBlock = event.block.number;
 
+  // Set metadata link and create IPFS data source for application content
+  let zeroHash = Bytes.fromHexString("0x0000000000000000000000000000000000000000000000000000000000000000");
+  if (!event.params.applicationHash.equals(zeroHash)) {
+    let applicationCid = bytes32ToCid(event.params.applicationHash);
+    application.metadata = applicationCid;
+
+    let context = new DataSourceContext();
+    context.setBigInt("timestamp", event.block.timestamp);
+
+    TaskApplicationMetadataTemplate.createWithContext(applicationCid, context);
+  }
+
   application.save();
 }
 
@@ -422,11 +434,11 @@ export function handleTaskApplicationApproved(event: TaskApplicationApproved): v
   let taskId = event.params.id.toString();
   let taskManagerAddress = event.address.toHexString();
   let applicantAddress = event.params.applicant.toHexString();
-  let id = taskManagerAddress + "-" + taskId + "-" + applicantAddress;
+  let applicationId = taskManagerAddress + "-" + taskId + "-" + applicantAddress;
 
-  let application = TaskApplication.load(id);
+  // Update the TaskApplication entity
+  let application = TaskApplication.load(applicationId);
   if (application) {
-    // Link to User entity for approver
     let taskManager = TaskManager.load(event.address);
     if (taskManager) {
       let user = loadExistingUser(
@@ -445,6 +457,30 @@ export function handleTaskApplicationApproved(event: TaskApplicationApproved): v
     application.approverUsername = getUsernameForAddress(event.params.approver);
     application.approvedAt = event.block.timestamp;
     application.save();
+  }
+
+  // Update the Task entity — contract sets status to CLAIMED and claimer to applicant
+  let taskEntityId = taskManagerAddress + "-" + taskId;
+  let task = Task.load(taskEntityId);
+  if (task) {
+    let taskManager = TaskManager.load(event.address);
+    if (taskManager) {
+      let assigneeUser = loadExistingUser(
+        taskManager.organization,
+        event.params.applicant,
+        event.block.timestamp,
+        event.block.number
+      );
+      if (assigneeUser) {
+        task.assigneeUser = assigneeUser.id;
+      }
+    }
+
+    task.assignee = event.params.applicant;
+    task.assigneeUsername = getUsernameForAddress(event.params.applicant);
+    task.status = "Assigned";
+    task.assignedAt = event.block.timestamp;
+    task.save();
   }
 }
 
@@ -630,7 +666,21 @@ export function handleTaskRejected(event: TaskRejected): void {
   task.rejectionHash = event.params.rejectionHash;
   task.rejectionCount = task.rejectionCount + 1;
   task.updatedAt = event.block.timestamp;
+
+  // Clear stale submission data — task is no longer submitted after rejection
+  task.submissionHash = null;
+  task.submittedAt = null;
+
+  // Restore task.metadata to the original creation/update metadata.
+  // handleTaskSubmitted overwrites task.metadata to point at submission content;
+  // on rejection we need to point it back to the task description metadata.
+  let originalCid = bytes32ToCid(task.metadataHash);
+  task.metadata = event.transaction.hash.toHexString() + "-" + originalCid;
+
   task.save();
+
+  // Re-fetch original task description metadata from IPFS so the restored link resolves
+  createTaskMetadataSource(task.metadataHash, taskEntityId, event.block.timestamp, event.transaction.hash);
 
   // Create IPFS data source to fetch and parse rejection metadata
   createTaskMetadataSource(event.params.rejectionHash, taskEntityId, event.block.timestamp, event.transaction.hash);
@@ -642,6 +692,10 @@ export function handleTaskRejected(event: TaskRejected): void {
   rejection.rejector = event.params.rejector;
   rejection.rejectorUsername = getUsernameForAddress(event.params.rejector);
   rejection.rejectionHash = event.params.rejectionHash;
+
+  // Link to rejection metadata entity (will be created by IPFS data source)
+  let rejectionCid = bytes32ToCid(event.params.rejectionHash);
+  rejection.metadata = event.transaction.hash.toHexString() + "-" + rejectionCid;
   rejection.rejectedAt = event.block.timestamp;
   rejection.rejectedAtBlock = event.block.number;
   rejection.transactionHash = event.transaction.hash;

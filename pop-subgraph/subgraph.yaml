@@ -1,58 +1,16 @@
-# Redeploy trigger
 specVersion: 1.2.0
 indexerHints:
-  prune: auto
+  prune: never
 schema:
   file: ./schema.graphql
-# Beacon Addresses (for subgraph indexing) - Hoodi deployment block 2334136:
-# BEACON_ImplementationRegistry: 0x9e7c1f0790730ae332aff37be1f9fb09405db793
-# BEACON_OrgRegistry: 0xfc989ab8584e2fded125ae876ec581e5021281cf
-# BEACON_OrgDeployer: 0xbdcf2f096fa7f8eb9fc237b1837a9cce9bc6babd
-# BEACON_PaymasterHub: 0x2643cbeb50f039440b74f4707fd39efda689cdfa
-# BEACON_HybridVoting: 0x64bdc3b17dce9dd3a3179b283f9edba1d7ad5116
-# BEACON_DirectDemocracyVoting: 0xb748d954ada3af9a35e97bd294871f695612af99
-# BEACON_Executor: 0x2408557e208be1d471caae78cafc011b364fe8b2
-# BEACON_QuickJoin: 0x4df5574bf383fae65af7e8ca6484ab09b50061a7
-# BEACON_ParticipationToken: 0x62faa7b24d378a2a05b742afd3c3bb5e90052b77
-# BEACON_TaskManager: 0x13423c11be7b3514d94278ad25f0a9020650dddd
-# BEACON_EducationHub: 0x3598ece64628ee0f34949355df82bf93962497c1
-# BEACON_PaymentManager: 0xa7ce0fc980468e9e2e753a874d3fc3f634a3c676
-# BEACON_UniversalAccountRegistry: 0x3171826d11b1473046a7ae09b605deafa93b0c78
-# BEACON_EligibilityModule: 0xd3db5ba139b6b61f679e64dfafdae73faf20ff1b
-# BEACON_ToggleModule: 0x875d9d58016f540819ed6408c7ca7598ebad80df
-# BEACON_PasskeyAccount: 0x6ba34ffa0954d8829754688d9a44d04861db55cc
-# BEACON_PasskeyAccountFactory: 0x5efc746f4fe5121af3c8f36934a3ad60a45949b4
-# NOTE: Infrastructure contracts (OrgDeployer, OrgRegistry, PaymasterHub, UniversalAccountRegistry)
-# are now dynamically discovered via InfrastructureDeployed event from PoaManager.
-# Only PoaManager and singleton factories need to be hardcoded.
 dataSources:
-  # - kind: ethereum
-  #   name: Beacon
-  #   network: hoodi
-  #   source:
-  #     address: "0x0000000000000000000000000000000000000000" # TODO: Add Beacon contract address
-  #     abi: Beacon
-  #     startBlock: 1429671
-  #   mapping:
-  #     kind: ethereum/events
-  #     apiVersion: 0.0.9
-  #     language: wasm/assemblyscript
-  #     entities:
-  #       - BeaconUpgrade
-  #     abis:
-  #       - name: Beacon
-  #         file: ./abis/Beacon.json
-  #     eventHandlers:
-  #       - event: Upgraded(indexed address)
-  #         handler: handleUpgraded
-  #     file: ./src/beacon.ts
   - kind: ethereum
     name: GovernanceFactory
-    network: hoodi
+    network: arbitrum-one
     source:
-      address: "0x82dd6fa77b6db1db3976c818a52c14c6395f8c33"
       abi: GovernanceFactory
-      startBlock: 2334136
+      address: "0x24Fd3b269905AF10A6E5c67D93F0502Cd11Af875"
+      startBlock: 447059876
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -63,16 +21,17 @@ dataSources:
         - name: GovernanceFactory
           file: ./abis/GovernanceFactory.json
       eventHandlers:
-        - event: ModuleDeployed(indexed bytes32,indexed bytes32,address,address,bool,address)
+        - event: ModuleDeployed(indexed bytes32,indexed
+            bytes32,address,address,bool,address)
           handler: handleModuleDeployed
       file: ./src/governance-factory.ts
   - kind: ethereum
     name: PoaManager
-    network: hoodi
+    network: arbitrum-one
     source:
-      address: "0x5ec60407c91595d175e044feeabf52c6d0eaadd3"
       abi: PoaManager
-      startBlock: 2334136
+      address: "0xFF585Fae4A944cD173B19158C6FC5E08980b0815"
+      startBlock: 447059849
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.9
@@ -85,6 +44,8 @@ dataSources:
       abis:
         - name: PoaManager
           file: ./abis/PoaManager.json
+        - name: PaymasterHub
+          file: ./abis/PaymasterHub.json
       eventHandlers:
         - event: BeaconCreated(indexed bytes32,string,address,address)
           handler: handleBeaconCreated
@@ -95,11 +56,73 @@ dataSources:
         - event: InfrastructureDeployed(address,address,address,address,address,address)
           handler: handleInfrastructureDeployed
       file: ./src/poa-manager.ts
+  - kind: ethereum
+    name: PoaManagerHub
+    network: arbitrum-one
+    source:
+      abi: PoaManagerHub
+      address: "0xB72840B343654eAfb2CFf7acC4Fc6b59E6c3CC71"
+      startBlock: 447060030
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - PoaManagerHubContract
+        - SatelliteRegistration
+        - CrossChainUpgradeDispatch
+        - CrossChainAddTypeDispatch
+        - CrossChainAdminCallDispatch
+      abis:
+        - name: PoaManagerHub
+          file: ./abis/PoaManagerHub.json
+      eventHandlers:
+        - event: CrossChainUpgradeDispatched(indexed bytes32,address,string)
+          handler: handleCrossChainUpgradeDispatched
+        - event: CrossChainAddTypeDispatched(indexed bytes32,string,address)
+          handler: handleCrossChainAddTypeDispatched
+        - event: CrossChainAdminCallDispatched(indexed address,bytes)
+          handler: handleCrossChainAdminCallDispatched
+        - event: SatelliteRegistered(indexed uint32,address)
+          handler: handleSatelliteRegistered
+        - event: SatelliteRemoved(indexed uint32)
+          handler: handleSatelliteRemoved
+        - event: PauseSet(bool)
+          handler: handleHubPauseSet
+      file: ./src/poa-manager-hub.ts
+  - kind: ethereum
+    name: PoaManagerSatellite
+    network: arbitrum-one
+    source:
+      abi: PoaManagerSatellite
+      address: "0x0000000000000000000000000000000000000000"
+      startBlock: 447059849
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - PoaManagerSatelliteContract
+        - CrossChainUpgradeReceived
+        - CrossChainContractTypeReceived
+        - CrossChainAdminCallReceived
+      abis:
+        - name: PoaManagerSatellite
+          file: ./abis/PoaManagerSatellite.json
+      eventHandlers:
+        - event: UpgradeReceived(indexed bytes32,address,string,uint32)
+          handler: handleUpgradeReceived
+        - event: ContractTypeReceived(indexed bytes32,string,address,uint32)
+          handler: handleContractTypeReceived
+        - event: AdminCallReceived(indexed address,bytes,uint32)
+          handler: handleAdminCallReceived
+        - event: PauseSet(bool)
+          handler: handleSatellitePauseSet
+      file: ./src/poa-manager-satellite.ts
 templates:
-  # Infrastructure templates (dynamically created via InfrastructureDeployed event)
   - kind: ethereum
     name: OrgDeployer
-    network: hoodi
+    network: arbitrum-one
     source:
       abi: OrgDeployer
     mapping:
@@ -112,16 +135,19 @@ templates:
         - name: OrgDeployer
           file: ./abis/OrgDeployer.json
       eventHandlers:
-        - event: OrgDeployed(indexed bytes32,indexed address,address,address,address,address,address,address,address,address,address,uint256,uint256[])
+        - event: OrgDeployed(indexed bytes32,indexed
+            address,address,address,address,address,address,address,address,address,address,uint256,uint256[])
           handler: handleOrgDeployed
-        - event: RolesCreated(indexed bytes32,uint256[],string[],string[],bytes32[],bool[])
+        - event: RolesCreated(indexed
+            bytes32,uint256[],string[],string[],bytes32[],bool[])
           handler: handleRolesCreated
-        - event: InitialWearersAssigned(indexed bytes32,indexed address,address[],uint256[])
+        - event: InitialWearersAssigned(indexed bytes32,indexed
+            address,address[],uint256[])
           handler: handleInitialWearersAssigned
       file: ./src/org-deployer.ts
   - kind: ethereum
     name: OrgRegistry
-    network: hoodi
+    network: arbitrum-one
     source:
       abi: OrgRegistry
     mapping:
@@ -142,7 +168,8 @@ templates:
           handler: handleOrgRegistered
         - event: MetaUpdated(indexed bytes32,bytes,bytes32)
           handler: handleMetaUpdated
-        - event: ContractRegistered(indexed bytes32,indexed bytes32,indexed bytes32,address,address,bool,address)
+        - event: ContractRegistered(indexed bytes32,indexed bytes32,indexed
+            bytes32,address,address,bool,address)
           handler: handleContractRegistered
         - event: OrgMetadataAdminHatSet(indexed bytes32,uint256)
           handler: handleOrgMetadataAdminHatSet
@@ -151,7 +178,7 @@ templates:
       file: ./src/org-registry.ts
   - kind: ethereum
     name: PaymasterHub
-    network: hoodi
+    network: arbitrum-one
     source:
       abi: PaymasterHub
     mapping:
@@ -164,12 +191,9 @@ templates:
         - PaymasterRule
         - PaymasterBudget
         - PaymasterFeeCaps
-        - PaymasterBountyConfig
         - PaymasterOrgStats
         - PaymasterDepositEvent
-        - BountyEvent
         - UsageEvent
-        - UserOpEvent
         - SolidarityEvent
         - PaymasterConfigChange
         - GracePeriodChange
@@ -177,6 +201,8 @@ templates:
         - OrgBanRecord
         - OnboardingConfig
         - OnboardingAccount
+        - OrgDeployConfig
+        - OrgDeploySponsorship
       abis:
         - name: PaymasterHub
           file: ./abis/PaymasterHub.json
@@ -197,32 +223,18 @@ templates:
           handler: handleOperatorHatSet
         - event: DepositIncrease(uint256,uint256)
           handler: handleDepositIncrease
-        - event: DepositWithdraw(indexed address,uint256)
-          handler: handleDepositWithdraw
         - event: OrgDepositReceived(indexed bytes32,indexed address,uint256)
           handler: handleOrgDepositReceived
-        - event: BountyConfig(indexed bytes32,bool,uint96,uint16)
-          handler: handleBountyConfig
-        - event: BountyFunded(uint256,uint256)
-          handler: handleBountyFunded
-        - event: BountySweep(indexed address,uint256)
-          handler: handleBountySweep
-        - event: BountyPaid(indexed bytes32,indexed address,uint256)
-          handler: handleBountyPaid
-        - event: BountyPayFailed(indexed bytes32,indexed address,uint256)
-          handler: handleBountyPayFailed
         - event: UsageIncreased(indexed bytes32,bytes32,uint256,uint128,uint32)
           handler: handleUsageIncreased
-        - event: UserOpPosted(indexed bytes32,indexed address)
-          handler: handleUserOpPosted
         - event: SolidarityFeeCollected(indexed bytes32,uint256)
           handler: handleSolidarityFeeCollected
+        - event: OrgSpendingRecorded(indexed bytes32,uint256,uint256,uint256)
+          handler: handleOrgSpendingRecorded
         - event: SolidarityDonationReceived(indexed address,uint256)
           handler: handleSolidarityDonationReceived
         - event: OrgBannedFromSolidarity(indexed bytes32,bool)
           handler: handleOrgBannedFromSolidarity
-        - event: EmergencyWithdraw(indexed address,uint256)
-          handler: handleEmergencyWithdraw
         - event: GracePeriodConfigUpdated(uint32,uint128,uint128)
           handler: handleGracePeriodConfigUpdated
         - event: SolidarityDistributionPaused()
@@ -231,12 +243,16 @@ templates:
           handler: handleSolidarityDistributionUnpaused
         - event: OnboardingAccountCreated(indexed address,uint256)
           handler: handleOnboardingAccountCreated
-        - event: OnboardingConfigUpdated(uint128,uint128,bool)
+        - event: OnboardingConfigUpdated(uint128,uint128,bool,address)
           handler: handleOnboardingConfigUpdated
+        - event: OrgDeployConfigUpdated(uint128,uint128,uint8,bool,address)
+          handler: handleOrgDeployConfigUpdated
+        - event: OrgDeploymentSponsored(indexed address,uint256)
+          handler: handleOrgDeploymentSponsored
       file: ./src/paymaster-hub.ts
   - kind: ethereum
     name: UniversalAccountRegistry
-    network: hoodi
+    network: arbitrum-one
     source:
       abi: UniversalAccountRegistry
     mapping:
@@ -269,10 +285,9 @@ templates:
         - event: PasskeyFactoryUpdated(indexed address)
           handler: handlePasskeyFactoryUpdated
       file: ./src/universal-account-registry.ts
-  # Org-level contract templates (dynamically created via OrgDeployed event)
   - kind: ethereum
     name: TaskManager
-    network: hoodi
+    network: arbitrum-one
     source:
       abi: TaskManager
     mapping:
@@ -305,7 +320,8 @@ templates:
           handler: handleProjectRolePermSet
         - event: BountyCapSet(indexed bytes32,indexed address,uint256,uint256)
           handler: handleBountyCapSet
-        - event: TaskCreated(indexed uint256,indexed bytes32,uint256,address,uint256,bool,bytes,bytes32)
+        - event: TaskCreated(indexed uint256,indexed
+            bytes32,uint256,address,uint256,bool,bytes,bytes32)
           handler: handleTaskCreated
         - event: TaskAssigned(indexed uint256,indexed address,indexed address)
           handler: handleTaskAssigned
@@ -328,7 +344,7 @@ templates:
       file: ./src/task-manager.ts
   - kind: ethereum
     name: HybridVoting
-    network: hoodi
+    network: arbitrum-one
     source:
       abi: HybridVoting
     mapping:
@@ -338,7 +354,7 @@ templates:
       entities:
         - HybridVotingContract
         - HybridVotingHatPermission
-        - HybridVotingTargetPermission
+        - HybridVotingThresholdChange
         - HybridVotingQuorumChange
         - HybridVotingExecutorChange
         - VotingClass
@@ -353,30 +369,32 @@ templates:
           handler: handleInitialized
         - event: ExecutorUpdated(address)
           handler: handleExecutorUpdated
-        - event: QuorumSet(uint8)
+        - event: ThresholdPctSet(uint8)
+          handler: handleThresholdPctSet
+        - event: QuorumSet(uint32)
           handler: handleQuorumSet
         - event: HatSet(uint8,uint256,bool)
           handler: handleHatSet
         - event: HatToggled(indexed uint256,bool)
           handler: handleHatToggled
-        - event: TargetAllowed(address,bool)
-          handler: handleTargetAllowed
         - event: NewProposal(uint256,bytes,bytes32,uint8,uint64,uint64)
           handler: handleNewProposal
         - event: NewHatProposal(uint256,bytes,bytes32,uint8,uint64,uint64,uint256[])
           handler: handleNewHatProposal
-        - event: VoteCast(indexed uint256,indexed address,uint8[],uint8[],uint256[],uint64)
+        - event: VoteCast(indexed uint256,indexed
+            address,uint8[],uint8[],uint256[],uint64)
           handler: handleVoteCast
         - event: Winner(indexed uint256,indexed uint256,bool,bool,uint64)
           handler: handleWinner
         - event: ProposalExecuted(indexed uint256,indexed uint256,uint256)
           handler: handleProposalExecuted
-        - event: ClassesReplaced(indexed uint256,indexed bytes32,(uint8,uint8,bool,uint256,address,uint256[])[],uint64)
+        - event: ClassesReplaced(indexed uint256,indexed
+            bytes32,(uint8,uint8,bool,uint256,address,uint256[])[],uint64)
           handler: handleClassesReplaced
       file: ./src/hybrid-voting.ts
   - kind: ethereum
     name: DirectDemocracyVoting
-    network: hoodi
+    network: arbitrum-one
     source:
       abi: DirectDemocracyVoting
     mapping:
@@ -388,6 +406,7 @@ templates:
         - DirectDemocracyVotingHatPermission
         - DirectDemocracyVotingCreatorHatPermission
         - DirectDemocracyVotingTargetPermission
+        - DirectDemocracyVotingThresholdChange
         - DirectDemocracyVotingQuorumChange
         - DirectDemocracyVotingExecutorChange
         - DDVProposal
@@ -400,8 +419,10 @@ templates:
           handler: handleInitialized
         - event: ExecutorUpdated(address)
           handler: handleExecutorUpdated
-        - event: QuorumPercentageSet(uint8)
-          handler: handleQuorumPercentageSet
+        - event: ThresholdPctSet(uint8)
+          handler: handleThresholdPctSet
+        - event: QuorumSet(uint32)
+          handler: handleQuorumSet
         - event: HatSet(uint8,uint256,bool)
           handler: handleHatSet
         - event: HatToggled(indexed uint256,bool)
@@ -423,7 +444,7 @@ templates:
       file: ./src/direct-democracy-voting.ts
   - kind: ethereum
     name: EligibilityModule
-    network: hoodi
+    network: arbitrum-one
     source:
       abi: EligibilityModule
     mapping:
@@ -448,11 +469,14 @@ templates:
       eventHandlers:
         - event: EligibilityModuleInitialized(indexed address,indexed address)
           handler: handleEligibilityModuleInitialized
-        - event: HatCreatedWithEligibility(indexed address,indexed uint256,indexed uint256,bool,bool,uint256)
+        - event: HatCreatedWithEligibility(indexed address,indexed uint256,indexed
+            uint256,bool,bool,uint256)
           handler: handleHatCreatedWithEligibility
-        - event: WearerEligibilityUpdated(indexed address,indexed uint256,bool,bool,indexed address)
+        - event: WearerEligibilityUpdated(indexed address,indexed
+            uint256,bool,bool,indexed address)
           handler: handleWearerEligibilityUpdated
-        - event: BulkWearerEligibilityUpdated(address[],indexed uint256,bool,bool,indexed address)
+        - event: BulkWearerEligibilityUpdated(address[],indexed uint256,bool,bool,indexed
+            address)
           handler: handleBulkWearerEligibilityUpdated
         - event: DefaultEligibilityUpdated(indexed uint256,bool,bool,indexed address)
           handler: handleDefaultEligibilityUpdated
@@ -470,6 +494,8 @@ templates:
           handler: handleUserJoinTimeSet
         - event: EligibilityModuleAdminHatSet(indexed uint256)
           handler: handleEligibilityModuleAdminHatSet
+        - event: GovernanceAdminSet(indexed address)
+          handler: handleGovernanceAdminSet
         - event: SuperAdminTransferred(indexed address,indexed address)
           handler: handleSuperAdminTransferred
         - event: Paused(indexed address)
@@ -487,7 +513,7 @@ templates:
       file: ./src/eligibility-module.ts
   - kind: ethereum
     name: ParticipationToken
-    network: hoodi
+    network: arbitrum-one
     source:
       abi: ParticipationToken
     mapping:
@@ -525,7 +551,7 @@ templates:
       file: ./src/participation-token.ts
   - kind: ethereum
     name: QuickJoin
-    network: hoodi
+    network: arbitrum-one
     source:
       abi: QuickJoin
     mapping:
@@ -559,20 +585,21 @@ templates:
           handler: handleAddressesUpdated
         - event: UniversalFactoryUpdated(indexed address)
           handler: handleUniversalFactoryUpdated
-        - event: QuickJoinedWithPasskey(indexed address,indexed bytes32,uint256[])
-          handler: handleQuickJoinedWithPasskey
-        - event: QuickJoinedWithPasskeyByMaster(indexed address,indexed address,indexed bytes32,uint256[])
+        - event: QuickJoinedWithPasskeyByMaster(indexed address,indexed address,indexed
+            bytes32,uint256[])
           handler: handleQuickJoinedWithPasskeyByMaster
         - event: RegisterAndQuickJoined(indexed address,string,uint256[])
           handler: handleRegisterAndQuickJoined
-        - event: RegisterAndQuickJoinedWithPasskey(indexed address,indexed bytes32,string,uint256[])
+        - event: RegisterAndQuickJoinedWithPasskey(indexed address,indexed
+            bytes32,string,uint256[])
           handler: handleRegisterAndQuickJoinedWithPasskey
-        - event: RegisterAndQuickJoinedWithPasskeyByMaster(indexed address,indexed address,indexed bytes32,string,uint256[])
+        - event: RegisterAndQuickJoinedWithPasskeyByMaster(indexed address,indexed
+            address,indexed bytes32,string,uint256[])
           handler: handleRegisterAndQuickJoinedWithPasskeyByMaster
       file: ./src/quick-join.ts
   - kind: ethereum
     name: EducationHub
-    network: hoodi
+    network: arbitrum-one
     source:
       abi: EducationHub
     mapping:
@@ -623,7 +650,7 @@ templates:
       file: ./src/education-hub.ts
   - kind: ethereum
     name: PaymentManager
-    network: hoodi
+    network: arbitrum-one
     source:
       abi: PaymentManager
     mapping:
@@ -644,7 +671,8 @@ templates:
       eventHandlers:
         - event: Initialized(uint64)
           handler: handleInitialized
-        - event: DistributionCreated(indexed uint256,indexed address,uint256,uint256,bytes32)
+        - event: DistributionCreated(indexed uint256,indexed
+            address,uint256,uint256,bytes32)
           handler: handleDistributionCreated
         - event: DistributionClaimed(indexed uint256,indexed address,uint256)
           handler: handleDistributionClaimed
@@ -661,7 +689,7 @@ templates:
       file: ./src/payment-manager.ts
   - kind: ethereum
     name: Executor
-    network: hoodi
+    network: arbitrum-one
     source:
       abi: Executor
     mapping:
@@ -711,7 +739,7 @@ templates:
       file: ./src/executor.ts
   - kind: ethereum
     name: ToggleModule
-    network: hoodi
+    network: arbitrum-one
     source:
       abi: ToggleModule
     mapping:
@@ -735,10 +763,9 @@ templates:
         - event: AdminTransferred(indexed address,indexed address)
           handler: handleAdminTransferred
       file: ./src/toggle-module.ts
-  # Passkey Account Factory template
   - kind: ethereum
     name: PasskeyAccountFactory
-    network: hoodi
+    network: arbitrum-one
     source:
       abi: PasskeyAccountFactory
     mapping:
@@ -761,10 +788,9 @@ templates:
         - event: PausedStateChanged(bool)
           handler: handlePausedStateChanged
       file: ./src/passkey-account-factory.ts
-  # Passkey Account template (created dynamically when accounts are created)
   - kind: ethereum
     name: PasskeyAccount
-    network: hoodi
+    network: arbitrum-one
     source:
       abi: PasskeyAccount
     mapping:
@@ -805,7 +831,7 @@ templates:
       file: ./src/passkey-account.ts
   - kind: ethereum
     name: SwitchableBeacon
-    network: hoodi
+    network: arbitrum-one
     source:
       abi: SwitchableBeacon
     mapping:
@@ -826,17 +852,14 @@ templates:
           handler: handlePinned
         - event: ModeChanged(uint8)
           handler: handleModeChanged
-        - event: OwnerTransferred(indexed address,indexed address)
-          handler: handleOwnerTransferred
-        - event: OwnershipTransferStarted(indexed address)
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: OwnershipTransferStarted(indexed address,indexed address)
           handler: handleOwnershipTransferStarted
-        - event: OwnershipTransferCancelled(indexed address)
-          handler: handleOwnershipTransferCancelled
       file: ./src/switchable-beacon.ts
-  # IPFS file data source for org metadata
   - kind: file/ipfs
     name: OrgMetadata
-    network: hoodi
+    network: arbitrum-one
     mapping:
       apiVersion: 0.0.9
       language: wasm/assemblyscript
@@ -848,10 +871,9 @@ templates:
       abis:
         - name: OrgRegistry
           file: ./abis/OrgRegistry.json
-  # IPFS file data source for hat metadata
   - kind: file/ipfs
     name: HatMetadata
-    network: hoodi
+    network: arbitrum-one
     mapping:
       apiVersion: 0.0.9
       language: wasm/assemblyscript
@@ -862,10 +884,9 @@ templates:
       abis:
         - name: EligibilityModule
           file: ./abis/EligibilityModule.json
-  # IPFS file data source for task metadata
   - kind: file/ipfs
     name: TaskMetadata
-    network: hoodi
+    network: arbitrum-one
     mapping:
       apiVersion: 0.0.9
       language: wasm/assemblyscript
@@ -877,10 +898,9 @@ templates:
       abis:
         - name: TaskManager
           file: ./abis/TaskManager.json
-  # IPFS file data source for project metadata
   - kind: file/ipfs
     name: ProjectMetadata
-    network: hoodi
+    network: arbitrum-one
     mapping:
       apiVersion: 0.0.9
       language: wasm/assemblyscript
@@ -892,10 +912,9 @@ templates:
       abis:
         - name: TaskManager
           file: ./abis/TaskManager.json
-  # IPFS file data source for proposal metadata
   - kind: file/ipfs
     name: ProposalMetadata
-    network: hoodi
+    network: arbitrum-one
     mapping:
       apiVersion: 0.0.9
       language: wasm/assemblyscript
@@ -908,3 +927,43 @@ templates:
       abis:
         - name: HybridVoting
           file: ./abis/HybridVoting.json
+  - kind: file/ipfs
+    name: EducationModuleMetadata
+    network: arbitrum-one
+    mapping:
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      file: ./src/education-module-metadata.ts
+      handler: handleEducationModuleMetadata
+      entities:
+        - EducationModuleMetadata
+        - EducationModule
+      abis:
+        - name: EducationHub
+          file: ./abis/EducationHub.json
+  - kind: file/ipfs
+    name: TokenRequestMetadata
+    network: arbitrum-one
+    mapping:
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      file: ./src/token-request-metadata.ts
+      handler: handleTokenRequestMetadata
+      entities:
+        - TokenRequestMetadata
+      abis:
+        - name: ParticipationToken
+          file: ./abis/ParticipationToken.json
+  - kind: file/ipfs
+    name: TaskApplicationMetadata
+    network: arbitrum-one
+    mapping:
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      file: ./src/task-application-metadata.ts
+      handler: handleTaskApplicationMetadata
+      entities:
+        - TaskApplicationMetadata
+      abis:
+        - name: TaskManager
+          file: ./abis/TaskManager.json

@@ -530,6 +530,7 @@ describe("OrgRegistry", () => {
     });
   });
 
+
   describe("Integration tests", () => {
     test("full lifecycle: register org, add contracts, update settings", () => {
       // 1. Create and register org

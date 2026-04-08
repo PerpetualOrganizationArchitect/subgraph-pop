@@ -305,7 +305,7 @@ type TaskMetadata @entity(immutable: false) {
   description: String # Task description from IPFS JSON
   location: String # Task location/status from IPFS JSON
   difficulty: String # Task difficulty (easy, medium, hard, etc.)
-  estimatedHours: Int # Estimated hours to complete
+  estimatedHours: BigDecimal # Estimated hours to complete (can be fractional, e.g. 0.5)
   submission: String # Submission content from IPFS JSON (for submission metadata)
   rejection: String # Rejection reason from IPFS JSON (for rejection metadata)
   indexedAt: BigInt # When this metadata was indexed
@@ -318,6 +318,7 @@ type TaskApplication @entity(immutable: false) {
   applicantUsername: String
   applicantUser: User
   applicationHash: Bytes!
+  metadata: TaskApplicationMetadata # IPFS-indexed content (notes, experience)
   approved: Boolean!
   approver: Bytes
   approverUsername: String
@@ -327,6 +328,17 @@ type TaskApplication @entity(immutable: false) {
   approvedAt: BigInt
 }
 
+"""
+Task application content fetched from IPFS.
+Contains the applicant's notes and relevant experience.
+"""
+type TaskApplicationMetadata @entity(immutable: true) {
+  id: String! # IPFS CID
+  notes: String
+  experience: String
+  indexedAt: BigInt
+}
+
 type TaskRejection @entity(immutable: true) {
   id: Bytes! # txHash-logIndex
   task: Task!
@@ -334,6 +346,7 @@ type TaskRejection @entity(immutable: true) {
   rejectorUsername: String
   rejectorUser: User
   rejectionHash: Bytes! # IPFS hash of rejection reason
+  metadata: TaskMetadata # Link to rejection metadata from IPFS (contains rejection reason)
   rejectedAt: BigInt!
   rejectedAtBlock: BigInt!
   transactionHash: Bytes!
@@ -345,12 +358,13 @@ type HybridVotingContract @entity(immutable: false) {
   id: Bytes! # contract address
   organization: Organization! # Organization this HybridVotingContract belongs to
   executor: Bytes!
-  quorum: Int!
+  thresholdPct: Int! # Minimum support percentage (0-100)
+  quorum: Int! # Minimum voter count
   hats: Bytes!
   createdAt: BigInt!
   createdAtBlock: BigInt!
   classVersion: BigInt! # Current class configuration version (block number)
-  targetPermissions: [HybridVotingTargetPermission!]! @derivedFrom(field: "hybridVoting")
+  thresholdChanges: [HybridVotingThresholdChange!]! @derivedFrom(field: "hybridVoting")
   quorumChanges: [HybridVotingQuorumChange!]! @derivedFrom(field: "hybridVoting")
   proposals: [Proposal!]! @derivedFrom(field: "hybridVoting")
   votingClasses: [VotingClass!]! @derivedFrom(field: "hybridVoting")
@@ -393,13 +407,12 @@ type VotingClassChange @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
-type HybridVotingTargetPermission @entity(immutable: false) {
-  id: String! # contractAddress-targetAddress
+type HybridVotingThresholdChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
   hybridVoting: HybridVotingContract!
-  target: Bytes!
-  allowed: Boolean!
-  setAt: BigInt!
-  setAtBlock: BigInt!
+  newThresholdPct: Int!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
   transactionHash: Bytes!
 }
 
@@ -467,11 +480,13 @@ type DirectDemocracyVotingContract @entity(immutable: false) {
   id: Bytes! # contract address
   organization: Organization! # Organization this DirectDemocracyVotingContract belongs to
   executor: Bytes!
-  quorumPercentage: Int!
+  thresholdPct: Int! # Minimum support percentage (0-100)
+  quorum: Int! # Minimum voter count
   hats: Bytes!
   createdAt: BigInt!
   createdAtBlock: BigInt!
   targetPermissions: [DirectDemocracyVotingTargetPermission!]! @derivedFrom(field: "directDemocracyVoting")
+  thresholdChanges: [DirectDemocracyVotingThresholdChange!]! @derivedFrom(field: "directDemocracyVoting")
   quorumChanges: [DirectDemocracyVotingQuorumChange!]! @derivedFrom(field: "directDemocracyVoting")
   ddvProposals: [DDVProposal!]! @derivedFrom(field: "directDemocracyVoting")
 }
@@ -486,10 +501,19 @@ type DirectDemocracyVotingTargetPermission @entity(immutable: false) {
   transactionHash: Bytes!
 }
 
+type DirectDemocracyVotingThresholdChange @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  directDemocracyVoting: DirectDemocracyVotingContract!
+  newThresholdPct: Int!
+  changedAt: BigInt!
+  changedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
 type DirectDemocracyVotingQuorumChange @entity(immutable: true) {
   id: Bytes! # txHash-logIndex
   directDemocracyVoting: DirectDemocracyVotingContract!
-  newQuorumPercentage: Int!
+  newQuorum: Int!
   changedAt: BigInt!
   changedAtBlock: BigInt!
   transactionHash: Bytes!
@@ -544,6 +568,7 @@ type EligibilityModuleContract @entity(immutable: false) {
   id: Bytes! # contract address
   organization: Organization! # Organization this EligibilityModuleContract belongs to
   superAdmin: Bytes!
+  governanceAdmin: Bytes
   hatsContract: Bytes!
   toggleModule: Bytes!
   eligibilityModuleAdminHat: BigInt
@@ -810,6 +835,7 @@ type TokenRequest @entity(immutable: false) {
   requesterUsername: String
   amount: BigInt!
   ipfsHash: String!
+  metadata: TokenRequestMetadata # IPFS-indexed content (reason, submittedAt)
   status: TokenRequestStatus!
   approver: Bytes
   approverUser: User
@@ -821,6 +847,17 @@ type TokenRequest @entity(immutable: false) {
   cancelledAt: BigInt
   cancelledAtBlock: BigInt
   transactionHash: Bytes!
+}
+
+"""
+Token request metadata fetched from IPFS.
+Contains the reason for the request and when it was submitted.
+"""
+type TokenRequestMetadata @entity(immutable: true) {
+  id: String! # IPFS CID
+  reason: String
+  submittedAt: BigInt
+  indexedAt: BigInt
 }
 
 type TokenBalance @entity(immutable: false) {
@@ -907,6 +944,7 @@ type EducationModule @entity(immutable: false) {
   moduleId: BigInt!
   title: String! # module title
   contentHash: Bytes! # content hash for the module materials
+  metadata: EducationModuleMetadata # IPFS-indexed content (description, link, quiz, answers)
   payout: BigInt!
   status: ModuleStatus!
   createdAt: BigInt!
@@ -917,6 +955,20 @@ type EducationModule @entity(immutable: false) {
   removedAtBlock: BigInt
   completions: [ModuleCompletion!]! @derivedFrom(field: "module")
   updates: [ModuleUpdate!]! @derivedFrom(field: "module")
+}
+
+"""
+Education module content fetched from IPFS.
+Contains description, external link, quiz questions, and answer options.
+"""
+type EducationModuleMetadata @entity(immutable: true) {
+  id: String! # IPFS CID
+  module: EducationModule
+  description: String
+  link: String # External resource URL
+  quiz: [String!] # Array of quiz questions
+  answersJson: String # JSON-stringified 2D array of answer options per question
+  indexedAt: BigInt
 }
 
 type ModuleCompletion @entity(immutable: true) {
@@ -1351,16 +1403,7 @@ type UserHatChange @entity(immutable: true) {
 # Enums for PaymasterHub event types
 enum DepositEventType {
   HubDeposit
-  HubWithdraw
   OrgDeposit
-  EmergencyWithdraw
-}
-
-enum BountyEventType {
-  Funded
-  Paid
-  PayFailed
-  Swept
 }
 
 enum SolidarityEventType {
@@ -1377,7 +1420,6 @@ enum ConfigChangeType {
   PauseSet
   RuleSet
   BudgetSet
-  BountyConfigSet
 }
 
 # 1. PaymasterHubContract - Singleton contract entity
@@ -1387,8 +1429,8 @@ type PaymasterHubContract @entity(immutable: false) {
   hats: Bytes!
   poaManager: Bytes!
   totalDeposit: BigInt!
-  bountyPoolBalance: BigInt!
   solidarityBalance: BigInt!
+  totalFeesCollected: BigInt! # Cumulative solidarity fees collected from all orgs
   gracePeriodDays: Int!
   maxSpendDuringGrace: BigInt!
   minDepositRequired: BigInt!
@@ -1398,8 +1440,6 @@ type PaymasterHubContract @entity(immutable: false) {
   # Derived relationships
   orgConfigs: [PaymasterOrgConfig!]! @derivedFrom(field: "paymasterHub")
   depositEvents: [PaymasterDepositEvent!]! @derivedFrom(field: "paymasterHub")
-  bountyEvents: [BountyEvent!]! @derivedFrom(field: "paymasterHub")
-  userOpEvents: [UserOpEvent!]! @derivedFrom(field: "paymasterHub")
   solidarityEvents: [SolidarityEvent!]! @derivedFrom(field: "paymasterHub")
   solidarityDistributionPaused: Boolean!
   configChanges: [PaymasterConfigChange!]! @derivedFrom(field: "paymasterHub")
@@ -1419,7 +1459,8 @@ type PaymasterOrgConfig @entity(immutable: false) {
   isBannedFromSolidarity: Boolean!
   depositBalance: BigInt!
   totalDeposited: BigInt!
-  totalSpent: BigInt!
+  totalSpent: BigInt! # Amount spent from org's own deposits (excludes solidarity subsidy)
+  totalSolidarityReceived: BigInt! # Amount subsidized by solidarity fund
   registeredAt: BigInt!
   registeredAtBlock: BigInt!
   transactionHash: Bytes!
@@ -1427,7 +1468,6 @@ type PaymasterOrgConfig @entity(immutable: false) {
   rules: [PaymasterRule!]! @derivedFrom(field: "orgConfig")
   budgets: [PaymasterBudget!]! @derivedFrom(field: "orgConfig")
   feeCaps: PaymasterFeeCaps @derivedFrom(field: "orgConfig")
-  bountyConfig: PaymasterBountyConfig @derivedFrom(field: "orgConfig")
   stats: PaymasterOrgStats @derivedFrom(field: "orgConfig")
   usageEvents: [UsageEvent!]! @derivedFrom(field: "orgConfig")
   depositEvents: [PaymasterDepositEvent!]! @derivedFrom(field: "orgConfig")
@@ -1484,19 +1524,6 @@ type PaymasterFeeCaps @entity(immutable: false) {
   transactionHash: Bytes!
 }
 
-# 6. PaymasterBountyConfig - Per-org bounty settings
-type PaymasterBountyConfig @entity(immutable: false) {
-  id: String! # paymasterHub-orgId
-  orgConfig: PaymasterOrgConfig!
-  enabled: Boolean!
-  maxBountyPerOp: BigInt!
-  pctBpCap: Int!
-  totalPaid: BigInt!
-  setAt: BigInt!
-  setAtBlock: BigInt!
-  transactionHash: Bytes!
-}
-
 """
 Pre-computed aggregate statistics for an organization's paymaster usage.
 Updated on each sponsored operation for efficient querying.
@@ -1507,14 +1534,11 @@ type PaymasterOrgStats @entity(immutable: false) {
   orgConfig: PaymasterOrgConfig!
   # Operation counts
   totalUserOps: BigInt!
-  totalSuccessfulBounties: BigInt!
-  totalFailedBounties: BigInt!
   # Gas statistics
   totalGasSponsored: BigInt! # Sum of all gas costs sponsored
   # Financial
   totalDeposited: BigInt!
   totalWithdrawn: BigInt!
-  totalBountyPaid: BigInt!
   totalSolidarityFeesCollected: BigInt!
   # Time tracking
   lastOperationAt: BigInt!
@@ -1540,22 +1564,7 @@ type PaymasterDepositEvent @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
-# 9. BountyEvent - Bounty pool activity history
-type BountyEvent @entity(immutable: true) {
-  id: Bytes! # txHash.concatI32(logIndex)
-  paymasterHub: PaymasterHubContract!
-  orgConfig: PaymasterOrgConfig
-  eventType: BountyEventType!
-  userOpHash: Bytes
-  recipient: Bytes
-  amount: BigInt!
-  newBalance: BigInt
-  eventAt: BigInt!
-  eventAtBlock: BigInt!
-  transactionHash: Bytes!
-}
-
-# 10. UsageEvent - Gas usage tracking
+# 9. UsageEvent - Gas usage tracking
 type UsageEvent @entity(immutable: true) {
   id: Bytes! # txHash.concatI32(logIndex)
   orgConfig: PaymasterOrgConfig!
@@ -1569,18 +1578,7 @@ type UsageEvent @entity(immutable: true) {
   transactionHash: Bytes!
 }
 
-# 11. UserOpEvent - UserOperation posting history
-type UserOpEvent @entity(immutable: true) {
-  id: Bytes! # txHash.concatI32(logIndex)
-  paymasterHub: PaymasterHubContract!
-  opHash: Bytes!
-  postedBy: Bytes!
-  eventAt: BigInt!
-  eventAtBlock: BigInt!
-  transactionHash: Bytes!
-}
-
-# 12. SolidarityEvent - Solidarity pool activity
+# 10. SolidarityEvent - Solidarity pool activity
 type SolidarityEvent @entity(immutable: true) {
   id: Bytes! # txHash.concatI32(logIndex)
   paymasterHub: PaymasterHubContract!
@@ -1672,6 +1670,8 @@ type OrgMetadata @entity(immutable: false) {
   description: String
   template: String
   backgroundColor: String
+  logo: String # IPFS CID of the org logo image
+  hideTreasury: Boolean # If true, treasury section is hidden in the UI
   links: [OrgMetadataLink!]! @derivedFrom(field: "metadata")
   indexedAt: BigInt
 }
@@ -1757,7 +1757,7 @@ type BeaconModeChange @entity(immutable: true) {
 type BeaconOwnershipChange @entity(immutable: true) {
   id: Bytes! # txHash-logIndex
   beacon: SwitchableBeaconContract!
-  changeType: String! # "Started", "Completed", "Cancelled"
+  changeType: String! # "Started", "Completed"
   previousOwner: Bytes
   newOwner: Bytes
   timestamp: BigInt!
@@ -1787,7 +1787,7 @@ type PoaManagerContract @entity(immutable: false) {
 }
 
 type Beacon @entity(immutable: false) {
-  id: String! # typeId (bytes32 as hex string for readability)
+  id: String! # network-typeId (chain-aware to prevent collisions across chains)
   poaManager: PoaManagerContract!
   typeId: Bytes! # bytes32 type identifier
   typeName: String! # Human-readable type name (e.g., "TaskManager", "HybridVoting")
@@ -1953,6 +1953,7 @@ type OnboardingConfig @entity(immutable: false) {
   maxGasPerCreation: BigInt!
   dailyCreationLimit: BigInt!
   enabled: Boolean!
+  accountRegistry: Bytes!
   updatedAt: BigInt!
   blockNumber: BigInt!
   transactionHash: Bytes!
@@ -1965,5 +1966,140 @@ type OnboardingAccount @entity(immutable: true) {
   gasCost: BigInt!
   timestamp: BigInt!
   blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+# ═══════════════════════════════════════════════════════════════════════
+#                    PAYMASTER ORG DEPLOY SPONSORSHIP ENTITIES
+# ═══════════════════════════════════════════════════════════════════════
+
+type OrgDeployConfig @entity(immutable: false) {
+  id: Bytes! # paymasterHub address
+  paymasterHub: PaymasterHubContract!
+  maxGasPerDeploy: BigInt!
+  dailyDeployLimit: BigInt!
+  maxDeploysPerAccount: Int!
+  enabled: Boolean!
+  orgDeployer: Bytes!
+  updatedAt: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+type OrgDeploySponsorship @entity(immutable: true) {
+  id: Bytes! # txHash.concatI32(logIndex)
+  paymasterHub: PaymasterHubContract!
+  account: Bytes!
+  gasCost: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+# ═══════════════════════════════════════════════════════════════════════
+#                    POA MANAGER HUB (HOME CHAIN)
+# ═══════════════════════════════════════════════════════════════════════
+
+type PoaManagerHubContract @entity(immutable: false) {
+  id: Bytes! # contract address
+  paused: Boolean!
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  satellites: [SatelliteRegistration!]! @derivedFrom(field: "hub")
+  upgradeDispatches: [CrossChainUpgradeDispatch!]! @derivedFrom(field: "hub")
+  addTypeDispatches: [CrossChainAddTypeDispatch!]! @derivedFrom(field: "hub")
+  adminCallDispatches: [CrossChainAdminCallDispatch!]! @derivedFrom(field: "hub")
+}
+
+type SatelliteRegistration @entity(immutable: false) {
+  id: String! # hubAddress-domain
+  hub: PoaManagerHubContract!
+  domain: Int! # Hyperlane domain ID (uint32)
+  satellite: Bytes! # satellite contract address
+  active: Boolean!
+  registeredAt: BigInt!
+  registeredAtBlock: BigInt!
+  removedAt: BigInt
+  transactionHash: Bytes!
+}
+
+type CrossChainUpgradeDispatch @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  hub: PoaManagerHubContract!
+  typeId: Bytes!
+  newImplementation: Bytes!
+  version: String!
+  dispatchedAt: BigInt!
+  dispatchedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type CrossChainAddTypeDispatch @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  hub: PoaManagerHubContract!
+  typeId: Bytes!
+  typeName: String!
+  implementation: Bytes!
+  dispatchedAt: BigInt!
+  dispatchedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type CrossChainAdminCallDispatch @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  hub: PoaManagerHubContract!
+  target: Bytes!
+  data: Bytes!
+  dispatchedAt: BigInt!
+  dispatchedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+# ═══════════════════════════════════════════════════════════════════════
+#                    POA MANAGER SATELLITE (SATELLITE CHAIN)
+# ═══════════════════════════════════════════════════════════════════════
+
+type PoaManagerSatelliteContract @entity(immutable: false) {
+  id: Bytes! # contract address
+  paused: Boolean!
+  createdAt: BigInt!
+  createdAtBlock: BigInt!
+  upgradesReceived: [CrossChainUpgradeReceived!]! @derivedFrom(field: "satellite")
+  typesReceived: [CrossChainContractTypeReceived!]! @derivedFrom(field: "satellite")
+  adminCallsReceived: [CrossChainAdminCallReceived!]! @derivedFrom(field: "satellite")
+}
+
+type CrossChainUpgradeReceived @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  satellite: PoaManagerSatelliteContract!
+  typeId: Bytes!
+  newImplementation: Bytes!
+  version: String!
+  originDomain: Int!
+  receivedAt: BigInt!
+  receivedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type CrossChainContractTypeReceived @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  satellite: PoaManagerSatelliteContract!
+  typeId: Bytes!
+  typeName: String!
+  implementation: Bytes!
+  originDomain: Int!
+  receivedAt: BigInt!
+  receivedAtBlock: BigInt!
+  transactionHash: Bytes!
+}
+
+type CrossChainAdminCallReceived @entity(immutable: true) {
+  id: Bytes! # txHash-logIndex
+  satellite: PoaManagerSatelliteContract!
+  target: Bytes!
+  data: Bytes!
+  originDomain: Int!
+  receivedAt: BigInt!
+  receivedAtBlock: BigInt!
   transactionHash: Bytes!
 }

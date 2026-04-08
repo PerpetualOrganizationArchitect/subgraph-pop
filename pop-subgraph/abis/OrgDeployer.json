@@ -6,6 +6,19 @@
   },
   {
     "type": "function",
+    "name": "VERSION",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "batchRegisterContracts",
     "inputs": [
       {
@@ -74,6 +87,11 @@
             "internalType": "string"
           },
           {
+            "name": "metadataHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
             "name": "registryAddr",
             "type": "address",
             "internalType": "address"
@@ -89,17 +107,32 @@
             "internalType": "string"
           },
           {
+            "name": "regDeadline",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "regNonce",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "regSignature",
+            "type": "bytes",
+            "internalType": "bytes"
+          },
+          {
             "name": "autoUpgrade",
             "type": "bool",
             "internalType": "bool"
           },
           {
-            "name": "hybridQuorumPct",
+            "name": "hybridThresholdPct",
             "type": "uint8",
             "internalType": "uint8"
           },
           {
-            "name": "ddQuorumPct",
+            "name": "ddThresholdPct",
             "type": "uint8",
             "internalType": "uint8"
           },
@@ -159,6 +192,11 @@
                 "name": "image",
                 "type": "string",
                 "internalType": "string"
+              },
+              {
+                "name": "metadataCID",
+                "type": "bytes32",
+                "internalType": "bytes32"
               },
               {
                 "name": "canVote",
@@ -228,11 +266,6 @@
                 "components": [
                   {
                     "name": "mintToDeployer",
-                    "type": "bool",
-                    "internalType": "bool"
-                  },
-                  {
-                    "name": "mintToExecutor",
                     "type": "bool",
                     "internalType": "bool"
                   },
@@ -313,6 +346,186 @@
                 "internalType": "uint256"
               }
             ]
+          },
+          {
+            "name": "metadataAdminRoleIndex",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "passkeyEnabled",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "educationHubConfig",
+            "type": "tuple",
+            "internalType": "struct ModulesFactory.EducationHubConfig",
+            "components": [
+              {
+                "name": "enabled",
+                "type": "bool",
+                "internalType": "bool"
+              }
+            ]
+          },
+          {
+            "name": "bootstrap",
+            "type": "tuple",
+            "internalType": "struct OrgDeployer.BootstrapConfig",
+            "components": [
+              {
+                "name": "projects",
+                "type": "tuple[]",
+                "internalType": "struct ITaskManagerBootstrap.BootstrapProjectConfig[]",
+                "components": [
+                  {
+                    "name": "title",
+                    "type": "bytes",
+                    "internalType": "bytes"
+                  },
+                  {
+                    "name": "metadataHash",
+                    "type": "bytes32",
+                    "internalType": "bytes32"
+                  },
+                  {
+                    "name": "cap",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  },
+                  {
+                    "name": "managers",
+                    "type": "address[]",
+                    "internalType": "address[]"
+                  },
+                  {
+                    "name": "createHats",
+                    "type": "uint256[]",
+                    "internalType": "uint256[]"
+                  },
+                  {
+                    "name": "claimHats",
+                    "type": "uint256[]",
+                    "internalType": "uint256[]"
+                  },
+                  {
+                    "name": "reviewHats",
+                    "type": "uint256[]",
+                    "internalType": "uint256[]"
+                  },
+                  {
+                    "name": "assignHats",
+                    "type": "uint256[]",
+                    "internalType": "uint256[]"
+                  },
+                  {
+                    "name": "bountyTokens",
+                    "type": "address[]",
+                    "internalType": "address[]"
+                  },
+                  {
+                    "name": "bountyCaps",
+                    "type": "uint256[]",
+                    "internalType": "uint256[]"
+                  }
+                ]
+              },
+              {
+                "name": "tasks",
+                "type": "tuple[]",
+                "internalType": "struct ITaskManagerBootstrap.BootstrapTaskConfig[]",
+                "components": [
+                  {
+                    "name": "projectIndex",
+                    "type": "uint8",
+                    "internalType": "uint8"
+                  },
+                  {
+                    "name": "payout",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  },
+                  {
+                    "name": "title",
+                    "type": "bytes",
+                    "internalType": "bytes"
+                  },
+                  {
+                    "name": "metadataHash",
+                    "type": "bytes32",
+                    "internalType": "bytes32"
+                  },
+                  {
+                    "name": "bountyToken",
+                    "type": "address",
+                    "internalType": "address"
+                  },
+                  {
+                    "name": "bountyPayout",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  },
+                  {
+                    "name": "requiresApplication",
+                    "type": "bool",
+                    "internalType": "bool"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "paymasterConfig",
+            "type": "tuple",
+            "internalType": "struct OrgDeployer.PaymasterConfig",
+            "components": [
+              {
+                "name": "operatorRoleIndex",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "autoWhitelistContracts",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "maxFeePerGas",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "maxPriorityFeePerGas",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "maxCallGas",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "maxVerificationGas",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "maxPreVerificationGas",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "defaultBudgetCapPerEpoch",
+                "type": "uint128",
+                "internalType": "uint128"
+              },
+              {
+                "name": "defaultBudgetEpochLen",
+                "type": "uint32",
+                "internalType": "uint32"
+              }
+            ]
           }
         ]
       }
@@ -362,11 +575,16 @@
             "name": "paymentManager",
             "type": "address",
             "internalType": "address"
+          },
+          {
+            "name": "eligibilityModule",
+            "type": "address",
+            "internalType": "address"
           }
         ]
       }
     ],
-    "stateMutability": "nonpayable"
+    "stateMutability": "payable"
   },
   {
     "type": "function",
@@ -471,6 +689,50 @@
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setUniversalPasskeyFactory",
+    "inputs": [
+      {
+        "name": "_universalFactory",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "InitialWearersAssigned",
+    "inputs": [
+      {
+        "name": "orgId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "eligibilityModule",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "wearers",
+        "type": "address[]",
+        "indexed": false,
+        "internalType": "address[]"
+      },
+      {
+        "name": "hatIds",
+        "type": "uint256[]",
+        "indexed": false,
+        "internalType": "uint256[]"
+      }
+    ],
+    "anonymous": false
   },
   {
     "type": "event",
@@ -609,37 +871,6 @@
         "type": "bool[]",
         "indexed": false,
         "internalType": "bool[]"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "InitialWearersAssigned",
-    "inputs": [
-      {
-        "name": "orgId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      },
-      {
-        "name": "eligibilityModule",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "wearers",
-        "type": "address[]",
-        "indexed": false,
-        "internalType": "address[]"
-      },
-      {
-        "name": "hatIds",
-        "type": "uint256[]",
-        "indexed": false,
-        "internalType": "uint256[]"
       }
     ],
     "anonymous": false

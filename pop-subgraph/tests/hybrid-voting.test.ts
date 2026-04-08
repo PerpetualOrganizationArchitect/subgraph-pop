@@ -9,10 +9,10 @@ import { Address, BigInt, Bytes } from "@graphprotocol/graph-ts";
 import {
   handleInitialized,
   handleExecutorUpdated,
+  handleThresholdPctSet,
   handleQuorumSet,
   handleHatSet,
   handleHatToggled,
-  handleTargetAllowed,
   handleNewProposal,
   handleNewHatProposal,
   handleVoteCast,
@@ -23,10 +23,10 @@ import {
 import {
   createInitializedEvent,
   createExecutorUpdatedEvent,
+  createThresholdPctSetEvent,
   createQuorumSetEvent,
   createHatSetEvent,
   createHatToggledEvent,
-  createTargetAllowedEvent,
   createNewProposalEvent,
   createNewHatProposalEvent,
   createVoteCastEvent,
@@ -34,7 +34,7 @@ import {
   createProposalExecutedEvent,
   createClassesReplacedEvent
 } from "./hybrid-voting-utils";
-import { Organization, HybridVotingContract, TaskManager, DirectDemocracyVotingContract, EligibilityModuleContract, ParticipationTokenContract, QuickJoinContract, EducationHubContract, PaymentManagerContract, ExecutorContract, ToggleModuleContract, VotingClass, VotingClassChange } from "../generated/schema";
+import { Organization, HybridVotingContract, HybridVotingThresholdChange, TaskManager, DirectDemocracyVotingContract, EligibilityModuleContract, ParticipationTokenContract, QuickJoinContract, EducationHubContract, PaymentManagerContract, ExecutorContract, ToggleModuleContract, VotingClass, VotingClassChange } from "../generated/schema";
 
 /**
  * Helper function to create necessary entities for hybrid voting tests.
@@ -84,6 +84,7 @@ function setupHybridVotingContract(contractAddress: Address): void {
   let hybridVoting = new HybridVotingContract(contractAddress);
   hybridVoting.organization = orgId;
   hybridVoting.executor = Address.zero();
+  hybridVoting.thresholdPct = 0;
   hybridVoting.quorum = 0;
   hybridVoting.hats = Address.zero();
   hybridVoting.classVersion = BigInt.fromI32(0);
@@ -95,7 +96,8 @@ function setupHybridVotingContract(contractAddress: Address): void {
   let ddv = new DirectDemocracyVotingContract(ddvAddress);
   ddv.organization = orgId;
   ddv.executor = Address.zero();
-  ddv.quorumPercentage = 0;
+  ddv.thresholdPct = 0;
+  ddv.quorum = 0;
   ddv.hats = Address.zero();
   ddv.createdAt = BigInt.fromI32(1000);
   ddv.createdAtBlock = BigInt.fromI32(100);
@@ -207,6 +209,7 @@ describe("HybridVoting", () => {
         "executor",
         "0x0000000000000000000000000000000000000000"
       );
+      assert.fieldEquals("HybridVotingContract", contractId, "thresholdPct", "0");
       assert.fieldEquals("HybridVotingContract", contractId, "quorum", "0");
     });
   });
@@ -298,46 +301,83 @@ describe("HybridVoting", () => {
     });
   });
 
+  describe("ThresholdPctSet", () => {
+    test("Threshold set and historical record created", () => {
+      let event = createThresholdPctSetEvent(51);
+
+      setupHybridVotingContract(event.address);
+
+      handleThresholdPctSet(event);
+
+      let contractId = event.address.toHexString();
+      assert.fieldEquals("HybridVotingContract", contractId, "thresholdPct", "51");
+      assert.entityCount("HybridVotingThresholdChange", 1);
+    });
+
+    test("Threshold change skips if contract doesn't exist", () => {
+      let event = createThresholdPctSetEvent(51);
+      handleThresholdPctSet(event);
+
+      assert.entityCount("HybridVotingContract", 0);
+      assert.entityCount("HybridVotingThresholdChange", 0);
+    });
+
+    test("Multiple threshold changes tracked historically", () => {
+      let event1 = createThresholdPctSetEvent(51);
+      event1.logIndex = BigInt.fromI32(1);
+
+      setupHybridVotingContract(event1.address);
+
+      handleThresholdPctSet(event1);
+
+      let event2 = createThresholdPctSetEvent(60);
+      event2.logIndex = BigInt.fromI32(2);
+      handleThresholdPctSet(event2);
+
+      assert.entityCount("HybridVotingThresholdChange", 2);
+
+      let contractId = event1.address.toHexString();
+      assert.fieldEquals("HybridVotingContract", contractId, "thresholdPct", "60");
+    });
+  });
+
   describe("QuorumSet", () => {
     test("Quorum set and historical record created", () => {
-      let event = createQuorumSetEvent(51);
+      let event = createQuorumSetEvent(5);
 
-      // Setup contract first (simulating OrgDeployed)
       setupHybridVotingContract(event.address);
 
       handleQuorumSet(event);
 
       let contractId = event.address.toHexString();
-      assert.fieldEquals("HybridVotingContract", contractId, "quorum", "51");
+      assert.fieldEquals("HybridVotingContract", contractId, "quorum", "5");
       assert.entityCount("HybridVotingQuorumChange", 1);
     });
 
     test("Quorum change skips if contract doesn't exist", () => {
-      let event = createQuorumSetEvent(51);
+      let event = createQuorumSetEvent(5);
       handleQuorumSet(event);
 
-      // Verify contract was NOT created (edge case handling)
       assert.entityCount("HybridVotingContract", 0);
       assert.entityCount("HybridVotingQuorumChange", 0);
     });
 
     test("Multiple quorum changes tracked historically", () => {
-      let event1 = createQuorumSetEvent(51);
+      let event1 = createQuorumSetEvent(5);
       event1.logIndex = BigInt.fromI32(1);
 
-      // Setup contract first (simulating OrgDeployed)
       setupHybridVotingContract(event1.address);
 
       handleQuorumSet(event1);
 
-      let event2 = createQuorumSetEvent(60);
+      let event2 = createQuorumSetEvent(10);
       event2.logIndex = BigInt.fromI32(2);
       handleQuorumSet(event2);
 
       assert.entityCount("HybridVotingQuorumChange", 2);
 
       let contractId = event1.address.toHexString();
-      assert.fieldEquals("HybridVotingContract", contractId, "quorum", "60");
+      assert.fieldEquals("HybridVotingContract", contractId, "quorum", "10");
     });
   });
 
@@ -528,69 +568,6 @@ describe("HybridVoting", () => {
 
       // Verify no entity was created
       assert.entityCount("HatPermission", 0);
-    });
-  });
-
-  describe("TargetAllowed", () => {
-    test("Target permission created", () => {
-      let target = Address.fromString(
-        "0x0000000000000000000000000000000000000001"
-      );
-      let event = createTargetAllowedEvent(target, true);
-      handleTargetAllowed(event);
-
-      assert.entityCount("HybridVotingTargetPermission", 1);
-
-      let permissionId =
-        event.address.toHexString() +
-        "-0x0000000000000000000000000000000000000001";
-      assert.fieldEquals(
-        "HybridVotingTargetPermission",
-        permissionId,
-        "allowed",
-        "true"
-      );
-    });
-
-    test("Target permission can be updated", () => {
-      let target = Address.fromString(
-        "0x0000000000000000000000000000000000000001"
-      );
-
-      let event1 = createTargetAllowedEvent(target, true);
-      handleTargetAllowed(event1);
-
-      let event2 = createTargetAllowedEvent(target, false);
-      handleTargetAllowed(event2);
-
-      assert.entityCount("HybridVotingTargetPermission", 1);
-
-      let permissionId =
-        event1.address.toHexString() +
-        "-0x0000000000000000000000000000000000000001";
-      assert.fieldEquals(
-        "HybridVotingTargetPermission",
-        permissionId,
-        "allowed",
-        "false"
-      );
-    });
-
-    test("Multiple targets can be tracked", () => {
-      let target1 = Address.fromString(
-        "0x0000000000000000000000000000000000000001"
-      );
-      let target2 = Address.fromString(
-        "0x0000000000000000000000000000000000000002"
-      );
-
-      let event1 = createTargetAllowedEvent(target1, true);
-      handleTargetAllowed(event1);
-
-      let event2 = createTargetAllowedEvent(target2, true);
-      handleTargetAllowed(event2);
-
-      assert.entityCount("HybridVotingTargetPermission", 2);
     });
   });
 

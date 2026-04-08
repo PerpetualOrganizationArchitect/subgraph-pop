@@ -64,6 +64,7 @@ export function handleOrgDeployed(event: OrgDeployed): void {
   // Create HybridVotingContract entity
   let hybridVoting = new HybridVotingContract(event.params.hybridVoting);
   hybridVoting.executor = Address.zero(); // Will be set by Initialized event
+  hybridVoting.thresholdPct = 0; // Will be set by ThresholdPctSet event
   hybridVoting.quorum = 0; // Will be set by QuorumSet event
   hybridVoting.hats = Address.zero(); // Will be set by Initialized event
   hybridVoting.classVersion = BigInt.fromI32(0); // Will be set by ClassesReplaced event
@@ -73,7 +74,8 @@ export function handleOrgDeployed(event: OrgDeployed): void {
   // Create DirectDemocracyVotingContract entity
   let directDemocracyVoting = new DirectDemocracyVotingContract(event.params.directDemocracyVoting);
   directDemocracyVoting.executor = Address.zero(); // Will be set by ExecutorUpdated event
-  directDemocracyVoting.quorumPercentage = 0; // Will be set by QuorumPercentageSet event
+  directDemocracyVoting.thresholdPct = 0; // Will be set by ThresholdPctSet event
+  directDemocracyVoting.quorum = 0; // Will be set by QuorumSet event
   directDemocracyVoting.hats = Address.zero(); // Will be set by Initialized event
   directDemocracyVoting.createdAt = event.block.timestamp;
   directDemocracyVoting.createdAtBlock = event.block.number;

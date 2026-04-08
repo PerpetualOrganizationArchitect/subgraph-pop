@@ -112,7 +112,9 @@ export function handleOrgRegistered(event: OrgRegisteredEvent): void {
   if (!org) {
     org = new Organization(orgId);
   }
-  org.name = name.toString();
+
+  let orgName = name.toString();
+  org.name = orgName;
   org.metadataHash = metadataHash;
 
   // Link to metadata entity (will be populated when IPFS content is indexed)
@@ -144,7 +146,9 @@ export function handleMetaUpdated(event: MetaUpdatedEvent): void {
   // Load Organization
   let org = Organization.load(orgId);
   if (org) {
-    org.name = newName.toString();
+    let newOrgName = newName.toString();
+
+    org.name = newOrgName;
     org.metadataHash = newMetadataHash;
 
     // Link to new metadata entity (will be populated when IPFS content is indexed)
@@ -166,7 +170,7 @@ export function handleMetaUpdated(event: MetaUpdatedEvent): void {
 
     update.organization = orgId;
     update.orgId = orgId;
-    update.newName = newName.toString();
+    update.newName = newOrgName;
     update.newMetadataHash = newMetadataHash;
     update.updatedAt = event.block.timestamp;
     update.updatedAtBlock = event.block.number;

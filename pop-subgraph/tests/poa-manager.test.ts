@@ -6,6 +6,7 @@ import {
   afterEach,
   beforeEach
 } from "matchstick-as/assembly/index";
+import { dataSourceMock } from "matchstick-as/assembly/index";
 import { Address, Bytes, BigInt } from "@graphprotocol/graph-ts";
 import {
   handleBeaconCreated,
@@ -21,10 +22,16 @@ import { PoaManagerContract, Beacon, BeaconUpgradeEvent } from "../generated/sch
 
 // Default mock event address used by matchstick-as
 const DEFAULT_ADDRESS = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a";
+const NETWORK = "sepolia";
 
 describe("PoaManager", () => {
+  beforeEach(() => {
+    dataSourceMock.setNetwork(NETWORK);
+  });
+
   afterEach(() => {
     clearStore();
+    dataSourceMock.resetValues();
   });
 
   describe("handleBeaconCreated", () => {
@@ -55,7 +62,7 @@ describe("PoaManager", () => {
       let event = createBeaconCreatedEvent(typeId, typeName, beacon, implementation);
       handleBeaconCreated(event);
 
-      let beaconId = typeId.toHexString();
+      let beaconId = NETWORK + "-" + typeId.toHexString();
       assert.entityCount("Beacon", 1);
       assert.fieldEquals("Beacon", beaconId, "typeName", "TaskManager");
       assert.fieldEquals("Beacon", beaconId, "beaconAddress", beacon.toHexString());
@@ -93,7 +100,7 @@ describe("PoaManager", () => {
       let event = createBeaconCreatedEvent(typeId, typeName, beacon, implementation);
       handleBeaconCreated(event);
 
-      let beaconId = typeId.toHexString();
+      let beaconId = NETWORK + "-" + typeId.toHexString();
       assert.fieldEquals("Beacon", beaconId, "typeId", typeId.toHexString());
     });
   });
@@ -114,7 +121,7 @@ describe("PoaManager", () => {
       let upgradeEvent = createBeaconUpgradedEvent(typeId, newImplementation, "v2");
       handleBeaconUpgraded(upgradeEvent);
 
-      let beaconId = typeId.toHexString();
+      let beaconId = NETWORK + "-" + typeId.toHexString();
       assert.fieldEquals("Beacon", beaconId, "currentImplementation", newImplementation.toHexString());
       assert.fieldEquals("Beacon", beaconId, "version", "v2");
     });
@@ -171,7 +178,7 @@ describe("PoaManager", () => {
 
       assert.entityCount("BeaconUpgradeEvent", 2);
       
-      let beaconId = typeId.toHexString();
+      let beaconId = NETWORK + "-" + typeId.toHexString();
       assert.fieldEquals("Beacon", beaconId, "currentImplementation", newImpl2.toHexString());
       assert.fieldEquals("Beacon", beaconId, "version", "v3");
     });
@@ -304,11 +311,11 @@ describe("PoaManager", () => {
         newRegistry.toHexString()
       );
 
-      let beacon1Id = typeId1.toHexString();
+      let beacon1Id = NETWORK + "-" + typeId1.toHexString();
       assert.fieldEquals("Beacon", beacon1Id, "currentImplementation", newImpl.toHexString());
       assert.fieldEquals("Beacon", beacon1Id, "version", "v2");
 
-      let beacon2Id = typeId2.toHexString();
+      let beacon2Id = NETWORK + "-" + typeId2.toHexString();
       assert.fieldEquals("Beacon", beacon2Id, "currentImplementation", impl2.toHexString());
       assert.fieldEquals("Beacon", beacon2Id, "version", "v1");
     });

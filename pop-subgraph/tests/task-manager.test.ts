@@ -11,6 +11,7 @@ import {
   handleProjectCreated,
   handleTaskCreated,
   handleTaskAssigned,
+  handleTaskSubmitted,
   handleTaskCompleted,
   handleProjectCapUpdated,
   handleProjectManagerUpdated,
@@ -22,6 +23,7 @@ import {
   createProjectCreatedEvent,
   createTaskCreatedEvent,
   createTaskAssignedEvent,
+  createTaskSubmittedEvent,
   createTaskCompletedEvent,
   createProjectCapUpdatedEvent,
   createProjectManagerUpdatedEvent,
@@ -81,6 +83,7 @@ function setupTaskManagerEntities(): void {
   let hybridVoting = new HybridVotingContract(hybridVotingAddress);
   hybridVoting.organization = orgId;
   hybridVoting.executor = Address.zero();
+  hybridVoting.thresholdPct = 0;
   hybridVoting.quorum = 0;
   hybridVoting.hats = Address.zero();
   hybridVoting.classVersion = BigInt.fromI32(0);
@@ -92,7 +95,8 @@ function setupTaskManagerEntities(): void {
   let ddv = new DirectDemocracyVotingContract(ddvAddress);
   ddv.organization = orgId;
   ddv.executor = Address.zero();
-  ddv.quorumPercentage = 0;
+  ddv.thresholdPct = 0;
+  ddv.quorum = 0;
   ddv.hats = Address.zero();
   ddv.createdAt = BigInt.fromI32(1000);
   ddv.createdAtBlock = BigInt.fromI32(100);
@@ -381,6 +385,7 @@ describe("TaskManager", () => {
     let bountyToken = Address.fromString("0x0000000000000000000000000000000000000001");
     let bountyPayout = BigInt.fromI32(50);
     let title = Bytes.fromHexString("0x1234");
+    let taskMetadataHash = Bytes.fromHexString("0x1111111111111111111111111111111111111111111111111111111111111111");
 
     let createEvent = createTaskCreatedEvent(
       taskId,
@@ -389,7 +394,8 @@ describe("TaskManager", () => {
       bountyToken,
       bountyPayout,
       false,
-      title
+      title,
+      taskMetadataHash
     );
     handleTaskCreated(createEvent);
 
@@ -398,6 +404,24 @@ describe("TaskManager", () => {
     let assigner = Address.fromString("0x0000000000000000000000000000000000000003");
     let assignEvent = createTaskAssignedEvent(taskId, assignee, assigner);
     handleTaskAssigned(assignEvent);
+
+    // Submit the task (sets submissionHash, submittedAt, overwrites metadata)
+    let submissionHash = Bytes.fromHexString(
+      "0x2222222222222222222222222222222222222222222222222222222222222222"
+    );
+    let submitEvent = createTaskSubmittedEvent(taskId, submissionHash);
+    handleTaskSubmitted(submitEvent);
+
+    let expectedId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1";
+
+    // Verify submission data is set before rejection
+    assert.fieldEquals("Task", expectedId, "status", "Submitted");
+    assert.fieldEquals(
+      "Task",
+      expectedId,
+      "submissionHash",
+      "0x2222222222222222222222222222222222222222222222222222222222222222"
+    );
 
     // Reject the task
     let rejector = Address.fromString("0x0000000000000000000000000000000000000003");
@@ -408,7 +432,6 @@ describe("TaskManager", () => {
     rejectEvent.logIndex = BigInt.fromI32(3);
     handleTaskRejected(rejectEvent);
 
-    let expectedId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1";
     assert.fieldEquals("Task", expectedId, "status", "Assigned");
     assert.fieldEquals("Task", expectedId, "rejectionCount", "1");
     assert.fieldEquals(
@@ -417,6 +440,9 @@ describe("TaskManager", () => {
       "rejectionHash",
       "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
     );
+    // Stale submission data should be cleared after rejection
+    assert.fieldEquals("Task", expectedId, "submissionHash", "null");
+    assert.fieldEquals("Task", expectedId, "submittedAt", "null");
     assert.entityCount("TaskRejection", 1);
   });
 

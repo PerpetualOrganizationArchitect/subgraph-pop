@@ -9,10 +9,21 @@ on:
     paths: ['pop-subgraph/**']
 
 jobs:
-  subgraph:
-    uses: BreadchainCoop/subgraphform/.github/workflows/_subgraph-cicd.yml@main
+  subgraph-arbitrum-one:
+    uses: BreadchainCoop/subgraphform/.github/workflows/_subgraph-cicd.yml@hudsonhrh/add-network-input
     with:
-      subgraph-name: poa-2
+      subgraph-name: poa-arb-v-1
       working-directory: pop-subgraph
+      network: arbitrum-one
+    secrets:
+      GRAPH_DEPLOY_KEY: ${{ secrets.GRAPH_DEPLOY_KEY }}
+
+  subgraph-gnosis:
+    uses: BreadchainCoop/subgraphform/.github/workflows/_subgraph-cicd.yml@hudsonhrh/add-network-input
+    with:
+      subgraph-name: poa-gnosis-v-1
+      working-directory: pop-subgraph
+      network: gnosis
+      run-tests: false
     secrets:
       GRAPH_DEPLOY_KEY: ${{ secrets.GRAPH_DEPLOY_KEY }}

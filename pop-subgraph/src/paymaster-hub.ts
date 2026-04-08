@@ -8,24 +8,19 @@ import {
   PauseSet as PauseSetEvent,
   OperatorHatSet as OperatorHatSetEvent,
   DepositIncrease as DepositIncreaseEvent,
-  DepositWithdraw as DepositWithdrawEvent,
   OrgDepositReceived as OrgDepositReceivedEvent,
-  BountyConfig as BountyConfigEvent,
-  BountyFunded as BountyFundedEvent,
-  BountySweep as BountySweepEvent,
-  BountyPaid as BountyPaidEvent,
-  BountyPayFailed as BountyPayFailedEvent,
   UsageIncreased as UsageIncreasedEvent,
-  UserOpPosted as UserOpPostedEvent,
   SolidarityFeeCollected as SolidarityFeeCollectedEvent,
   SolidarityDonationReceived as SolidarityDonationReceivedEvent,
   OrgBannedFromSolidarity as OrgBannedFromSolidarityEvent,
-  EmergencyWithdraw as EmergencyWithdrawEvent,
   GracePeriodConfigUpdated as GracePeriodConfigUpdatedEvent,
   SolidarityDistributionPaused as SolidarityDistributionPausedEvent,
   SolidarityDistributionUnpaused as SolidarityDistributionUnpausedEvent,
   OnboardingAccountCreated as OnboardingAccountCreatedEvent,
-  OnboardingConfigUpdated as OnboardingConfigUpdatedEvent
+  OnboardingConfigUpdated as OnboardingConfigUpdatedEvent,
+  OrgDeployConfigUpdated as OrgDeployConfigUpdatedEvent,
+  OrgDeploymentSponsored as OrgDeploymentSponsoredEvent,
+  OrgSpendingRecorded as OrgSpendingRecordedEvent
 } from "../generated/templates/PaymasterHub/PaymasterHub";
 import {
   PaymasterHubContract,
@@ -33,12 +28,9 @@ import {
   PaymasterRule,
   PaymasterBudget,
   PaymasterFeeCaps,
-  PaymasterBountyConfig,
   PaymasterOrgStats,
   PaymasterDepositEvent,
-  BountyEvent,
   UsageEvent,
-  UserOpEvent,
   SolidarityEvent,
   PaymasterConfigChange,
   GracePeriodChange,
@@ -46,7 +38,9 @@ import {
   OrgBanRecord,
   Organization,
   OnboardingConfig,
-  OnboardingAccount
+  OnboardingAccount,
+  OrgDeployConfig,
+  OrgDeploySponsorship
 } from "../generated/schema";
 
 // Helper to get or create PaymasterHubContract singleton
@@ -58,8 +52,8 @@ function getOrCreateHub(contractAddress: Bytes): PaymasterHubContract {
     hub.hats = Address.zero();
     hub.poaManager = Address.zero();
     hub.totalDeposit = BigInt.fromI32(0);
-    hub.bountyPoolBalance = BigInt.fromI32(0);
     hub.solidarityBalance = BigInt.fromI32(0);
+    hub.totalFeesCollected = BigInt.fromI32(0);
     hub.gracePeriodDays = 90;
     hub.maxSpendDuringGrace = BigInt.fromString("10000000000000000"); // 0.01 ETH
     hub.minDepositRequired = BigInt.fromString("3000000000000000"); // 0.003 ETH
@@ -83,12 +77,9 @@ function getOrCreateOrgStats(orgConfigId: string): PaymasterOrgStats {
     stats = new PaymasterOrgStats(orgConfigId);
     stats.orgConfig = orgConfigId;
     stats.totalUserOps = BigInt.fromI32(0);
-    stats.totalSuccessfulBounties = BigInt.fromI32(0);
-    stats.totalFailedBounties = BigInt.fromI32(0);
     stats.totalGasSponsored = BigInt.fromI32(0);
     stats.totalDeposited = BigInt.fromI32(0);
     stats.totalWithdrawn = BigInt.fromI32(0);
-    stats.totalBountyPaid = BigInt.fromI32(0);
     stats.totalSolidarityFeesCollected = BigInt.fromI32(0);
     stats.lastOperationAt = BigInt.fromI32(0);
     stats.lastOperationAtBlock = BigInt.fromI32(0);
@@ -131,6 +122,7 @@ export function handleOrgRegistered(event: OrgRegisteredEvent): void {
   orgConfig.depositBalance = BigInt.fromI32(0);
   orgConfig.totalDeposited = BigInt.fromI32(0);
   orgConfig.totalSpent = BigInt.fromI32(0);
+  orgConfig.totalSolidarityReceived = BigInt.fromI32(0);
   orgConfig.registeredAt = event.block.timestamp;
   orgConfig.registeredAtBlock = event.block.number;
   orgConfig.transactionHash = event.transaction.hash;
@@ -352,30 +344,7 @@ export function handleDepositIncrease(event: DepositIncreaseEvent): void {
   depositEvent.save();
 }
 
-// 9. DepositWithdraw - Update hub + create deposit event
-export function handleDepositWithdraw(event: DepositWithdrawEvent): void {
-  let contractAddress = event.address;
-
-  // Update hub
-  let hub = getOrCreateHub(contractAddress);
-  hub.totalDeposit = hub.totalDeposit.minus(event.params.amount);
-  hub.save();
-
-  // Create deposit event record
-  let eventId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let depositEvent = new PaymasterDepositEvent(eventId);
-  depositEvent.paymasterHub = contractAddress;
-  depositEvent.eventType = "HubWithdraw";
-  depositEvent.to = event.params.to;
-  depositEvent.amount = event.params.amount;
-  depositEvent.newBalance = hub.totalDeposit;
-  depositEvent.eventAt = event.block.timestamp;
-  depositEvent.eventAtBlock = event.block.number;
-  depositEvent.transactionHash = event.transaction.hash;
-  depositEvent.save();
-}
-
-// 10. OrgDepositReceived - Update org config + create deposit event
+// 9. OrgDepositReceived - Update org config + create deposit event
 export function handleOrgDepositReceived(event: OrgDepositReceivedEvent): void {
   let contractAddress = event.address;
   let orgId = event.params.orgId;
@@ -413,127 +382,7 @@ export function handleOrgDepositReceived(event: OrgDepositReceivedEvent): void {
   depositEvent.save();
 }
 
-// 11. BountyConfig - Upsert bounty config
-export function handleBountyConfig(event: BountyConfigEvent): void {
-  let contractAddress = event.address;
-  let orgId = event.params.orgId;
-  let orgConfigId = getOrgConfigId(contractAddress, orgId);
-
-  let bountyConfig = PaymasterBountyConfig.load(orgConfigId);
-  if (!bountyConfig) {
-    bountyConfig = new PaymasterBountyConfig(orgConfigId);
-    bountyConfig.orgConfig = orgConfigId;
-    bountyConfig.totalPaid = BigInt.fromI32(0);
-  }
-
-  bountyConfig.enabled = event.params.enabled;
-  bountyConfig.maxBountyPerOp = event.params.maxPerOp;
-  bountyConfig.pctBpCap = event.params.pctBpCap;
-  bountyConfig.setAt = event.block.timestamp;
-  bountyConfig.setAtBlock = event.block.number;
-  bountyConfig.transactionHash = event.transaction.hash;
-  bountyConfig.save();
-
-  // Create config change record
-  let changeId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let change = new PaymasterConfigChange(changeId);
-  change.paymasterHub = contractAddress;
-  change.orgConfig = orgConfigId;
-  change.changeType = "BountyConfigSet";
-  change.changedAt = event.block.timestamp;
-  change.changedAtBlock = event.block.number;
-  change.transactionHash = event.transaction.hash;
-  change.save();
-}
-
-// 12. BountyFunded - Update hub + create bounty event
-export function handleBountyFunded(event: BountyFundedEvent): void {
-  let contractAddress = event.address;
-
-  // Update hub
-  let hub = getOrCreateHub(contractAddress);
-  hub.bountyPoolBalance = event.params.newBalance;
-  hub.save();
-
-  // Create bounty event record
-  let eventId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let bountyEvent = new BountyEvent(eventId);
-  bountyEvent.paymasterHub = contractAddress;
-  bountyEvent.eventType = "Funded";
-  bountyEvent.amount = event.params.amount;
-  bountyEvent.newBalance = event.params.newBalance;
-  bountyEvent.eventAt = event.block.timestamp;
-  bountyEvent.eventAtBlock = event.block.number;
-  bountyEvent.transactionHash = event.transaction.hash;
-  bountyEvent.save();
-}
-
-// 13. BountySweep - Update hub + create bounty event
-export function handleBountySweep(event: BountySweepEvent): void {
-  let contractAddress = event.address;
-
-  // Update hub
-  let hub = getOrCreateHub(contractAddress);
-  hub.bountyPoolBalance = hub.bountyPoolBalance.minus(event.params.amount);
-  hub.save();
-
-  // Create bounty event record
-  let eventId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let bountyEvent = new BountyEvent(eventId);
-  bountyEvent.paymasterHub = contractAddress;
-  bountyEvent.eventType = "Swept";
-  bountyEvent.recipient = event.params.to;
-  bountyEvent.amount = event.params.amount;
-  bountyEvent.newBalance = hub.bountyPoolBalance;
-  bountyEvent.eventAt = event.block.timestamp;
-  bountyEvent.eventAtBlock = event.block.number;
-  bountyEvent.transactionHash = event.transaction.hash;
-  bountyEvent.save();
-}
-
-// 14. BountyPaid - Create bounty event + update hub
-export function handleBountyPaid(event: BountyPaidEvent): void {
-  let contractAddress = event.address;
-
-  // Update hub
-  let hub = getOrCreateHub(contractAddress);
-  hub.bountyPoolBalance = hub.bountyPoolBalance.minus(event.params.amount);
-  hub.save();
-
-  // Create bounty event record
-  let eventId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let bountyEvent = new BountyEvent(eventId);
-  bountyEvent.paymasterHub = contractAddress;
-  bountyEvent.eventType = "Paid";
-  bountyEvent.userOpHash = event.params.userOpHash;
-  bountyEvent.recipient = event.params.to;
-  bountyEvent.amount = event.params.amount;
-  bountyEvent.newBalance = hub.bountyPoolBalance;
-  bountyEvent.eventAt = event.block.timestamp;
-  bountyEvent.eventAtBlock = event.block.number;
-  bountyEvent.transactionHash = event.transaction.hash;
-  bountyEvent.save();
-}
-
-// 15. BountyPayFailed - Create bounty event (no balance change)
-export function handleBountyPayFailed(event: BountyPayFailedEvent): void {
-  let contractAddress = event.address;
-
-  // Create bounty event record
-  let eventId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let bountyEvent = new BountyEvent(eventId);
-  bountyEvent.paymasterHub = contractAddress;
-  bountyEvent.eventType = "PayFailed";
-  bountyEvent.userOpHash = event.params.userOpHash;
-  bountyEvent.recipient = event.params.to;
-  bountyEvent.amount = event.params.amount;
-  bountyEvent.eventAt = event.block.timestamp;
-  bountyEvent.eventAtBlock = event.block.number;
-  bountyEvent.transactionHash = event.transaction.hash;
-  bountyEvent.save();
-}
-
-// 16. UsageIncreased - Create usage event + update budget
+// 11. UsageIncreased - Create usage event + update budget
 export function handleUsageIncreased(event: UsageIncreasedEvent): void {
   let contractAddress = event.address;
   let orgId = event.params.orgId;
@@ -550,7 +399,7 @@ export function handleUsageIncreased(event: UsageIncreasedEvent): void {
     budget.save();
   }
 
-  // Update org config total spent
+  // Update org config total spent (includes solidarity subsidy for backward compat)
   let orgConfig = PaymasterOrgConfig.load(orgConfigId);
   if (orgConfig) {
     orgConfig.totalSpent = orgConfig.totalSpent.plus(event.params.delta);
@@ -583,23 +432,24 @@ export function handleUsageIncreased(event: UsageIncreasedEvent): void {
   usageEvent.save();
 }
 
-// 17. UserOpPosted - Create user op event
-export function handleUserOpPosted(event: UserOpPostedEvent): void {
+// 11b. OrgSpendingRecorded - Accurate financial tracking with deposit/solidarity breakdown
+export function handleOrgSpendingRecorded(event: OrgSpendingRecordedEvent): void {
   let contractAddress = event.address;
+  let orgId = event.params.orgId;
+  let orgConfigId = getOrgConfigId(contractAddress, orgId);
 
-  // Create user op event record
-  let eventId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let userOpEvent = new UserOpEvent(eventId);
-  userOpEvent.paymasterHub = contractAddress;
-  userOpEvent.opHash = event.params.opHash;
-  userOpEvent.postedBy = event.params.postedBy;
-  userOpEvent.eventAt = event.block.timestamp;
-  userOpEvent.eventAtBlock = event.block.number;
-  userOpEvent.transactionHash = event.transaction.hash;
-  userOpEvent.save();
+  // Only track solidarity received here. Financial fields (totalSpent, depositBalance)
+  // are still updated by handleUsageIncreased for backward compatibility with
+  // pre-upgrade events. The frontend computes accurate balance using:
+  // accurateBalance = totalDeposited - totalSpent + totalSolidarityReceived
+  let orgConfig = PaymasterOrgConfig.load(orgConfigId);
+  if (orgConfig) {
+    orgConfig.totalSolidarityReceived = orgConfig.totalSolidarityReceived.plus(event.params.fromSolidarity);
+    orgConfig.save();
+  }
 }
 
-// 18. SolidarityFeeCollected - Update hub + create solidarity event
+// 12. SolidarityFeeCollected - Update hub + create solidarity event
 export function handleSolidarityFeeCollected(event: SolidarityFeeCollectedEvent): void {
   let contractAddress = event.address;
   let orgId = event.params.orgId;
@@ -608,6 +458,7 @@ export function handleSolidarityFeeCollected(event: SolidarityFeeCollectedEvent)
   // Update hub
   let hub = getOrCreateHub(contractAddress);
   hub.solidarityBalance = hub.solidarityBalance.plus(event.params.amount);
+  hub.totalFeesCollected = hub.totalFeesCollected.plus(event.params.amount);
   hub.save();
 
   // Update stats
@@ -687,30 +538,7 @@ export function handleOrgBannedFromSolidarity(event: OrgBannedFromSolidarityEven
   banRecord.save();
 }
 
-// 21. EmergencyWithdraw - Update hub + create deposit event
-export function handleEmergencyWithdraw(event: EmergencyWithdrawEvent): void {
-  let contractAddress = event.address;
-
-  // Update hub
-  let hub = getOrCreateHub(contractAddress);
-  hub.totalDeposit = hub.totalDeposit.minus(event.params.amount);
-  hub.save();
-
-  // Create deposit event record
-  let eventId = event.transaction.hash.concatI32(event.logIndex.toI32());
-  let depositEvent = new PaymasterDepositEvent(eventId);
-  depositEvent.paymasterHub = contractAddress;
-  depositEvent.eventType = "EmergencyWithdraw";
-  depositEvent.to = event.params.to;
-  depositEvent.amount = event.params.amount;
-  depositEvent.newBalance = hub.totalDeposit;
-  depositEvent.eventAt = event.block.timestamp;
-  depositEvent.eventAtBlock = event.block.number;
-  depositEvent.transactionHash = event.transaction.hash;
-  depositEvent.save();
-}
-
-// 22. GracePeriodConfigUpdated - Update hub + create grace period change
+// 21. GracePeriodConfigUpdated - Update hub + create grace period change
 export function handleGracePeriodConfigUpdated(event: GracePeriodConfigUpdatedEvent): void {
   let contractAddress = event.address;
 
@@ -771,8 +599,40 @@ export function handleOnboardingConfigUpdated(event: OnboardingConfigUpdatedEven
   config.maxGasPerCreation = event.params.maxGasPerCreation;
   config.dailyCreationLimit = event.params.dailyCreationLimit;
   config.enabled = event.params.enabled;
+  config.accountRegistry = event.params.accountRegistry;
   config.updatedAt = event.block.timestamp;
   config.blockNumber = event.block.number;
   config.transactionHash = event.transaction.hash;
   config.save();
+}
+
+// 27. OrgDeployConfigUpdated - Org deploy sponsorship config changed
+export function handleOrgDeployConfigUpdated(event: OrgDeployConfigUpdatedEvent): void {
+  let config = OrgDeployConfig.load(event.address);
+  if (!config) {
+    config = new OrgDeployConfig(event.address);
+    config.paymasterHub = event.address;
+  }
+  config.maxGasPerDeploy = event.params.maxGasPerDeploy;
+  config.dailyDeployLimit = event.params.dailyDeployLimit;
+  config.maxDeploysPerAccount = event.params.maxDeploysPerAccount;
+  config.enabled = event.params.enabled;
+  config.orgDeployer = event.params.orgDeployer;
+  config.updatedAt = event.block.timestamp;
+  config.blockNumber = event.block.number;
+  config.transactionHash = event.transaction.hash;
+  config.save();
+}
+
+// 28. OrgDeploymentSponsored - Free org deployment completed
+export function handleOrgDeploymentSponsored(event: OrgDeploymentSponsoredEvent): void {
+  let entityId = event.transaction.hash.concatI32(event.logIndex.toI32());
+  let entity = new OrgDeploySponsorship(entityId);
+  entity.paymasterHub = event.address;
+  entity.account = event.params.account;
+  entity.gasCost = event.params.gasCost;
+  entity.timestamp = event.block.timestamp;
+  entity.blockNumber = event.block.number;
+  entity.transactionHash = event.transaction.hash;
+  entity.save();
 }

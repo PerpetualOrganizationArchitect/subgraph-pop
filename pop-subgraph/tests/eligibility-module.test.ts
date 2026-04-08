@@ -113,6 +113,7 @@ function setupEligibilityModuleEntities(): void {
   let hybridVoting = new HybridVotingContract(hybridVotingAddress);
   hybridVoting.organization = orgId;
   hybridVoting.executor = Address.zero();
+  hybridVoting.thresholdPct = 0;
   hybridVoting.quorum = 0;
   hybridVoting.hats = Address.zero();
   hybridVoting.classVersion = BigInt.fromI32(0);
@@ -124,7 +125,8 @@ function setupEligibilityModuleEntities(): void {
   let ddv = new DirectDemocracyVotingContract(ddvAddress);
   ddv.organization = orgId;
   ddv.executor = Address.zero();
-  ddv.quorumPercentage = 0;
+  ddv.thresholdPct = 0;
+  ddv.quorum = 0;
   ddv.hats = Address.zero();
   ddv.createdAt = BigInt.fromI32(1000);
   ddv.createdAtBlock = BigInt.fromI32(100);
