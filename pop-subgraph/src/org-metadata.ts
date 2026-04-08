@@ -9,6 +9,7 @@ import { OrgMetadata, OrgMetadataLink } from "../generated/schema";
  *   description: "...",
  *   links: [{ name: "...", url: "..." }],
  *   template: "default",
+ *   backgroundColor: "#1a1a2e" // optional CSS color or gradient string
  *   logo: "QmXxx...",         // optional IPFS CID
  *   hideTreasury: true/false  // optional, defaults to null (= show treasury)
  * }
@@ -65,6 +66,12 @@ export function handleOrgMetadata(content: Bytes): void {
     let templateValue = jsonObject.get("template");
     if (templateValue != null && !templateValue.isNull() && templateValue.kind == JSONValueKind.STRING) {
       metadata.template = templateValue.toString();
+    }
+
+    // Parse backgroundColor
+    let bgColorValue = jsonObject.get("backgroundColor");
+    if (bgColorValue != null && !bgColorValue.isNull() && bgColorValue.kind == JSONValueKind.STRING) {
+      metadata.backgroundColor = bgColorValue.toString();
     }
 
     // Parse logo (IPFS CID string, optional)

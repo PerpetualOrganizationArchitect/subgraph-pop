@@ -1669,6 +1669,7 @@ type OrgMetadata @entity(immutable: false) {
   organization: Organization
   description: String
   template: String
+  backgroundColor: String
   logo: String # IPFS CID of the org logo image
   hideTreasury: Boolean # If true, treasury section is hidden in the UI
   links: [OrgMetadataLink!]! @derivedFrom(field: "metadata")
