@@ -391,6 +391,8 @@ templates:
           handler: handleWinner
         - event: ProposalExecuted(indexed uint256,indexed uint256,uint256)
           handler: handleProposalExecuted
+        - event: ProposalExecutionFailed(indexed uint256,indexed uint256,bytes)
+          handler: handleProposalExecutionFailed
         - event: ClassesReplaced(indexed uint256,indexed
             bytes32,(uint8,uint8,bool,uint256,address,uint256[])[],uint64)
           handler: handleClassesReplaced
@@ -444,6 +446,8 @@ templates:
           handler: handleWinner
         - event: ProposalCleaned(uint256,uint256)
           handler: handleProposalCleaned
+        - event: ProposalExecutionFailed(indexed uint256,indexed uint256,bytes)
+          handler: handleProposalExecutionFailed
       file: ./src/direct-democracy-voting.ts
   - kind: ethereum
     name: EligibilityModule

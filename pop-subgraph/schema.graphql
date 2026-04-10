@@ -453,6 +453,8 @@ type Proposal @entity(immutable: false) {
   winningOption: BigInt
   isValid: Boolean
   wasExecuted: Boolean!
+  executionFailed: Boolean!
+  executionError: Bytes
   winnerAnnouncedAt: BigInt
   executedAt: BigInt
   executedCallsCount: BigInt
@@ -544,6 +546,8 @@ type DDVProposal @entity(immutable: false) {
   winningOption: BigInt
   isValid: Boolean
   winnerAnnouncedAt: BigInt
+  executionFailed: Boolean!
+  executionError: Bytes
   cleanedAt: BigInt
   createdAtBlock: BigInt!
   transactionHash: Bytes!

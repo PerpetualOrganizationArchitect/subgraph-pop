@@ -11,6 +11,7 @@ import {
   VoteCast,
   Winner,
   ProposalExecuted,
+  ProposalExecutionFailed,
   ClassesReplaced
 } from "../generated/templates/HybridVoting/HybridVoting";
 import {
@@ -299,6 +300,7 @@ export function handleNewProposal(event: NewProposal): void {
   proposal.restrictedHatIds = [];
   proposal.status = "Active";
   proposal.wasExecuted = false;
+  proposal.executionFailed = false;
   proposal.createdAtBlock = event.block.number;
   proposal.transactionHash = event.transaction.hash;
 
@@ -355,6 +357,7 @@ export function handleNewHatProposal(event: NewHatProposal): void {
   proposal.restrictedHatIds = event.params.hatIds;
   proposal.status = "Active";
   proposal.wasExecuted = false;
+  proposal.executionFailed = false;
   proposal.createdAtBlock = event.block.number;
   proposal.transactionHash = event.transaction.hash;
 
@@ -479,6 +482,19 @@ export function handleProposalExecuted(event: ProposalExecuted): void {
   proposal.executedAt = event.block.timestamp;
   proposal.executedCallsCount = event.params.numCalls;
 
+  proposal.save();
+}
+
+export function handleProposalExecutionFailed(event: ProposalExecutionFailed): void {
+  let contractAddress = event.address.toHexString();
+  let proposalId = contractAddress + "-" + event.params.id.toString();
+
+  let proposal = Proposal.load(proposalId);
+  if (!proposal) return;
+
+  proposal.executionFailed = true;
+  proposal.executionError = event.params.reason;
+  // Status is set to "Ended" by handleWinner (didExecute=false), which fires after this event
   proposal.save();
 }
 
