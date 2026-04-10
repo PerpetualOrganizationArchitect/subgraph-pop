@@ -12,7 +12,8 @@ import {
   NewHatProposal,
   VoteCast,
   Winner,
-  ProposalCleaned
+  ProposalCleaned,
+  ProposalExecutionFailed
 } from "../generated/templates/DirectDemocracyVoting/DirectDemocracyVoting";
 import {
   DirectDemocracyVotingContract,
@@ -335,6 +336,7 @@ export function handleNewProposal(event: NewProposal): void {
   proposal.isHatRestricted = false;
   proposal.restrictedHatIds = [];
   proposal.status = "Active";
+  proposal.executionFailed = false;
   proposal.createdAtBlock = event.block.number;
   proposal.transactionHash = event.transaction.hash;
 
@@ -370,6 +372,7 @@ export function handleNewHatProposal(event: NewHatProposal): void {
   proposal.isHatRestricted = true;
   proposal.restrictedHatIds = event.params.hatIds;
   proposal.status = "Active";
+  proposal.executionFailed = false;
   proposal.createdAtBlock = event.block.number;
   proposal.transactionHash = event.transaction.hash;
 
@@ -484,5 +487,17 @@ export function handleProposalCleaned(event: ProposalCleaned): void {
   proposal.status = "Cleaned";
   proposal.cleanedAt = event.block.timestamp;
 
+  proposal.save();
+}
+
+export function handleProposalExecutionFailed(event: ProposalExecutionFailed): void {
+  let contractAddress = event.address.toHexString();
+  let proposalId = contractAddress + "-" + event.params.id.toString();
+
+  let proposal = DDVProposal.load(proposalId);
+  if (!proposal) return;
+
+  proposal.executionFailed = true;
+  proposal.executionError = event.params.reason;
   proposal.save();
 }
