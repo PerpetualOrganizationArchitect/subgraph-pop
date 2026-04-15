@@ -12,6 +12,7 @@ import {
 import {
   UniversalAccountRegistry,
   Account,
+  AccountMetadata,
   UsernameChange,
   AccountDeletion,
   BatchRegistration,
@@ -272,8 +273,11 @@ export function handleProfileMetadataUpdated(event: ProfileMetadataUpdatedEvent)
   account.metadata = ipfsCid;
   account.save();
 
-  // Create IPFS file data source to fetch and parse the metadata
-  let context = new DataSourceContext();
-  context.setBytes("userAddress", userAddress);
-  AccountMetadataTemplate.createWithContext(ipfsCid, context);
+  // Skip creating IPFS data source if metadata already indexed
+  let existingMeta = AccountMetadata.load(ipfsCid);
+  if (existingMeta == null) {
+    let context = new DataSourceContext();
+    context.setBytes("userAddress", userAddress);
+    AccountMetadataTemplate.createWithContext(ipfsCid, context);
+  }
 }

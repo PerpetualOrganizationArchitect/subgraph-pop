@@ -18,6 +18,7 @@ import {
 import {
   EducationHubContract,
   EducationModule,
+  EducationModuleMetadata,
   ModuleCompletion,
   ModuleUpdate,
   HatPermission,
@@ -51,6 +52,13 @@ function createEducationModuleMetadataSource(contentHash: Bytes, moduleEntityId:
   }
 
   let ipfsCid = bytes32ToCid(contentHash);
+
+  // EducationModuleMetadata is immutable — skip if already indexed to prevent
+  // duplicate INSERT conflicts when the same CID triggers multiple times
+  let existing = EducationModuleMetadata.load(ipfsCid);
+  if (existing != null) {
+    return;
+  }
 
   let context = new DataSourceContext();
   context.setString("moduleEntityId", moduleEntityId);

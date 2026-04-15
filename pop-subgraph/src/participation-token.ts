@@ -15,6 +15,7 @@ import {
   ParticipationTokenContract,
   HatPermission,
   TokenRequest,
+  TokenRequestMetadata,
   TokenBalance
 } from "../generated/schema";
 import { getOrCreateRole, loadExistingUser } from "./utils";
@@ -218,10 +219,14 @@ export function handleRequested(event: RequestedEvent): void {
   if (ipfsCid.length > 0) {
     tokenRequest.metadata = ipfsCid;
 
-    let context = new DataSourceContext();
-    context.setBigInt("timestamp", event.block.timestamp);
+    // TokenRequestMetadata is immutable — skip if already indexed
+    let existingMeta = TokenRequestMetadata.load(ipfsCid);
+    if (existingMeta == null) {
+      let context = new DataSourceContext();
+      context.setBigInt("timestamp", event.block.timestamp);
 
-    TokenRequestMetadataTemplate.createWithContext(ipfsCid, context);
+      TokenRequestMetadataTemplate.createWithContext(ipfsCid, context);
+    }
   }
 
   tokenRequest.save();

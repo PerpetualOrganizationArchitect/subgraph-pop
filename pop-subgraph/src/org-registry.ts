@@ -10,6 +10,7 @@ import {
   OrgRegistryContract,
   Organization,
   OrgMetaUpdate,
+  OrgMetadata,
   RegisteredContract,
   SwitchableBeaconContract
 } from "../generated/schema";
@@ -59,13 +60,17 @@ function createIpfsDataSource(metadataHash: Bytes, orgId: Bytes): void {
   // Convert bytes32 sha256 digest to IPFS CIDv0 string
   let ipfsCid = bytes32ToCid(metadataHash);
 
+  // Skip if metadata already indexed (prevents duplicate IPFS data sources
+  // which would cause INSERT conflicts for immutable OrgMetadataLink children)
+  let existing = OrgMetadata.load(ipfsCid);
+  if (existing != null) {
+    return;
+  }
+
   // Create context to pass orgId to the IPFS handler
   let context = new DataSourceContext();
   context.setBytes("orgId", orgId);
 
-  // Create the file data source with context
-  // If IPFS is unavailable or slow, this will be retried automatically
-  // and won't block the main chain indexing
   OrgMetadataTemplate.createWithContext(ipfsCid, context);
 }
 
