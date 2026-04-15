@@ -11,113 +11,73 @@ import { ProposalMetadata } from "../generated/schema";
  *   createdAt: 1706812800000
  * }
  *
- * This handler creates/populates the ProposalMetadata entity. The link from
- * Proposal/DDVProposal to ProposalMetadata is pre-set in the event handlers
- * (handleNewProposal, handleNewHatProposal) following the task-manager and
- * org-registry pattern.
- *
- * This handler is resilient to malformed data - if parsing fails or fields
- * are missing, the entity will be created with whatever data is available.
- * The subgraph will NOT brick if IPFS is slow or unavailable - the main
- * Proposal entity from on-chain events will still be indexed.
+ * ProposalMetadata is immutable — the entity store only allows INSERT, not UPDATE.
+ * This handler follows the single-path pattern: one existence check at the top,
+ * one entity creation, one save. Multiple code paths with separate load/new/save
+ * cycles cause INSERT conflicts when the same CID is triggered more than once
+ * in the same block.
  */
 export function handleProposalMetadata(content: Bytes): void {
-  // The dataSource.stringParam() contains the IPFS hash (CID)
   let ipfsCid = dataSource.stringParam();
 
-  // Get context passed by the caller (for logging purposes)
-  let context = dataSource.context();
-  let proposalEntityId = context.getString("proposalEntityId");
-  let proposalType = context.getString("proposalType"); // "hybrid" or "ddv"
+  // Immutable — skip if already exists
+  let existing = ProposalMetadata.load(ipfsCid);
+  if (existing != null) {
+    return;
+  }
 
-  log.info("[ProposalMetadata] Processing CID: {} for proposal: {} (type: {})", [
-    ipfsCid,
-    proposalEntityId,
-    proposalType
-  ]);
+  let metadata = new ProposalMetadata(ipfsCid);
+  metadata.description = "";
+  metadata.optionNames = [];
 
   // Try to parse the JSON content
   let jsonResult = json.try_fromBytes(content);
   if (jsonResult.isError) {
     log.warning("[ProposalMetadata] Failed to parse JSON for CID: {}", [ipfsCid]);
-    // Load or create entity with defaults so the relationship still works
-    let metadata = ProposalMetadata.load(ipfsCid);
-    if (metadata == null) {
-      metadata = new ProposalMetadata(ipfsCid);
-      metadata.description = "";
-      metadata.optionNames = [];
-      metadata.save();
-    }
+    metadata.save();
     return;
   }
 
   let jsonValue = jsonResult.value;
-  if (!jsonValue.isNull() && jsonValue.kind == JSONValueKind.OBJECT) {
-    let jsonObject = jsonValue.toObject();
-
-    // ProposalMetadata is immutable - skip if already exists
-    let existingMetadata = ProposalMetadata.load(ipfsCid);
-    if (existingMetadata != null) {
-      log.info("[ProposalMetadata] Entity already exists for CID: {}, skipping (immutable)", [ipfsCid]);
-      return;
-    }
-
-    // Create new metadata entity
-    let metadata = new ProposalMetadata(ipfsCid);
-
-    // Parse description
-    let descriptionValue = jsonObject.get("description");
-    if (descriptionValue != null && !descriptionValue.isNull() && descriptionValue.kind == JSONValueKind.STRING) {
-      metadata.description = descriptionValue.toString();
-    } else {
-      metadata.description = "";
-    }
-
-    // Parse optionNames array
-    let optionNamesValue = jsonObject.get("optionNames");
-    if (optionNamesValue != null && !optionNamesValue.isNull() && optionNamesValue.kind == JSONValueKind.ARRAY) {
-      let namesArray = optionNamesValue.toArray();
-      let names: string[] = [];
-      for (let i = 0; i < namesArray.length; i++) {
-        let nameValue = namesArray[i];
-        if (!nameValue.isNull() && nameValue.kind == JSONValueKind.STRING) {
-          names.push(nameValue.toString());
-        } else {
-          // Push empty string for non-string values to maintain index alignment
-          names.push("");
-        }
-      }
-      metadata.optionNames = names;
-    } else {
-      metadata.optionNames = [];
-    }
-
-    // Parse createdAt timestamp
-    let createdAtValue = jsonObject.get("createdAt");
-    if (createdAtValue != null && !createdAtValue.isNull() && createdAtValue.kind == JSONValueKind.NUMBER) {
-      // createdAt is in milliseconds — strip any decimal to safely convert to BigInt
-      let raw = createdAtValue.toF64().toString();
-      let dotIndex = raw.indexOf(".");
-      if (dotIndex >= 0) {
-        raw = raw.substring(0, dotIndex);
-      }
-      metadata.createdAt = BigInt.fromString(raw);
-    }
-
+  if (jsonValue.isNull() || jsonValue.kind != JSONValueKind.OBJECT) {
     metadata.save();
-    log.info("[ProposalMetadata] Saved metadata with {} option names for CID: {}", [
-      metadata.optionNames.length.toString(),
-      ipfsCid
-    ]);
-  } else {
-    // Not a JSON object - load or create entity with defaults
-    log.warning("[ProposalMetadata] Content is not a JSON object for CID: {}", [ipfsCid]);
-    let metadata = ProposalMetadata.load(ipfsCid);
-    if (metadata == null) {
-      metadata = new ProposalMetadata(ipfsCid);
-      metadata.description = "";
-      metadata.optionNames = [];
-      metadata.save();
-    }
+    return;
   }
+
+  let jsonObject = jsonValue.toObject();
+
+  // Parse description
+  let descriptionValue = jsonObject.get("description");
+  if (descriptionValue != null && !descriptionValue.isNull() && descriptionValue.kind == JSONValueKind.STRING) {
+    metadata.description = descriptionValue.toString();
+  }
+
+  // Parse optionNames array
+  let optionNamesValue = jsonObject.get("optionNames");
+  if (optionNamesValue != null && !optionNamesValue.isNull() && optionNamesValue.kind == JSONValueKind.ARRAY) {
+    let namesArray = optionNamesValue.toArray();
+    let names: string[] = [];
+    for (let i = 0; i < namesArray.length; i++) {
+      let nameValue = namesArray[i];
+      if (!nameValue.isNull() && nameValue.kind == JSONValueKind.STRING) {
+        names.push(nameValue.toString());
+      } else {
+        names.push("");
+      }
+    }
+    metadata.optionNames = names;
+  }
+
+  // Parse createdAt timestamp
+  let createdAtValue = jsonObject.get("createdAt");
+  if (createdAtValue != null && !createdAtValue.isNull() && createdAtValue.kind == JSONValueKind.NUMBER) {
+    let raw = createdAtValue.toF64().toString();
+    let dotIndex = raw.indexOf(".");
+    if (dotIndex >= 0) {
+      raw = raw.substring(0, dotIndex);
+    }
+    metadata.createdAt = BigInt.fromString(raw);
+  }
+
+  metadata.save();
 }
