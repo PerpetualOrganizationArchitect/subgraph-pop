@@ -1,5 +1,5 @@
-import { Bytes, dataSource, json, BigInt, JSONValueKind, log } from "@graphprotocol/graph-ts";
-import { HatMetadata, Hat } from "../generated/schema";
+import { Bytes, dataSource, json, BigInt, JSONValueKind } from "@graphprotocol/graph-ts";
+import { HatMetadata } from "../generated/schema";
 
 /**
  * Handler for IPFS file data source that parses hat metadata JSON.
@@ -11,8 +11,6 @@ import { HatMetadata, Hat } from "../generated/schema";
  * }
  *
  * This handler extracts both 'name' and 'description' from the IPFS JSON.
- * If 'name' is found and the Hat entity doesn't already have a name set
- * (from HatMetadataUpdated event), it will update the Hat.name field.
  *
  * This handler is resilient to malformed data - if parsing fails or fields
  * are missing, the entity will be created with whatever data is available.
@@ -52,12 +50,10 @@ export function handleHatMetadata(content: Bytes): void {
 
     // Parse name
     let nameValue = jsonObject.get("name");
-    let parsedName: string | null = null;
     if (nameValue != null && !nameValue.isNull() && nameValue.kind == JSONValueKind.STRING) {
       let nameStr = nameValue.toString();
       if (nameStr.length > 0) {
         metadata.name = nameStr;
-        parsedName = nameStr;
       }
     }
 
@@ -75,16 +71,6 @@ export function handleHatMetadata(content: Bytes): void {
     metadata.indexedAt = BigInt.fromI32(0);
 
     metadata.save();
-
-    // If we parsed a name, also update the Hat entity if it doesn't have a name yet
-    if (parsedName != null) {
-      let hat = Hat.load(hatEntityId);
-      if (hat != null && hat.name == null) {
-        hat.name = parsedName;
-        hat.save();
-        log.info("Updated Hat.name from IPFS metadata for hat {}: {}", [hatEntityId, parsedName!]);
-      }
-    }
   } else {
     // Not a JSON object - create entity with just the ID and hat link
     let metadata = new HatMetadata(ipfsHash);

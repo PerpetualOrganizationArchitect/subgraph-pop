@@ -25,6 +25,7 @@ import {
 import {
   EligibilityModuleContract,
   Hat,
+  HatMetadata,
   WearerEligibility,
   VouchConfig,
   Vouch,
@@ -89,13 +90,16 @@ function createHatIpfsDataSource(metadataCID: Bytes, hatEntityId: string): void 
   // Convert bytes32 sha256 digest to IPFS CIDv0 string
   let ipfsCid = bytes32ToCid(metadataCID);
 
+  // Skip if HatMetadata already exists - prevents duplicate file data sources
+  let existing = HatMetadata.load(ipfsCid);
+  if (existing != null) {
+    return;
+  }
+
   // Create context to pass hatEntityId to the IPFS handler
   let context = new DataSourceContext();
   context.setString("hatEntityId", hatEntityId);
 
-  // Create the file data source with context
-  // If IPFS is unavailable or slow, this will be retried automatically
-  // and won't block the main chain indexing
   HatMetadataTemplate.createWithContext(ipfsCid, context);
 }
 
