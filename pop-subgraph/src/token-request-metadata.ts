@@ -49,7 +49,12 @@ export function handleTokenRequestMetadata(content: Bytes): void {
   // Parse submittedAt
   let submittedAtValue = jsonObject.get("submittedAt");
   if (submittedAtValue != null && !submittedAtValue.isNull() && submittedAtValue.kind == JSONValueKind.NUMBER) {
-    metadata.submittedAt = BigInt.fromString(submittedAtValue.toBigInt().toString());
+    let raw = submittedAtValue.toF64().toString();
+    let dotIndex = raw.indexOf(".");
+    if (dotIndex >= 0) {
+      raw = raw.substring(0, dotIndex);
+    }
+    metadata.submittedAt = BigInt.fromString(raw);
   }
 
   metadata.save();

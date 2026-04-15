@@ -95,8 +95,13 @@ export function handleProposalMetadata(content: Bytes): void {
     // Parse createdAt timestamp
     let createdAtValue = jsonObject.get("createdAt");
     if (createdAtValue != null && !createdAtValue.isNull() && createdAtValue.kind == JSONValueKind.NUMBER) {
-      // createdAt is in milliseconds, convert to BigInt
-      metadata.createdAt = BigInt.fromString(createdAtValue.toBigInt().toString());
+      // createdAt is in milliseconds — strip any decimal to safely convert to BigInt
+      let raw = createdAtValue.toF64().toString();
+      let dotIndex = raw.indexOf(".");
+      if (dotIndex >= 0) {
+        raw = raw.substring(0, dotIndex);
+      }
+      metadata.createdAt = BigInt.fromString(raw);
     }
 
     metadata.save();

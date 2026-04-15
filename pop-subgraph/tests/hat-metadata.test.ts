@@ -310,17 +310,12 @@ describe("HatMetadata IPFS Handler", () => {
     assert.fieldEquals("HatMetadata", ipfsHash, "hat", hatEntityId);
   });
 
-  test("Updates Hat.name from IPFS metadata when Hat has no name", () => {
+  test("Does not modify Hat entity from IPFS handler (avoids causality region conflict)", () => {
     let metadataCID = Bytes.fromHexString("0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd");
     let ipfsHash = bytes32ToCid(metadataCID);
     let hatEntityId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1001";
 
     createMockHat(hatEntityId);
-
-    // Verify Hat has no name initially
-    let hatBefore = Hat.load(hatEntityId);
-    assert.assertNotNull(hatBefore);
-    assert.assertNull(hatBefore!.name);
 
     let context = new DataSourceContext();
     context.setString("hatEntityId", hatEntityId);
@@ -331,41 +326,13 @@ describe("HatMetadata IPFS Handler", () => {
 
     handleHatMetadata(contentBytes);
 
-    // Verify Hat.name was updated
+    // HatMetadata should have the name from IPFS
+    assert.fieldEquals("HatMetadata", ipfsHash, "name", "Treasury Manager");
+
+    // Hat entity should NOT be modified by the IPFS handler
     let hatAfter = Hat.load(hatEntityId);
     assert.assertNotNull(hatAfter);
-    assert.stringEquals(hatAfter!.name!, "Treasury Manager");
-  });
-
-  test("Does NOT update Hat.name from IPFS when Hat already has a name", () => {
-    let metadataCID = Bytes.fromHexString("0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee");
-    let ipfsHash = bytes32ToCid(metadataCID);
-    let hatEntityId = "0xa16081f360e3847006db660bae1c6d1b2e17ec2a-1001";
-
-    createMockHat(hatEntityId);
-
-    // Set an existing name on the Hat
-    let hat = Hat.load(hatEntityId)!;
-    hat.name = "Existing Role Name";
-    hat.save();
-
-    let context = new DataSourceContext();
-    context.setString("hatEntityId", hatEntityId);
-    dataSourceMock.setAddressAndContext(ipfsHash, context);
-
-    // IPFS has a different name
-    let jsonContent = '{"name": "New Name From IPFS"}';
-    let contentBytes = Bytes.fromUTF8(jsonContent);
-
-    handleHatMetadata(contentBytes);
-
-    // Verify Hat.name was NOT changed (existing name preserved)
-    let hatAfter = Hat.load(hatEntityId);
-    assert.assertNotNull(hatAfter);
-    assert.stringEquals(hatAfter!.name!, "Existing Role Name");
-
-    // But HatMetadata should still have the IPFS name
-    assert.fieldEquals("HatMetadata", ipfsHash, "name", "New Name From IPFS");
+    assert.assertNull(hatAfter!.name);
   });
 
   test("Handles empty name string as null", () => {
