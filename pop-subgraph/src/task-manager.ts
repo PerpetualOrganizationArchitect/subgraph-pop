@@ -29,6 +29,7 @@ import {
   ProjectCapChange,
   BountyCapChange,
   TaskMetadata,
+  TaskApplicationMetadata,
   ProjectMetadata,
   TaskRejection
 } from "../generated/schema";
@@ -421,10 +422,14 @@ export function handleTaskApplicationSubmitted(event: TaskApplicationSubmitted):
     let applicationCid = bytes32ToCid(event.params.applicationHash);
     application.metadata = applicationCid;
 
-    let context = new DataSourceContext();
-    context.setBigInt("timestamp", event.block.timestamp);
+    // TaskApplicationMetadata is immutable — skip if already indexed
+    let existingAppMeta = TaskApplicationMetadata.load(applicationCid);
+    if (existingAppMeta == null) {
+      let context = new DataSourceContext();
+      context.setBigInt("timestamp", event.block.timestamp);
 
-    TaskApplicationMetadataTemplate.createWithContext(applicationCid, context);
+      TaskApplicationMetadataTemplate.createWithContext(applicationCid, context);
+    }
   }
 
   application.save();
