@@ -1717,7 +1717,7 @@ If IPFS content is unavailable (404), this entity won't be created and the propo
 reference will point to a non-existent entity (queries will return null).
 """
 type ProposalMetadata @entity(immutable: true) {
-  id: String! # IPFS CID (Qm...)
+  id: String! # Proposal entity ID (contractAddress-proposalId)
   description: String! # Full proposal description text
   optionNames: [String!]! # Names for each voting option
   createdAt: BigInt # Timestamp from IPFS metadata
