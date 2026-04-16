@@ -12,28 +12,29 @@ import { ProposalMetadata } from "../generated/schema";
  * }
  *
  * ProposalMetadata is immutable — the entity store only allows INSERT, not UPDATE.
- * This handler follows the single-path pattern: one existence check at the top,
- * one entity creation, one save. Multiple code paths with separate load/new/save
- * cycles cause INSERT conflicts when the same CID is triggered more than once
- * in the same block.
+ * Uses proposalEntityId (from DataSourceContext) as the entity ID instead of CID,
+ * so each proposal gets its own metadata entity. This avoids INSERT conflicts when
+ * two proposals share the same CID but land in different blocks (which run in
+ * separate offchain causality regions in specVersion >= 1.0.0).
  */
 export function handleProposalMetadata(content: Bytes): void {
-  let ipfsCid = dataSource.stringParam();
+  let context = dataSource.context();
+  let proposalEntityId = context.getString("proposalEntityId");
 
   // Immutable — skip if already exists
-  let existing = ProposalMetadata.load(ipfsCid);
+  let existing = ProposalMetadata.load(proposalEntityId);
   if (existing != null) {
     return;
   }
 
-  let metadata = new ProposalMetadata(ipfsCid);
+  let metadata = new ProposalMetadata(proposalEntityId);
   metadata.description = "";
   metadata.optionNames = [];
 
   // Try to parse the JSON content
   let jsonResult = json.try_fromBytes(content);
   if (jsonResult.isError) {
-    log.warning("[ProposalMetadata] Failed to parse JSON for CID: {}", [ipfsCid]);
+    log.warning("[ProposalMetadata] Failed to parse JSON for proposal: {}", [proposalEntityId]);
     metadata.save();
     return;
   }

@@ -59,8 +59,10 @@ function createProposalMetadataDataSource(descriptionHash: Bytes, proposalEntity
   // Convert bytes32 to IPFS CIDv0
   let ipfsCid = bytes32ToCid(descriptionHash);
 
-  // Skip if ProposalMetadata already exists - prevents duplicate file data sources
-  let existingMetadata = ProposalMetadata.load(ipfsCid);
+  // Use proposalEntityId as the metadata entity ID (not CID) so each proposal
+  // gets its own immutable entity — avoids INSERT conflicts when the same CID
+  // is reused across proposals in different blocks (offchain causality regions)
+  let existingMetadata = ProposalMetadata.load(proposalEntityId);
   if (existingMetadata != null) {
     return;
   }
@@ -304,12 +306,9 @@ export function handleNewProposal(event: NewProposal): void {
   proposal.createdAtBlock = event.block.number;
   proposal.transactionHash = event.transaction.hash;
 
-  // Set metadata link - entity will be created by IPFS handler if content exists
-  // Note: We don't create a stub here because file data sources run in a separate causality
-  // region, and both would try to Insert in the same block causing conflicts.
+  // Link metadata by proposalId (not CID) — each proposal gets its own metadata entity
   if (!event.params.descriptionHash.equals(ZERO_HASH)) {
-    let metadataCid = bytes32ToCid(event.params.descriptionHash);
-    proposal.metadata = metadataCid;
+    proposal.metadata = proposalId;
   }
 
   proposal.save();
@@ -361,10 +360,9 @@ export function handleNewHatProposal(event: NewHatProposal): void {
   proposal.createdAtBlock = event.block.number;
   proposal.transactionHash = event.transaction.hash;
 
-  // Set metadata link - entity will be created by IPFS handler if content exists
+  // Link metadata by proposalId (not CID)
   if (!event.params.descriptionHash.equals(ZERO_HASH)) {
-    let metadataCid = bytes32ToCid(event.params.descriptionHash);
-    proposal.metadata = metadataCid;
+    proposal.metadata = proposalId;
   }
 
   proposal.save();
