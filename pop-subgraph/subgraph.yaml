@@ -901,7 +901,6 @@ templates:
       handler: handleTaskMetadata
       entities:
         - TaskMetadata
-        - Task
       abis:
         - name: TaskManager
           file: ./abis/TaskManager.json
@@ -915,7 +914,6 @@ templates:
       handler: handleProjectMetadata
       entities:
         - ProjectMetadata
-        - Project
       abis:
         - name: TaskManager
           file: ./abis/TaskManager.json
@@ -929,8 +927,6 @@ templates:
       handler: handleProposalMetadata
       entities:
         - ProposalMetadata
-        - Proposal
-        - DDVProposal
       abis:
         - name: HybridVoting
           file: ./abis/HybridVoting.json
@@ -944,7 +940,6 @@ templates:
       handler: handleEducationModuleMetadata
       entities:
         - EducationModuleMetadata
-        - EducationModule
       abis:
         - name: EducationHub
           file: ./abis/EducationHub.json

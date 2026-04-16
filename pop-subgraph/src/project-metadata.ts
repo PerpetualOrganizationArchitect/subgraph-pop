@@ -1,5 +1,5 @@
 import { Bytes, dataSource, json, BigInt, JSONValueKind } from "@graphprotocol/graph-ts";
-import { ProjectMetadata, Project } from "../generated/schema";
+import { ProjectMetadata } from "../generated/schema";
 
 /**
  * Handler for IPFS file data source that parses project metadata JSON.
