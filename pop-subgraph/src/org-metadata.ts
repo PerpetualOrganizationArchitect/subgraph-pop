@@ -12,6 +12,7 @@ import { OrgMetadata, OrgMetadataLink } from "../generated/schema";
  *   backgroundColor: "#1a1a2e" // optional CSS color or gradient string
  *   logo: "QmXxx...",         // optional IPFS CID
  *   hideTreasury: true/false  // optional, defaults to null (= show treasury)
+ *   useTokenSymbol: false     // optional, defaults to null/false
  * }
  *
  * This handler is resilient to malformed data - if parsing fails or fields
@@ -84,6 +85,17 @@ export function handleOrgMetadata(content: Bytes): void {
     let hideTreasuryValue = jsonObject.get("hideTreasury");
     if (hideTreasuryValue != null && !hideTreasuryValue.isNull() && hideTreasuryValue.kind == JSONValueKind.BOOL) {
       metadata.hideTreasury = hideTreasuryValue.toBool();
+    }
+
+    // Parse useTokenSymbol — opts the org out of the default "Shares" label
+    // in favour of the live participation-token symbol. Field is optional;
+    // if missing/null, frontend treats it as false.
+    let useTokenSymbolValue = jsonObject.get("useTokenSymbol");
+    if (
+      useTokenSymbolValue != null && !useTokenSymbolValue.isNull() &&
+      useTokenSymbolValue.kind == JSONValueKind.BOOL
+    ) {
+      metadata.useTokenSymbol = useTokenSymbolValue.toBool();
     }
 
     // Set indexed timestamp (approximate - file data sources don't have block context)

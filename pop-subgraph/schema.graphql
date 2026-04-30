@@ -1689,6 +1689,10 @@ type OrgMetadata @entity(immutable: false) {
   backgroundColor: String
   logo: String # IPFS CID of the org logo image
   hideTreasury: Boolean # If true, treasury section is hidden in the UI
+  # When true, UI labels participation-token amounts using the token's
+  # actual symbol (e.g. "REP") instead of the default "Shares". Stored
+  # nullable so missing/old metadata defaults to "Shares" client-side.
+  useTokenSymbol: Boolean
   links: [OrgMetadataLink!]! @derivedFrom(field: "metadata")
   indexedAt: BigInt
 }
