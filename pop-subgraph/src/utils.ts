@@ -11,6 +11,7 @@ import {
   Role,
   RoleWearer,
   Hat,
+  HatLookup,
   ExecutorContract,
   EligibilityModuleContract,
 } from "../generated/schema";
@@ -363,7 +364,221 @@ export function getOrCreateRole(
     role.save();
   }
 
+  // Maintain HatLookup so the Hats Protocol TransferSingle handler can resolve
+  // a bare hatId back to its org+role context. Idempotent: existing entries
+  // are updated only if the role pointer drifts.
+  let lookupId = hatId.toString();
+  let lookup = HatLookup.load(lookupId);
+  if (lookup == null) {
+    lookup = new HatLookup(lookupId);
+    lookup.hatId = hatId;
+    lookup.organization = orgId;
+    lookup.role = roleId;
+    lookup.save();
+  } else if (lookup.role != roleId) {
+    // Hat was previously seen under a different org's lookup — that should
+    // not happen since hat IDs are globally unique. Log via no-op (subgraph
+    // mappings can't `throw`); prefer existing entry.
+  }
+
   return role as Role;
+}
+
+/**
+ * Ensure HatLookup.hat points at the given Hat entity. Called from the
+ * eligibility-module Hat creation sites so that Hats.HatStatusChanged can
+ * mark the hat active/inactive without the eligibility module having to
+ * fire a corresponding event.
+ *
+ * If HatLookup hasn't been created yet (no Role yet), we create a minimal
+ * lookup pointing at hat-only. The role link will be filled in once
+ * getOrCreateRole runs for this hatId.
+ */
+export function linkHatToLookup(
+  hatId: BigInt,
+  orgId: Bytes,
+  hatEntityId: string
+): void {
+  let lookupId = hatId.toString();
+  let lookup = HatLookup.load(lookupId);
+  if (lookup == null) {
+    lookup = new HatLookup(lookupId);
+    lookup.hatId = hatId;
+    lookup.organization = orgId;
+    // Role pointer required by schema. Populate with the canonical role id
+    // for this org+hat — getOrCreateRole will create the Role entity itself
+    // when a wearer is first observed; the dangling reference is fine in
+    // graph-node (entity refs aren't enforced as foreign keys).
+    lookup.role = orgId.toHexString() + "-" + hatId.toString();
+  }
+  lookup.hat = hatEntityId;
+  lookup.save();
+}
+
+/**
+ * Apply a Hats Protocol token-state mint to (orgId, wearer, hatId).
+ *
+ * Treats this as the source of truth for "the wearer holds the hat token":
+ *   - Adds hatId to User.currentHatIds (creates the User entity if missing,
+ *     using joinMethod="HatTransfer" to flag the unusual entry path).
+ *   - Reactivates the User if they had been marked Inactive.
+ *   - Upserts a RoleWearer with isActive = true.
+ *
+ * Idempotent: re-applying for an already-held hat is a no-op.
+ */
+export function applyHatTransferAdd(
+  orgId: Bytes,
+  wearer: Address,
+  hatId: BigInt,
+  event: ethereum.Event
+): void {
+  if (isSystemContract(orgId, wearer)) {
+    return;
+  }
+  let userId = orgId.toHexString() + "-" + wearer.toHexString();
+  let user = User.load(userId);
+  if (user == null) {
+    // First time we have seen this wallet for this org — they joined by
+    // having a hat directly minted/transferred onto them (governance grant,
+    // direct mint, etc.) rather than via QuickJoin/HatClaim.
+    user = new User(userId);
+    user.organization = orgId;
+    user.address = wearer;
+    user.participationTokenBalance = BigInt.fromI32(0);
+    user.totalVotes = BigInt.fromI32(0);
+    user.totalTasksCompleted = BigInt.fromI32(0);
+    user.totalTasksCancelled = BigInt.fromI32(0);
+    user.totalModulesCompleted = BigInt.fromI32(0);
+    user.totalClaimsAmount = BigInt.fromI32(0);
+    user.totalPaymentsAmount = BigInt.fromI32(0);
+    user.totalTokenRequestsAmount = BigInt.fromI32(0);
+    user.firstSeenAt = event.block.timestamp;
+    user.firstSeenAtBlock = event.block.number;
+    user.currentHatIds = [];
+    user.membershipStatus = "Active";
+    user.joinMethod = "HatTransfer";
+    user.account = wearer;
+  }
+
+  user.lastActiveAt = event.block.timestamp;
+  user.lastActiveAtBlock = event.block.number;
+
+  // Add hat if not already present
+  let currentHats = user.currentHatIds;
+  let found = false;
+  for (let i = 0; i < currentHats.length; i++) {
+    if (currentHats[i].equals(hatId)) {
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    currentHats.push(hatId);
+    user.currentHatIds = currentHats;
+    if (user.membershipStatus == "Inactive") {
+      user.membershipStatus = "Active";
+      user.organization = orgId;
+    }
+    recordHatChangeLog(user, hatId, true, event);
+  }
+  user.save();
+
+  // Sync RoleWearer (only when a Role exists — system hats may not have one)
+  let roleId = orgId.toHexString() + "-" + hatId.toString();
+  let role = Role.load(roleId);
+  if (role != null && shouldCreateRoleWearer(orgId, hatId, wearer)) {
+    let rwId = roleId + "-" + wearer.toHexString();
+    let rw = RoleWearer.load(rwId);
+    if (rw == null) {
+      rw = new RoleWearer(rwId);
+      rw.role = roleId;
+      rw.user = user.id;
+      rw.wearer = wearer;
+      rw.wearerUsername = getUsernameForAddress(wearer);
+      rw.addedAt = event.block.timestamp;
+      rw.addedAtBlock = event.block.number;
+      rw.transactionHash = event.transaction.hash;
+    }
+    rw.isActive = true;
+    rw.removedAt = null;
+    rw.save();
+  }
+}
+
+/**
+ * Apply a Hats Protocol token-state burn / transfer-out for (orgId, wearer, hatId).
+ *
+ * Removes hatId from User.currentHatIds and marks the corresponding RoleWearer
+ * inactive. If the user holds no other hats afterward, they are marked Inactive
+ * and unlinked from the org (matching the prior recordUserHatChange behavior).
+ *
+ * Idempotent: removing an already-absent hat is a no-op.
+ */
+export function applyHatTransferRemove(
+  orgId: Bytes,
+  wearer: Address,
+  hatId: BigInt,
+  event: ethereum.Event
+): void {
+  if (isSystemContract(orgId, wearer)) {
+    return;
+  }
+  let userId = orgId.toHexString() + "-" + wearer.toHexString();
+  let user = User.load(userId);
+  if (user != null) {
+    let currentHats = user.currentHatIds;
+    let newHats: BigInt[] = [];
+    let removed = false;
+    for (let i = 0; i < currentHats.length; i++) {
+      if (currentHats[i].equals(hatId)) {
+        removed = true;
+      } else {
+        newHats.push(currentHats[i]);
+      }
+    }
+    if (removed) {
+      user.currentHatIds = newHats;
+      if (newHats.length == 0) {
+        user.membershipStatus = "Inactive";
+        user.organization = null;
+      }
+      recordHatChangeLog(user, hatId, false, event);
+      user.save();
+    }
+  }
+
+  let roleId = orgId.toHexString() + "-" + hatId.toString();
+  let rwId = roleId + "-" + wearer.toHexString();
+  let rw = RoleWearer.load(rwId);
+  if (rw != null && rw.isActive) {
+    rw.isActive = false;
+    rw.removedAt = event.block.timestamp;
+    rw.save();
+  }
+}
+
+/**
+ * Internal: record a UserHatChange entry without touching User.currentHatIds
+ * (caller is responsible for that). Mirrors the immutable-id rules used by
+ * recordUserHatChange so dual-callers don't collide.
+ */
+function recordHatChangeLog(
+  user: User,
+  hatId: BigInt,
+  added: boolean,
+  event: ethereum.Event
+): void {
+  let id = event.transaction.hash.concatI32(event.logIndex.toI32())
+    .concat(Bytes.fromUTF8(user.id))
+    .concat(Bytes.fromByteArray(Bytes.fromBigInt(hatId)));
+  let change = new UserHatChange(id);
+  change.user = user.id;
+  change.hatId = hatId;
+  change.added = added;
+  change.changedAt = event.block.timestamp;
+  change.changedAtBlock = event.block.number;
+  change.transactionHash = event.transaction.hash;
+  change.save();
 }
 
 /**

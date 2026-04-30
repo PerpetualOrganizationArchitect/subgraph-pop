@@ -15,6 +15,10 @@
     "PoaManagerSatellite": {
       "address": "0x0000000000000000000000000000000000000000",
       "startBlock": 447059849
+    },
+    "Hats": {
+      "address": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+      "startBlock": 447059849
     }
   },
   "gnosis": {
@@ -33,6 +37,10 @@
     "PoaManagerSatellite": {
       "address": "0x4Ad70029a9247D369a5bEA92f90840B9ee58eD06",
       "startBlock": 45408030
+    },
+    "Hats": {
+      "address": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+      "startBlock": 45407962
     }
   }
 }

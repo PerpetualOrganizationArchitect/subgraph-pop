@@ -45,7 +45,8 @@ import {
   linkWearerEligibilityToRoleWearer,
   updateRoleWearerStatus,
   recordUserHatChange,
-  shouldCreateRoleWearer
+  shouldCreateRoleWearer,
+  linkHatToLookup
 } from "./utils";
 
 /**
@@ -151,15 +152,18 @@ export function handleHatCreatedWithEligibility(
   hat.defaultEligible = event.params.defaultEligible;
   hat.defaultStanding = event.params.defaultStanding;
   hat.mintedCount = event.params.mintedCount;
+  hat.active = true; // default; updated by Hats.HatStatusChanged
   hat.createdAt = event.block.timestamp;
   hat.createdAtBlock = event.block.number;
   hat.transactionHash = event.transaction.hash;
 
   hat.save();
 
-  // Link Hat to Role entity
+  // Link Hat to Role entity + populate HatLookup.hat so HatStatusChanged
+  // can resolve hatId -> Hat entity.
   if (eligibilityModule) {
     linkHatToRole(eligibilityModule.organization, hatId, hatEntityId, event);
+    linkHatToLookup(hatId, eligibilityModule.organization, hatEntityId);
   }
 }
 
@@ -240,17 +244,12 @@ export function handleWearerEligibilityUpdated(
       wearerEligibilityId
     );
 
-    // Update User.currentHatIds based on eligibility
-    let wearerUser = loadExistingUser(
-      eligibilityModule.organization,
-      wearer,
-      event.block.timestamp,
-      event.block.number
-    );
-    if (wearerUser) {
-      // Add or remove hat from currentHatIds based on active status
-      recordUserHatChange(wearerUser, hatId, isActive, event);
-    }
+    // NOTE: User.currentHatIds is no longer driven from eligibility events.
+    // Hats Protocol's ERC-1155 TransferSingle is the source of truth for who
+    // actually holds a hat token. Eligibility revokes that don't burn the
+    // token (e.g. vouching with combineWithHierarchy=true) used to silently
+    // drop wearers from the subgraph view; see issue #166. The eligibility
+    // view itself is preserved on the WearerEligibility entity.
   }
 }
 
@@ -338,17 +337,9 @@ export function handleBulkWearerEligibilityUpdated(
         wearerEligibilityId
       );
 
-      // Update User.currentHatIds based on eligibility
-      let wearerUser = loadExistingUser(
-        eligibilityModule.organization,
-        wearer,
-        event.block.timestamp,
-        event.block.number
-      );
-      if (wearerUser) {
-        // Add or remove hat from currentHatIds based on active status
-        recordUserHatChange(wearerUser, hatId, isActive, event);
-      }
+      // NOTE: User.currentHatIds is now driven by Hats.TransferSingle, not by
+      // BulkWearerEligibilityUpdated. See handleWearerEligibilityUpdated above
+      // and issue #166 for context.
     }
   }
 }
@@ -382,10 +373,19 @@ export function handleDefaultEligibilityUpdated(
     hat.defaultEligible = event.params.eligible;
     hat.defaultStanding = event.params.standing;
     hat.mintedCount = BigInt.fromI32(0); // Unknown - will be updated if minting events occur
+    hat.active = true; // default; updated by Hats.HatStatusChanged
     hat.createdAt = event.block.timestamp;
     hat.createdAtBlock = event.block.number;
     hat.transactionHash = event.transaction.hash;
     hat.save();
+
+    // Populate HatLookup.hat so Hats.HatStatusChanged can resolve hatId
+    // -> Hat entity. Org comes from the eligibility module that fired this
+    // event.
+    let elig = EligibilityModuleContract.load(contractAddress);
+    if (elig) {
+      linkHatToLookup(hatId, elig.organization, hatEntityId);
+    }
 
     log.info("Created Hat entity from DefaultEligibilityUpdated for hatId {} at contract {}", [
       hatId.toString(),
