@@ -35,6 +35,11 @@ function applyTransfer(
   event: ethereum.Event
 ): void {
   if (value.isZero()) return;
+  // Self-transfer (from == to) is rejected by Hats Protocol but defend
+  // against it anyway: a remove+add for the same wearer with the same
+  // (txHash, logIndex, userId, hatId) would collide on the immutable
+  // UserHatChange entity ID and crash the indexer.
+  if (from.equals(to)) return;
 
   // Skip hats not registered to any of our orgs. Hats Protocol is global —
   // we only care about hats in trees we deployed.

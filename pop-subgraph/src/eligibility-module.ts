@@ -45,7 +45,8 @@ import {
   linkWearerEligibilityToRoleWearer,
   updateRoleWearerStatus,
   recordUserHatChange,
-  shouldCreateRoleWearer
+  shouldCreateRoleWearer,
+  linkHatToLookup
 } from "./utils";
 
 /**
@@ -158,9 +159,11 @@ export function handleHatCreatedWithEligibility(
 
   hat.save();
 
-  // Link Hat to Role entity
+  // Link Hat to Role entity + populate HatLookup.hat so HatStatusChanged
+  // can resolve hatId -> Hat entity.
   if (eligibilityModule) {
     linkHatToRole(eligibilityModule.organization, hatId, hatEntityId, event);
+    linkHatToLookup(hatId, eligibilityModule.organization, hatEntityId);
   }
 }
 
@@ -375,6 +378,14 @@ export function handleDefaultEligibilityUpdated(
     hat.createdAtBlock = event.block.number;
     hat.transactionHash = event.transaction.hash;
     hat.save();
+
+    // Populate HatLookup.hat so Hats.HatStatusChanged can resolve hatId
+    // -> Hat entity. Org comes from the eligibility module that fired this
+    // event.
+    let elig = EligibilityModuleContract.load(contractAddress);
+    if (elig) {
+      linkHatToLookup(hatId, elig.organization, hatEntityId);
+    }
 
     log.info("Created Hat entity from DefaultEligibilityUpdated for hatId {} at contract {}", [
       hatId.toString(),

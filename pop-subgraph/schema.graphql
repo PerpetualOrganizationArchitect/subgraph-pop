@@ -666,6 +666,11 @@ type RoleWearer @entity(immutable: false) {
   addedAt: BigInt!
   addedAtBlock: BigInt!
   removedAt: BigInt
+  # True iff the wearer currently holds a positive Hats Protocol ERC-1155
+  # balance for the hat (tracked via TransferSingle). Note: this does NOT
+  # incorporate Hat.active or wearer-standing — Hats.isWearerOfHat semantics
+  # require ANDing this flag with Hat.active and (if vouching is configured)
+  # the linked WearerEligibility.eligible/standing.
   isActive: Boolean!
   transactionHash: Bytes!
 }

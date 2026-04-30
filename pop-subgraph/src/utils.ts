@@ -385,6 +385,37 @@ export function getOrCreateRole(
 }
 
 /**
+ * Ensure HatLookup.hat points at the given Hat entity. Called from the
+ * eligibility-module Hat creation sites so that Hats.HatStatusChanged can
+ * mark the hat active/inactive without the eligibility module having to
+ * fire a corresponding event.
+ *
+ * If HatLookup hasn't been created yet (no Role yet), we create a minimal
+ * lookup pointing at hat-only. The role link will be filled in once
+ * getOrCreateRole runs for this hatId.
+ */
+export function linkHatToLookup(
+  hatId: BigInt,
+  orgId: Bytes,
+  hatEntityId: string
+): void {
+  let lookupId = hatId.toString();
+  let lookup = HatLookup.load(lookupId);
+  if (lookup == null) {
+    lookup = new HatLookup(lookupId);
+    lookup.hatId = hatId;
+    lookup.organization = orgId;
+    // Role pointer required by schema. Populate with the canonical role id
+    // for this org+hat — getOrCreateRole will create the Role entity itself
+    // when a wearer is first observed; the dangling reference is fine in
+    // graph-node (entity refs aren't enforced as foreign keys).
+    lookup.role = orgId.toHexString() + "-" + hatId.toString();
+  }
+  lookup.hat = hatEntityId;
+  lookup.save();
+}
+
+/**
  * Apply a Hats Protocol token-state mint to (orgId, wearer, hatId).
  *
  * Treats this as the source of truth for "the wearer holds the hat token":
