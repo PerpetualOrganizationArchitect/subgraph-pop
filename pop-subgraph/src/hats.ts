@@ -1,0 +1,109 @@
+// Hats Protocol event handlers — drive User.currentHatIds and RoleWearer.isActive
+// off the canonical ERC-1155 token state instead of the EligibilityModule's view.
+//
+// Why this exists: an org with combineWithHierarchy=true vouching can hold a hat
+// open to a wearer even after the EligibilityModule fires
+// WearerEligibilityUpdated(eligible=false). The token is NOT burned in that case,
+// so Hats.isWearerOfHat keeps returning true on-chain. Driving User.currentHatIds
+// off eligibility events undercounted wearers (issue #166).
+//
+// Source of truth: ERC-1155 TransferSingle / TransferBatch from the Hats Protocol
+// canonical contract.
+
+import { Address, BigInt, ethereum, log } from "@graphprotocol/graph-ts";
+import {
+  TransferSingle,
+  TransferBatch,
+  HatStatusChanged,
+} from "../generated/Hats/Hats";
+import { HatLookup, Hat } from "../generated/schema";
+import { applyHatTransferAdd, applyHatTransferRemove } from "./utils";
+
+const ZERO_ADDRESS = Address.zero();
+
+/**
+ * Apply a single hat transfer for one (hatId, value=1) tuple.
+ * Hats Protocol always uses value=1 per ERC-1155 token, but we accept any
+ * positive value defensively (multi-hat aggregations would still represent
+ * one logical hat).
+ */
+function applyTransfer(
+  from: Address,
+  to: Address,
+  hatId: BigInt,
+  value: BigInt,
+  event: ethereum.Event
+): void {
+  if (value.isZero()) return;
+
+  // Skip hats not registered to any of our orgs. Hats Protocol is global —
+  // we only care about hats in trees we deployed.
+  let lookup = HatLookup.load(hatId.toString());
+  if (lookup == null) return;
+  let orgId = lookup.organization;
+
+  let isMint = from.equals(ZERO_ADDRESS);
+  let isBurn = to.equals(ZERO_ADDRESS);
+
+  if (isMint && !isBurn) {
+    applyHatTransferAdd(orgId, to, hatId, event);
+  } else if (isBurn && !isMint) {
+    applyHatTransferRemove(orgId, from, hatId, event);
+  } else if (!isMint && !isBurn) {
+    // transferHat: move the slot from one wearer to another
+    applyHatTransferRemove(orgId, from, hatId, event);
+    applyHatTransferAdd(orgId, to, hatId, event);
+  }
+  // 0x0 -> 0x0 is undefined behavior in ERC-1155; ignore.
+}
+
+export function handleHatsTransferSingle(event: TransferSingle): void {
+  applyTransfer(
+    event.params.from,
+    event.params.to,
+    event.params.id,
+    event.params.value,
+    event
+  );
+}
+
+export function handleHatsTransferBatch(event: TransferBatch): void {
+  let ids = event.params.ids;
+  let values = event.params.values;
+  if (ids.length != values.length) {
+    log.warning(
+      "[Hats] TransferBatch ids/values length mismatch — ids={} values={} tx={}",
+      [
+        ids.length.toString(),
+        values.length.toString(),
+        event.transaction.hash.toHexString(),
+      ]
+    );
+    return;
+  }
+  for (let i = 0; i < ids.length; i++) {
+    applyTransfer(
+      event.params.from,
+      event.params.to,
+      ids[i],
+      values[i],
+      event
+    );
+  }
+}
+
+/**
+ * Mark a hat active or inactive in our subgraph. Tokens are NOT burned when a
+ * hat is toggled off, so consumers wanting "is X currently wearing this hat?"
+ * semantics must AND wearer-balance with Hat.active.
+ */
+export function handleHatsStatusChanged(event: HatStatusChanged): void {
+  let lookup = HatLookup.load(event.params.hatId.toString());
+  if (lookup == null) return;
+  let hatEntityId = lookup.hat;
+  if (hatEntityId == null) return;
+  let hat = Hat.load(hatEntityId as string);
+  if (hat == null) return;
+  hat.active = event.params.newStatus;
+  hat.save();
+}

@@ -610,6 +610,11 @@ type Hat @entity(immutable: false) {
   metadata: HatMetadata # Link to IPFS-indexed metadata content
   metadataUpdatedAt: BigInt
   metadataUpdatedAtBlock: BigInt
+  # Hats Protocol active flag — false means Hats.isWearerOfHat returns false
+  # for ALL wearers regardless of token balance. Tokens are NOT burned when a
+  # hat is toggled off, so consumers wanting "is this person wearing X?" must
+  # AND wearer-balance with this flag.
+  active: Boolean!
   createdAt: BigInt!
   createdAtBlock: BigInt!
   transactionHash: Bytes!
@@ -663,6 +668,19 @@ type RoleWearer @entity(immutable: false) {
   removedAt: BigInt
   isActive: Boolean!
   transactionHash: Bytes!
+}
+
+# HatLookup — global hatId → org/role index used by the Hats Protocol
+# TransferSingle handler. Hats events only carry the bare uint256 hatId;
+# we need to resolve which org / role / Hat entity that id belongs to in
+# our subgraph (without iterating). Populated whenever getOrCreateRole
+# creates or loads a Role.
+type HatLookup @entity(immutable: false) {
+  id: String! # hatId.toString()
+  hatId: BigInt!
+  organization: Organization!
+  role: Role!
+  hat: Hat
 }
 
 type WearerEligibility @entity(immutable: false) {
