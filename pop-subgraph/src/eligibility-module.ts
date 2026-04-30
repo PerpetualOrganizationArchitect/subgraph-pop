@@ -224,19 +224,14 @@ export function handleWearerEligibilityUpdated(
 
   wearerEligibility.save();
 
-  // Sync RoleWearer.isActive with eligibility status
+  // Link wearerEligibility to RoleWearer for the eligibility-rules view.
+  // NOTE: RoleWearer.isActive is no longer set here — it now reflects ERC-1155
+  // token state via Hats.TransferSingle (see issue #166). Eligibility-only
+  // revokes don't burn tokens (vouching with combineWithHierarchy=true), so
+  // flipping isActive off them was wrong. Consumers wanting eligibility-aware
+  // semantics should AND RoleWearer.isActive with WearerEligibility.{eligible,
+  // standing} via the linked WearerEligibility.
   if (eligibilityModule) {
-    // A wearer is active if they are both eligible AND in good standing
-    let isActive = event.params.eligible && event.params.standing;
-    updateRoleWearerStatus(
-      eligibilityModule.organization,
-      hatId,
-      wearer,
-      isActive,
-      event
-    );
-
-    // Link wearerEligibility to RoleWearer
     linkWearerEligibilityToRoleWearer(
       eligibilityModule.organization,
       hatId,
@@ -317,19 +312,9 @@ export function handleBulkWearerEligibilityUpdated(
 
     wearerEligibility.save();
 
-    // Sync RoleWearer.isActive with eligibility status
+    // Same fix as the single-wearer path above: only the eligibility view
+    // is updated, the token-state view (RoleWearer.isActive) is left alone.
     if (eligibilityModule) {
-      // A wearer is active if they are both eligible AND in good standing
-      let isActive = eligible && standing;
-      updateRoleWearerStatus(
-        eligibilityModule.organization,
-        hatId,
-        wearer,
-        isActive,
-        event
-      );
-
-      // Link wearerEligibility to RoleWearer
       linkWearerEligibilityToRoleWearer(
         eligibilityModule.organization,
         hatId,
