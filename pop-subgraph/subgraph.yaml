@@ -555,6 +555,10 @@ templates:
           handler: handleTaskManagerSet
         - event: EducationHubSet(indexed address)
           handler: handleEducationHubSet
+        - event: NameSet(string)
+          handler: handleNameSet
+        - event: SymbolSet(string)
+          handler: handleSymbolSet
       file: ./src/participation-token.ts
   - kind: ethereum
     name: QuickJoin

@@ -1,6 +1,7 @@
 import { BigInt, Bytes, log, Address, DataSourceContext } from "@graphprotocol/graph-ts";
 import { TokenRequestMetadata as TokenRequestMetadataTemplate } from "../generated/templates";
 import {
+  ParticipationToken as ParticipationTokenAbi,
   Initialized as InitializedEvent,
   Transfer as TransferEvent,
   MemberHatSet as MemberHatSetEvent,
@@ -9,7 +10,9 @@ import {
   RequestApproved as RequestApprovedEvent,
   RequestCancelled as RequestCancelledEvent,
   TaskManagerSet as TaskManagerSetEvent,
-  EducationHubSet as EducationHubSetEvent
+  EducationHubSet as EducationHubSetEvent,
+  NameSet as NameSetEvent,
+  SymbolSet as SymbolSetEvent
 } from "../generated/templates/ParticipationToken/ParticipationToken";
 import {
   ParticipationTokenContract,
@@ -23,9 +26,11 @@ import { getOrCreateRole, loadExistingUser } from "./utils";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 export function handleInitialized(event: InitializedEvent): void {
-  // Initialization is handled by OrgDeployer when the contract is created.
-  // Initial values for name, symbol, executor, hats will be populated there.
-  // We avoid contract calls here to support non-archive RPC nodes.
+  // Hydrate name + symbol from the freshly initialized token. Graph node
+  // permits current-state try_* contract calls on non-archive RPCs; only
+  // historical block-pinned reads require archive nodes. Without this,
+  // ParticipationTokenContract.{name,symbol} stays as the empty strings
+  // seeded by org-deployer.ts and the UI falls back to "Shares" forever.
   let contract = ParticipationTokenContract.load(event.address);
   if (contract == null) {
     log.warning("ParticipationTokenContract not found at address {}", [
@@ -33,7 +38,15 @@ export function handleInitialized(event: InitializedEvent): void {
     ]);
     return;
   }
-  // Just save to mark initialization
+  let bound = ParticipationTokenAbi.bind(event.address);
+  let nameResult = bound.try_name();
+  if (!nameResult.reverted) {
+    contract.name = nameResult.value;
+  }
+  let symbolResult = bound.try_symbol();
+  if (!symbolResult.reverted) {
+    contract.symbol = symbolResult.value;
+  }
   contract.save();
 }
 
@@ -294,5 +307,29 @@ export function handleEducationHubSet(event: EducationHubSetEvent): void {
   }
 
   contract.educationHubAddress = event.params.educationHub;
+  contract.save();
+}
+
+export function handleNameSet(event: NameSetEvent): void {
+  let contract = ParticipationTokenContract.load(event.address);
+  if (contract == null) {
+    log.warning("ParticipationTokenContract not found at address {}", [
+      event.address.toHexString()
+    ]);
+    return;
+  }
+  contract.name = event.params.newName;
+  contract.save();
+}
+
+export function handleSymbolSet(event: SymbolSetEvent): void {
+  let contract = ParticipationTokenContract.load(event.address);
+  if (contract == null) {
+    log.warning("ParticipationTokenContract not found at address {}", [
+      event.address.toHexString()
+    ]);
+    return;
+  }
+  contract.symbol = event.params.newSymbol;
   contract.save();
 }
