@@ -68,6 +68,7 @@ function createMockHat(hatEntityId: string): void {
   hat.defaultEligible = true;
   hat.defaultStanding = true;
   hat.mintedCount = BigInt.fromI32(0);
+  hat.active = true;
   hat.createdAt = BigInt.fromI32(1000);
   hat.createdAtBlock = BigInt.fromI32(100);
   hat.transactionHash = Bytes.fromHexString("0xabcd");
